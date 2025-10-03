@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply transition-colors duration-300;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white dark:bg-slate-900;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 font-semibold transition-all duration-300 hover:scale-105;
+  }
+
+  .mobile-nav-link {
+    @apply text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-full font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300;
+  }
+
+  .btn-outline {
+    @apply px-6 py-3 border-2 border-teal-500 dark:border-teal-400 text-teal-600 dark:text-teal-400 rounded-full font-bold hover:bg-teal-500 hover:text-white dark:hover:bg-teal-400 dark:hover:text-slate-900 transform hover:scale-105 transition-all duration-300;
+  }
+
+  .section-title {
+    @apply text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent;
+  }
+
+  .font-arabic {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+}
+
+@layer utilities {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideRight {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  .animate-slideUp {
+    animation: slideUp 0.8s ease-out forwards;
+  }
+
+  .animate-slideDown {
+    animation: slideDown 0.4s ease-out forwards;
+  }
+
+  .animate-slideLeft {
+    animation: slideLeft 0.8s ease-out forwards;
+  }
+
+  .animate-slideRight {
+    animation: slideRight 0.8s ease-out forwards;
+  }
+}
