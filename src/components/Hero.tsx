@@ -75,18 +75,18 @@ export const Hero = () => {
               {/* خلفية شفافة */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10"></div>
 
-              <video
-                controls
-                playsInline
-                className="w-full aspect-video object-cover"
-                poster="/DEDE.jpg"
-              >
-                <source
-                  src="https://drive.google.com/file/d/1GGq5sqa2XMFCAktFwY2Qcj27DaS_vN2i/view?usp=sharing"
-                  type="video/mp4"
-                />
-                متصفحك لا يدعم تشغيل الفيديو.
-              </video>
+             <video
+  controls
+  playsInline
+  className="w-full aspect-video object-cover"
+  poster="/DEDE.jpg"
+>
+  <source
+    src="https://drive.google.com/uc?export=download&id=1GGq5sqa2XMFCAktFwY2Qcj27DaS_vN2i"
+    type="video/mp4"
+  />
+  متصفحك لا يدعم تشغيل الفيديو.
+</video>
 
               {/* نص وأيقونة أسفل الفيديو */}
               <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white">
