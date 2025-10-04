@@ -16,7 +16,7 @@ export const Projects = () => {
       video: 'https://www.youtube.com/embed/nDQYphxF6UU',
     },
     {
-      icon: BookOpen,
+      icon: Droplets,
       title: 'السقاية رقم 11',
       description: 'مشروع السقاية رقم 11 لتوزيع المياه.',
       color: 'from-teal-500 to-green-500',
