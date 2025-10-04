@@ -1,226 +1,91 @@
-import { Translations } from '../types/translations';
+import { Droplets, BookOpen } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
-export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
-  ar: {
-    nav: {
-      home: 'الرئيسية',
-      about: 'من نحن',
-      projects: 'المشاريع',
-      volunteer: 'تطوع',
-      donate: 'تبرع',
-      contact: 'تواصل معنا',
+export const Projects = () => {
+  const { t, language } = useLanguage();
+
+  // جميع المشاريع يتم أخذها من ملف الترجمة
+  const projects = [
+    {
+      icon: Droplets,
+      title: t.projects.project1.title,
+      description: t.projects.project1.description,
+      video: 'https://www.youtube.com/embed/nDQYphxF6UU',
+      color: 'from-blue-500 to-cyan-500',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     },
-    hero: {
-      title: 'جمعية عون وسند الخيرية',
-      subtitle: 'جمعية تطوعية مرخصة، أسسها مجموعة من الطلاب الجامعيين بهدف دعم الفقراء والمحتاجين',
-      license: 'رقم ترخيص: FA 010000210303202510407',
-      date: 'بتاريخ: 2025-03-05',
-      learnMore: 'تعرّف علينا',
-      donateNow: 'تبرّع الآن',
-      joinVolunteer: 'انضم كمتطوع',
-      watchVideo: 'شاهد الفيديو التعريفي',
+    {
+      icon: BookOpen,
+      title: t.projects.project2.title,
+      description: t.projects.project2.description,
+      video: 'https://www.youtube.com/embed/86LU416opIc',
+      color: 'from-teal-500 to-green-500',
+      bgColor: 'bg-teal-50 dark:bg-teal-900/20',
     },
-    about: {
-      title: 'من نحن',
-      description: 'جمعية عون وسند الخيرية هي جمعية تطوعية مرخصة، أسسها مجموعة من الطلاب الجامعيين بهدف دعم الفقراء والمحتاجين',
-      goalsTitle: 'أهداف الجمعية',
-      goals: [
-        'دعم الأسر الفقيرة والمهمشة',
-        'تنظيم دروس دينية وتعليمية لتعزيز الوعي والثقافة',
-        'تنفيذ مشاريع خيرية موسمية لتلبية الاحتياجات العاجلة',
-      ],
-      teamTitle: 'فريق العمل',
-      teamDescription: 'طلاب متطوعون من تخصصات متعددة، يعملون بكل شغف وروح تعاون لنشر الخير وتحقيق أثر ملموس',
+    {
+      icon: Droplets,
+      title: 'مشروع "سقيا رقم 4"',
+      description: 'توفير مياه نظيفة لسقايات إضافية في المناطق المحتاجة',
+      video: 'https://www.youtube.com/embed/ZLop_RsrDBw',
+      color: 'from-purple-500 to-pink-500',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
     },
-    projects: {
-      title: 'أهدافنا ومشاريعنا',
-      project1: {
-        title: 'مشروع "سقيا الأمل"',
-        description: 'إيصال الماء للأسر المحتاجة من خلال توفير سقايات مياه نظيفة وآمنة',
-      },
-      project2: {
-        title: 'مشروع "المحجة البيضاء"',
-        description: 'مشروع للتعليم الشرعي يهدف إلى نشر العلم الشرعي الأصيل وترسيخ مفاهيم الدين الإسلامي وفق منهج أهل السنة والجماعة',
-      },
+    {
+      icon: BookOpen,
+      title: 'شرح كتاب الأخضري',
+      description: 'دروس تعليمية حول كتاب الأخضري لتعزيز الفهم الديني',
+      video: 'https://www.youtube.com/embed/fQgr-BUSW1c',
+      color: 'from-orange-500 to-yellow-500',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
     },
-    volunteer: {
-      title: 'كن جزءًا من الخير',
-      subtitle: 'شاركنا رحلتنا الإنسانية بطرق متعددة',
-      options: [
-        'عضو فعال في الجمعية',
-        'داعم شهري يبني الخير',
-        'شريك استراتيجي يدعم أهدافنا',
-      ],
-      contact: 'تواصل معنا عبر واتساب',
-    },
-    donation: {
-      title: 'ساهم في رسم البسمة على وجوه المحتاجين',
-      subtitle: 'اختر التطبيق البنكي المناسب لك',
-      banks: ['بنكيلي', 'مصرفي', 'السداد', 'بيم بانك', 'غازا بي'],
-      successTitle: 'شكراً لك!',
-      successMessage: 'انسخ الرقم وابدأ التبرع عبر التطبيق الذي اخترته بسهولة وأمان',
-      copyNumber: 'نسخ الرقم',
-      contactMessage: 'لأي استفسار أو تأكيد تبرع، تواصل عبر واتساب',
-      donationNumber: 'رقم التبرع',
-    },
-    contact: {
-      title: 'تواصل معنا',
-      address: 'العنوان: نواكشوط - كارفور',
-      phone: 'الهاتف: 32203250',
-      email: 'البريد الإلكتروني: associationaidesoutien@gmail.com',
-      follow: 'تابعونا على وسائل التواصل الاجتماعي',
-    },
-    footer: {
-      rights: 'جميع الحقوق محفوظة',
-      description: 'جمعية عون وسند الخيرية - نشر الخير والأمل',
-    },
-  },
-  fr: {
-    nav: {
-      home: 'Accueil',
-      about: 'À propos',
-      projects: 'Projets',
-      volunteer: 'Bénévolat',
-      donate: 'Faire un don',
-      contact: 'Contact',
-    },
-    hero: {
-      title: 'Association Caritative Aide et Soutien',
-      subtitle: 'Association bénévole agréée, fondée par des étudiants universitaires pour soutenir les pauvres et les nécessiteux',
-      license: 'Numéro de licence: FA 010000210303202510407',
-      date: 'Date: 2025-03-05',
-      learnMore: 'En savoir plus',
-      donateNow: 'Faire un don',
-      joinVolunteer: 'Devenir bénévole',
-      watchVideo: 'Regarder la vidéo',
-    },
-    about: {
-      title: 'À propos de nous',
-      description: "L'Association Caritative Aide et Soutien est une association bénévole agréée, fondée par des étudiants universitaires dans le but de soutenir les pauvres et les nécessiteux",
-      goalsTitle: 'Objectifs de l\'association',
-      goals: [
-        'Soutenir les familles pauvres et marginalisées',
-        'Organiser des cours religieux et éducatifs pour promouvoir la sensibilisation et la culture',
-        'Mettre en œuvre des projets caritatifs saisonniers pour répondre aux besoins urgents',
-      ],
-      teamTitle: 'Notre équipe',
-      teamDescription: 'Des étudiants bénévoles de diverses disciplines, travaillant avec passion et esprit de coopération pour répandre le bien et avoir un impact tangible',
-    },
-    projects: {
-      title: 'Nos objectifs et projets',
-      project1: {
-        title: 'Projet "L\'Espoir de l\'Eau"',
-        description: 'Fournir de l\'eau aux familles dans le besoin en installant des points d\'eau propres et sûrs',
-      },
-      project2: {
-        title: 'Projet "La Voie Blanche"',
-        description: 'Un projet d\'éducation religieuse visant à diffuser la connaissance religieuse authentique et à ancrer les concepts de l\'islam selon la méthode des gens de la Sunna et du consensus',
-      },
-    },
-    volunteer: {
-      title: 'Faites partie du bien',
-      subtitle: 'Rejoignez notre voyage humanitaire de plusieurs façons',
-      options: [
-        'Membre actif de l\'association',
-        'Donateur mensuel qui construit le bien',
-        'Partenaire stratégique soutenant nos objectifs',
-      ],
-      contact: 'Contactez-nous via WhatsApp',
-    },
-    donation: {
-      title: 'Contribuez à mettre un sourire sur les visages des nécessiteux',
-      subtitle: 'Choisissez l\'application bancaire qui vous convient',
-      banks: ['Bankily', 'Masrivi', 'Sedad', 'Bim Bank', 'Gaza Pay'],
-      successTitle: 'Merci!',
-      successMessage: 'Copiez le numéro et commencez à faire un don via l\'application que vous avez choisie facilement et en toute sécurité',
-      copyNumber: 'Copier le numéro',
-      contactMessage: 'Pour toute question ou confirmation de don, contactez-nous via WhatsApp',
-      donationNumber: 'Numéro de don',
-    },
-    contact: {
-      title: 'Contactez-nous',
-      address: 'Adresse: Nouakchott - Carrefour',
-      phone: 'Téléphone: 32203250',
-      email: 'Email: associationaidesoutien@gmail.com',
-      follow: 'Suivez-nous sur les réseaux sociaux',
-    },
-    footer: {
-      rights: 'Tous droits réservés',
-      description: 'Association Caritative Aide et Soutien - Répandre le bien et l\'espoir',
-    },
-  },
-  en: {
-    nav: {
-      home: 'Home',
-      about: 'About',
-      projects: 'Projects',
-      volunteer: 'Volunteer',
-      donate: 'Donate',
-      contact: 'Contact',
-    },
-    hero: {
-      title: 'Aid and Support Charity Association',
-      subtitle: 'A licensed volunteer association founded by university students to support the poor and needy',
-      license: 'License Number: FA 010000210303202510407',
-      date: 'Date: 2025-03-05',
-      learnMore: 'Learn More',
-      donateNow: 'Donate Now',
-      joinVolunteer: 'Join as Volunteer',
-      watchVideo: 'Watch Video',
-    },
-    about: {
-      title: 'About Us',
-      description: 'Aid and Support Charity Association is a licensed volunteer association founded by university students to support the poor and needy',
-      goalsTitle: 'Our Goals',
-      goals: [
-        'Support poor and marginalized families',
-        'Organize religious and educational classes to promote awareness and culture',
-        'Implement seasonal charitable projects to meet urgent needs',
-      ],
-      teamTitle: 'Our Team',
-      teamDescription: 'Volunteer students from various disciplines, working with passion and cooperation to spread goodness and achieve tangible impact',
-    },
-    projects: {
-      title: 'Our Goals and Projects',
-      project1: {
-        title: 'Project "Hope of Water"',
-        description: 'Providing water to needy families by installing clean and safe water stations',
-      },
-      project2: {
-        title: 'Project "The White Path"',
-        description: 'A religious education project aimed at spreading authentic Islamic knowledge and establishing the concepts of Islam according to the methodology of Sunni Islam',
-      },
-    },
-    volunteer: {
-      title: 'Be Part of the Good',
-      subtitle: 'Join our humanitarian journey in multiple ways',
-      options: [
-        'Active member of the association',
-        'Monthly supporter building goodness',
-        'Strategic partner supporting our goals',
-      ],
-      contact: 'Contact us via WhatsApp',
-    },
-    donation: {
-      title: 'Help bring smiles to the faces of those in need',
-      subtitle: 'Choose the banking app that suits you',
-      banks: ['Bankily', 'Masrivi', 'Sedad', 'Bim Bank', 'Gaza Pay'],
-      successTitle: 'Thank You!',
-      successMessage: 'Copy the number and start donating through the app you chose easily and securely',
-      copyNumber: 'Copy Number',
-      contactMessage: 'For any inquiry or donation confirmation, contact us via WhatsApp',
-      donationNumber: 'Donation Number',
-    },
-    contact: {
-      title: 'Contact Us',
-      address: 'Address: Nouakchott - Carrefour',
-      phone: 'Phone: 32203250',
-      email: 'Email: associationaidesoutien@gmail.com',
-      follow: 'Follow us on social media',
-    },
-    footer: {
-      rights: 'All rights reserved',
-      description: 'Aid and Support Charity Association - Spreading goodness and hope',
-    },
-  },
+  ];
+
+  return (
+    <section id="projects" className="py-20 bg-gray-50 dark:bg-slate-800 transition-colors duration-300">
+      <div className="container mx-auto px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className={`section-title text-center mb-12 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            {t.projects.title}
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {projects.map((project, index) => {
+              const Icon = project.icon;
+              return (
+                <div
+                  key={index}
+                  className="group bg-white dark:bg-slate-900 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-fadeIn"
+                  style={{ animationDelay: `${index * 0.2}s` }}
+                >
+                  <div className={`h-2 bg-gradient-to-r ${project.color}`}></div>
+                  <div className="p-8">
+                    <div className={`inline-flex p-4 rounded-2xl ${project.bgColor} mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-10 h-10 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-4 text-gray-800 dark:text-white ${language === 'ar' ? 'font-arabic' : ''}`}>
+                      {project.title}
+                    </h3>
+                    <p className={`text-gray-600 dark:text-gray-300 leading-relaxed mb-6 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                      {project.description}
+                    </p>
+
+                    {/* Embed فيديو يوتيوب */}
+                    <div className="relative pb-[56.25%] h-0 overflow-hidden rounded-xl shadow-md">
+                      <iframe
+                        src={project.video}
+                        title={project.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute top-0 left-0 w-full h-full"
+                      ></iframe>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
