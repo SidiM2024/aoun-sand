@@ -82,7 +82,7 @@ export const Hero = () => {
                 poster="/DEDE.jpg"
               >
                 <source
-                  src="https://drive.google.com/uc?export=download&id=1GBaHXcWwql8XYhaijMK8a_H5qD8_HbO3"
+                  src="https://drive.google.com/file/d/1GGq5sqa2XMFCAktFwY2Qcj27DaS_vN2i/view?usp=sharing"
                   type="video/mp4"
                 />
                 متصفحك لا يدعم تشغيل الفيديو.
