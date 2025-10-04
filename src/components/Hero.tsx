@@ -1,8 +1,14 @@
 import { Heart, Users, Video, HeartHandshake } from "lucide-react";
+import { useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export const Hero = () => {
   const { t, language } = useLanguage();
+  const [open, setOpen] = useState(false);
+
+  // رابط الفيديو من يوتيوب
+  const videoId = "Q0jCQP8YveY";
+  const thumb = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -66,37 +72,66 @@ export const Hero = () => {
             </button>
           </div>
 
-          {/* الفيديو */}
+          {/* الفيديو (صورة + زر تشغيل) */}
           <div
             className="max-w-3xl mx-auto animate-fadeIn"
             style={{ animationDelay: "0.4s" }}
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300">
-              {/* خلفية شفافة */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10"></div>
-
-             <video
-  controls
-  playsInline
-  className="w-full aspect-video object-cover"
-  poster="/DEDE.jpg"
->
-  <source
-    src="https://drive.google.com/uc?export=download&id=1GGq5sqa2XMFCAktFwY2Qcj27DaS_vN2i"
-    type="video/mp4"
-  />
-  متصفحك لا يدعم تشغيل الفيديو.
-</video>
-
-              {/* نص وأيقونة أسفل الفيديو */}
-              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white">
-                <Video className="w-5 h-5" />
-                <span className="font-semibold">{t.hero.watchVideo}</span>
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300 cursor-pointer"
+              onClick={() => setOpen(true)}
+            >
+              <img
+                src={thumb}
+                alt="video thumbnail"
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <button
+                  aria-label="Play video"
+                  className="p-4 rounded-full bg-white/90 hover:bg-white"
+                >
+                  <Video className="w-6 h-6 text-black" />
+                </button>
+              </div>
+              <div className="absolute bottom-4 left-4 z-20 text-white font-semibold">
+                {t.hero.watchVideo}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modal لعرض الفيديو */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-4xl relative">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-2 right-2 z-40 text-white bg-black/40 rounded-full p-2"
+            >
+              ✕
+            </button>
+            <div style={{ position: "relative", paddingTop: "56.25%" }}>
+              <iframe
+                loading="lazy"
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                title="YouTube video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: 0,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* تدرج أسفل القسم */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-slate-900 to-transparent"></div>
