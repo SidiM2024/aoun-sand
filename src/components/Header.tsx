@@ -27,17 +27,22 @@ export const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-md transition-all duration-300">
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollToSection('home')}>
+          {/* شعار الجمعية + الاسم */}
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => scrollToSection('home')}
+          >
             <img
               src="/ABC.jpg"
               alt="Logo"
               className="h-12 w-12 object-contain rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
             />
-            <span className="text-xl font-bold text-teal-600 dark:text-teal-400 hidden sm:block">
+            <span className="text-xl font-bold text-teal-600 dark:text-teal-400">
               {language === 'ar' ? 'عون وسند' : language === 'fr' ? 'Aide et Soutien' : 'Aid & Support'}
             </span>
           </div>
 
+          {/* قائمة التنقل على الكمبيوتر */}
           <div className="hidden lg:flex items-center gap-6">
             <button onClick={() => scrollToSection('home')} className="nav-link">{t.nav.home}</button>
             <button onClick={() => scrollToSection('about')} className="nav-link">{t.nav.about}</button>
@@ -47,7 +52,9 @@ export const Header = () => {
             <button onClick={() => scrollToSection('contact')} className="nav-link">{t.nav.contact}</button>
           </div>
 
+          {/* أيقونات التحكم */}
           <div className="flex items-center gap-3">
+            {/* تبديل الوضع الليلي */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition-all duration-300 hover:rotate-180"
@@ -60,6 +67,7 @@ export const Header = () => {
               )}
             </button>
 
+            {/* تغيير اللغة */}
             <div className="relative">
               <button
                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
@@ -93,6 +101,7 @@ export const Header = () => {
               )}
             </div>
 
+            {/* زر القائمة على الهاتف */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition-all duration-300"
@@ -107,6 +116,7 @@ export const Header = () => {
           </div>
         </div>
 
+        {/* قائمة الهاتف */}
         {isMenuOpen && (
           <div className="lg:hidden mt-4 pb-4 animate-slideDown">
             <div className="flex flex-col gap-3">
