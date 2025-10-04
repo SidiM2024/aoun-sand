@@ -34,6 +34,7 @@ export const Donation = () => {
     { name: 'السداد', image: '/salad.jpg' },
     { name: 'بيم بانك', image: '/bin.jpg' },
     { name: 'غازا بي', image: '/Gaza.jpg' },
+    { name: 'كليك', image: '/klik.jpg' },
   ];
 
   return (
