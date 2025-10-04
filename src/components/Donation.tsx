@@ -42,11 +42,11 @@ export const Donation = () => {
       className="py-20 bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300"
     >
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           {!selectedBank ? (
             <>
               <div className="text-center mb-12 animate-fadeIn">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-full mb-6 shadow-xl">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-full mb-6 shadow-2xl">
                   <Heart className="w-10 h-10 text-white animate-pulse" />
                 </div>
                 <h2 className={`section-title ${language === 'ar' ? 'font-arabic' : ''}`}>
@@ -57,20 +57,23 @@ export const Donation = () => {
                 </p>
               </div>
 
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 animate-slideUp">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 animate-slideUp">
                 {banks.map((bank, index) => (
                   <button
                     key={index}
                     onClick={() => handleBankSelect(bank.name)}
-                    className="group p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 hover:bg-gradient-to-br hover:from-teal-50 hover:to-cyan-50 dark:hover:from-slate-700 dark:hover:to-slate-600"
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    className="group flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-800 rounded-full shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105"
+                    style={{ animationDelay: `${index * 0.08}s` }}
+                    aria-label={`اختر ${bank.name}`}
                   >
-                    <img
-                      src={bank.image}
-                      alt={bank.name}
-                      className="w-16 h-16 mx-auto mb-3 object-contain group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <p className={`text-lg font-bold text-gray-800 dark:text-white ${language === 'ar' ? 'font-arabic' : ''}`}>
+                    <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center mb-3">
+                      <img
+                        src={bank.image}
+                        alt={bank.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <p className={`text-lg font-bold text-gray-800 dark:text-white text-center ${language === 'ar' ? 'font-arabic' : ''}`}>
                       {bank.name}
                     </p>
                   </button>
@@ -93,20 +96,16 @@ export const Donation = () => {
                 </div>
 
                 <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-slate-700 dark:to-slate-600 rounded-xl p-6 mb-8">
-                  <div className="flex items-center justify-center gap-4 mb-4">
+                  <div className="flex flex-col items-center justify-center gap-4 mb-4">
                     <p className="text-4xl font-bold text-teal-600 dark:text-teal-400 tracking-wider">
                       {donationNumber}
                     </p>
                     <button
                       onClick={handleCopy}
-                      className="p-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-all duration-300 transform hover:scale-110"
+                      className="p-3 bg-teal-500 hover:bg-teal-600 text-white rounded-full transition-all duration-300 transform hover:scale-110"
                       aria-label="Copy number"
                     >
-                      {copied ? (
-                        <CheckCircle2 className="w-6 h-6" />
-                      ) : (
-                        <Copy className="w-6 h-6" />
-                      )}
+                      {copied ? <CheckCircle2 className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
                     </button>
                   </div>
                   {copied && (
