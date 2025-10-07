@@ -53,23 +53,29 @@ export const Hero = () => {
             </Link>
           </div>
 
-          {/* الفيديو التعريفي */}
-          <div className="max-w-3xl mx-auto animate-fadeIn" style={{ animationDelay: '0.4s' }}>
+          {/* الفيديو المضمّن */}
+          <div
+            className="max-w-3xl mx-auto animate-fadeIn"
+            style={{ animationDelay: '0.4s' }}
+          >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300">
+              {/* خلفية نصف شفافة */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"></div>
 
-              <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+              {/* YouTube Embed */}
+              <div className="relative w-full overflow-hidden rounded-2xl" style={{ paddingTop: '56.25%' }}>
                 <iframe
-                  className="absolute top-0 left-0 w-full h-full rounded-2xl"
-                  src="https://www.youtube.com/embed/Q0jCQP8YveY"
+                  className="absolute top-0 left-0 w-full h-full"
+                  src="https://www.youtube.com/embed/Q0jCQP8YveY?rel=0&modestbranding=1"
                   title="فيديو تعريف جمعية عون وسند"
                   frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 ></iframe>
               </div>
 
-              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white bg-black/40 px-3 py-1 rounded-full">
+              {/* النص فوق الفيديو */}
+              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
                 <Video className="w-5 h-5" />
                 <span className="font-semibold">{t.hero.watchVideo}</span>
               </div>
@@ -78,6 +84,7 @@ export const Hero = () => {
         </div>
       </div>
 
+      {/* تأثير التدرج السفلي */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-slate-900 to-transparent"></div>
     </section>
   );
