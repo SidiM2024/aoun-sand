@@ -59,21 +59,29 @@ export const MembershipPage = () => {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-teal-600 to-cyan-600 dark:from-teal-700 dark:to-cyan-700 rounded-2xl shadow-2xl p-8 md:p-12 text-center text-white animate-fadeIn">
-              <FileText className="w-16 h-16 mx-auto mb-6" />
-              <h3 className={`text-3xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                {t.membership.formTitle}
-              </h3>
-              <a
-                href="#"
-                className="inline-block px-8 py-4 bg-white text-teal-600 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 mb-6"
-              >
-                {t.membership.formButton}
-              </a>
-              <p className={`text-lg font-semibold mt-6 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                {t.membership.closingMessage}
-              </p>
-            </div>
+           <div className="bg-gradient-to-br from-teal-600 to-cyan-600 dark:from-teal-700 dark:to-cyan-700 rounded-2xl shadow-2xl p-8 md:p-12 text-center text-white animate-fadeIn">
+  <FileText className="w-16 h-16 mx-auto mb-6" />
+  <h3 className={text-3xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}}>
+    {t.membership.formTitle}
+  </h3>
+
+  <iframe
+    src="https://docs.google.com/forms/d/e/1FAIpQLSe68xfuS3BNgHDJjWsd8Lr-CXm69EE4cyknp0uqRNkfU6p5_w/viewform?embedded=true"
+    width="100%"
+    height="800"
+    frameBorder="0"
+    marginHeight="0"
+    marginWidth="0"
+    className="rounded-xl shadow-lg"
+    title="Membership Form"
+  >
+    جارٍ التحميل…
+  </iframe>
+
+  <p className={text-lg font-semibold mt-6 ${language === 'ar' ? 'font-arabic' : ''}}>
+    {t.membership.closingMessage}
+  </p>
+</div>
           </div>
         </div>
       </section>
