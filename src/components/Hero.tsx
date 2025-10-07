@@ -33,9 +33,9 @@ export const Hero = () => {
             </Link>
             {/* زر Membership الجديد */}
             <Link to="/membership" className="btn-outline flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              {t.hero.membership || "Membership"}
-            </Link>
+  <Users className="w-5 h-5" />
+  {t.hero.membership}
+</Link>
           </div>
 
           <div className="max-w-3xl mx-auto animate-fadeIn" style={{ animationDelay: '0.4s' }}>
