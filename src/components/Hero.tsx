@@ -31,29 +31,35 @@ export const Hero = () => {
               <Heart className="w-5 h-5" />
               {t.hero.donateNow}
             </Link>
-            {/* زر Membership الجديد */}
             <Link to="/membership" className="btn-outline flex items-center gap-2">
-  <Users className="w-5 h-5" />
-  {t.hero.membership}
-</Link>
+              <Users className="w-5 h-5" />
+              {t.hero.membership}
+            </Link>
           </div>
 
+          {/* قسم الفيديو embed جذاب ومتجاوب */}
           <div className="max-w-3xl mx-auto animate-fadeIn" style={{ animationDelay: '0.4s' }}>
             <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10"></div>
-              <video
-                controls
-                className="w-full aspect-video object-cover"
-                poster="/DEDE.jpg"
-              >
-                <source src="https://drive.google.com/uc?export=download&id=1GBaHXcWwql8XYhaijMK8a_H5qD8_HbO3" type="video/mp4" />
-              </video>
-              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"></div>
+              
+              <div className="w-full aspect-video">
+                <iframe
+                  className="w-full h-full rounded-2xl"
+                  src="https://www.youtube.com/embed/Q0jCQP8YveY"
+                  title="فيديو تعريف جمعية عون وسند"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+
+              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white bg-black/40 px-3 py-1 rounded-full">
                 <Video className="w-5 h-5" />
                 <span className="font-semibold">{t.hero.watchVideo}</span>
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
