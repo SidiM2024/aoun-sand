@@ -1,21 +1,25 @@
 import { Heart, Users, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useState } from 'react';
 
 export const Hero = () => {
   const { t, language } = useLanguage();
+  const [showVideo, setShowVideo] = useState(false);
 
   return (
     <section
       id="home"
-      className="pt-24 pb-16 bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300"
+      className="relative pt-24 pb-16 bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 
+      dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 overflow-hidden"
     >
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto text-center">
           {/* العنوان والوصف */}
           <div className="mb-8 animate-fadeIn">
             <h1
-              className={`text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent ${
+              className={`text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-teal-600 to-cyan-600 
+              dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent ${
                 language === 'ar' ? 'font-arabic' : ''
               }`}
             >
@@ -53,33 +57,50 @@ export const Hero = () => {
             </Link>
           </div>
 
-          {/* الفيديو المضمّن */}
-          <div
-            className="max-w-3xl mx-auto animate-fadeIn"
-            style={{ animationDelay: '0.4s' }}
-          >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300">
-              {/* خلفية نصف شفافة */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10"></div>
+          {/* الفيديو (تصميم حديث) */}
+          <div className="max-w-3xl mx-auto relative animate-fadeIn" style={{ animationDelay: '0.4s' }}>
+            {/* صورة معاينة + زر التشغيل */}
+            {!showVideo && (
+              <div
+                className="relative rounded-2xl overflow-hidden shadow-2xl cursor-pointer group"
+                onClick={() => setShowVideo(true)}
+              >
+                <img
+                  src="https://img.youtube.com/vi/Q0jCQP8YveY/maxresdefault.jpg"
+                  alt="فيديو تعريفي"
+                  className="w-full h-auto transition-transform duration-500 group-hover:scale-105"
+                />
+                {/* خلفية داكنة */}
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition"></div>
+                {/* زر التشغيل */}
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="bg-white/80 text-teal-700 rounded-full p-4 md:p-6 shadow-lg hover:scale-110 transition">
+                    <Video className="w-8 h-8 md:w-10 md:h-10" />
+                  </div>
+                </div>
+              </div>
+            )}
 
-              {/* YouTube Embed */}
-              <div className="relative w-full overflow-hidden rounded-2xl" style={{ paddingTop: '56.25%' }}>
+            {/* تشغيل الفيديو */}
+            {showVideo && (
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <iframe
-                  className="absolute top-0 left-0 w-full h-full"
-                  src="https://www.youtube.com/embed/Q0jCQP8YveY?rel=0&modestbranding=1"
+                  className="w-full h-[400px] md:h-[500px] rounded-2xl"
+                  src="https://www.youtube.com/embed/Q0jCQP8YveY?autoplay=1&rel=0&modestbranding=1"
                   title="فيديو تعريف جمعية عون وسند"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 ></iframe>
-              </div>
 
-              {/* النص فوق الفيديو */}
-              <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
-                <Video className="w-5 h-5" />
-                <span className="font-semibold">{t.hero.watchVideo}</span>
+                {/* زر إغلاق */}
+                <button
+                  onClick={() => setShowVideo(false)}
+                  className="absolute top-3 right-3 bg-white/80 hover:bg-white text-black rounded-full px-3 py-1 shadow-md"
+                >
+                  ✕
+                </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
