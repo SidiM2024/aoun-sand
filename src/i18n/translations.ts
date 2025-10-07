@@ -9,6 +9,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       volunteer: 'تطوع',
       donate: 'تبرع',
       contact: 'تواصل معنا',
+      membership: 'الانتساب',
     },
     hero: {
       title: 'جمعية عون وسند الخيرية',
@@ -70,6 +71,21 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       email: 'البريد الإلكتروني: associationaidesoutien@gmail.com',
       follow: 'تابعونا على وسائل التواصل الاجتماعي',
     },
+    membership: {
+      title: 'الانضمام إلى جمعية عون وسند الخيرية',
+      subtitle: 'كن جزءًا من الخير وساهم معنا في دعم المحتاجين ونشر روح التكافل',
+      description: 'انضم الآن وشارك في مشاريع الجمعية: سقاية الماء، إفطار الصائمين، كسوة العيد، ورعاية الأسر الفقيرة.',
+      benefitsTitle: 'مزايا الانتساب',
+      benefits: [
+        'المشاركة في الأعمال الخيرية الميدانية',
+        'متابعة تقارير المشاريع والإنجازات',
+        'الحصول على بطاقة عضوية رسمية',
+        'حضور الفعاليات والدورات التطوعية',
+      ],
+      formTitle: 'رابط نموذج الانتساب',
+      formButton: 'سجّل الآن',
+      closingMessage: 'كن عونًا وسندًا... خطوة منك تصنع أثرًا كبيرًا',
+    },
     footer: {
       rights: 'جميع الحقوق محفوظة',
       description: 'جمعية عون وسند الخيرية - نشر الخير والأمل',
@@ -83,6 +99,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       volunteer: 'Bénévolat',
       donate: 'Faire un don',
       contact: 'Contact',
+      membership: 'Adhésion',
     },
     hero: {
       title: 'Association Caritative Aide et Soutien',
@@ -144,6 +161,21 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       email: 'Email: associationaidesoutien@gmail.com',
       follow: 'Suivez-nous sur les réseaux sociaux',
     },
+    membership: {
+      title: 'Rejoindre l’Association Caritative Aide et Soutien',
+      subtitle: 'Faites partie du bien et aidez-nous à soutenir les nécessiteux et à propager l’esprit de solidarité',
+      description: 'Rejoignez-nous maintenant et participez aux projets de l’association : distribution d’eau, repas pour les jeûneurs, vêtements de l’Aïd et soutien aux familles pauvres.',
+      benefitsTitle: 'Avantages de l’adhésion',
+      benefits: [
+        'Participation aux activités caritatives sur le terrain',
+        'Suivi des rapports de projets et des réalisations',
+        'Obtention d’une carte de membre officielle',
+        'Participation aux événements et formations bénévoles',
+      ],
+      formTitle: 'Lien du formulaire d’adhésion',
+      formButton: 'S’inscrire maintenant',
+      closingMessage: 'Soyez une aide et un soutien... un pas de vous crée un grand impact',
+    },
     footer: {
       rights: 'Tous droits réservés',
       description: 'Association Caritative Aide et Soutien - Répandre le bien et l\'espoir',
@@ -157,6 +189,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       volunteer: 'Volunteer',
       donate: 'Donate',
       contact: 'Contact',
+      membership: 'Membership',
     },
     hero: {
       title: 'Aid and Support Charity Association',
@@ -217,6 +250,21 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       phone: 'Phone: 32203250',
       email: 'Email: associationaidesoutien@gmail.com',
       follow: 'Follow us on social media',
+    },
+    membership: {
+      title: 'Join Aid and Support Charity Association',
+      subtitle: 'Be part of the good and help us support those in need and spread the spirit of solidarity',
+      description: 'Join now and participate in the association’s projects: water distribution, meals for fasting people, Eid clothing, and support for poor families.',
+      benefitsTitle: 'Membership Benefits',
+      benefits: [
+        'Participation in field charitable activities',
+        'Follow-up on project reports and achievements',
+        'Receive an official membership card',
+        'Attend events and volunteer training courses',
+      ],
+      formTitle: 'Membership Form Link',
+      formButton: 'Register Now',
+      closingMessage: 'Be an aid and support... one step from you creates a big impact',
     },
     footer: {
       rights: 'All rights reserved',

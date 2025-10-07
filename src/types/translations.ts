@@ -6,6 +6,7 @@ export interface Translations {
     volunteer: string;
     donate: string;
     contact: string;
+    membership: string;
   };
   hero: {
     title: string;
@@ -58,6 +59,16 @@ export interface Translations {
     phone: string;
     email: string;
     follow: string;
+  };
+  membership: {
+    title: string;
+    subtitle: string;
+    description: string;
+    benefitsTitle: string;
+    benefits: string[];
+    formTitle: string;
+    formButton: string;
+    closingMessage: string;
   };
   footer: {
     rights: string;
