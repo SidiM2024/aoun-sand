@@ -31,9 +31,10 @@ export const Hero = () => {
               <Heart className="w-5 h-5" />
               {t.hero.donateNow}
             </Link>
-            <Link to="/volunteer" className="btn-outline flex items-center gap-2">
+            {/* زر Membership الجديد */}
+            <Link to="/membership" className="btn-outline flex items-center gap-2">
               <Users className="w-5 h-5" />
-              {t.hero.joinVolunteer}
+              {t.hero.membership || "Membership"}
             </Link>
           </div>
 
