@@ -8,29 +8,40 @@ export const About = () => {
     <section id="about" className="py-20 bg-white dark:bg-slate-900 transition-colors duration-300">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className={`section-title ${language === 'ar' ? 'font-arabic' : ''}`}>
-            {t.about.title}
+          {/* العنوان الرئيسي */}
+          <h2 className={`section-title text-4xl md:text-5xl font-bold mb-12 text-center ${language === 'ar' ? 'font-arabic' : ''}`}>
+            {t.about.title || "عن جمعية عون وسند"}
           </h2>
 
+          {/* الوصف والفيديو */}
           <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
-            <div className="animate-slideLeft">
-              <p className={`text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                {t.about.description}
+            {/* الوصف والنص الجذاب */}
+            <div className="animate-slideLeft space-y-6">
+              <p className={`text-lg text-gray-700 dark:text-gray-300 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''}`}>
+                جمعية <strong>عون وسند</strong> هي منظمة خيرية تهدف لدعم المجتمعات المحتاجة، وتعزيز روح التعاون والمبادرة الإنسانية. نحن نؤمن بأن التغيير يبدأ بالمشاركة والعطاء، ونعمل على تقديم مساعدات متنوعة تشمل الغذاء، التعليم، والصحة، لنصنع فرقاً حقيقياً في حياة الناس.
               </p>
+              <p className={`text-lg text-gray-700 dark:text-gray-300 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''}`}>
+                على مر السنوات، نفذنا مشاريع هادفة بالتعاون مع المتطوعين المحليين، مما جعلنا نقطة مرجعية لكل من يبحث عن المشاركة الفعالة في العمل الخيري داخل موريتانيا.
+              </p>
+
+              {/* فيديو التعريف */}
               <div className="relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                <img
-                  src="/DEDE.jpg"
-                  alt="Association activities"
-                  className="w-full h-auto object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <iframe
+                  className="w-full h-64 md:h-96"
+                  src="https://www.youtube.com/embed/Q0jCQP8YveY"
+                  title="تعريف جمعية عون وسند"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
               </div>
             </div>
 
+            {/* أهداف الجمعية */}
             <div className="animate-slideRight">
               <h3 className={`text-3xl font-bold mb-8 text-teal-600 dark:text-teal-400 flex items-center gap-3 ${language === 'ar' ? 'font-arabic' : ''}`}>
                 <Target className="w-8 h-8" />
-                {t.about.goalsTitle}
+                أهداف الجمعية
               </h3>
               <div className="space-y-4">
                 {t.about.goals.map((goal, index) => (
@@ -50,15 +61,16 @@ export const About = () => {
             </div>
           </div>
 
+          {/* فريق الجمعية */}
           <div className="bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8 md:p-12 shadow-lg animate-fadeIn">
             <div className="flex items-center gap-4 mb-6">
               <Users className="w-10 h-10 text-teal-600 dark:text-teal-400" />
               <h3 className={`text-3xl font-bold text-teal-600 dark:text-teal-400 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                {t.about.teamTitle}
+                فريق الجمعية
               </h3>
             </div>
             <p className={`text-lg text-gray-700 dark:text-gray-300 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {t.about.teamDescription}
+              يتكون فريق <strong>جمعية عون وسند</strong> من مجموعة من المتطوعين المخلصين الذين يعملون بشغف لخدمة المجتمع. نحن نركز على الكفاءة، التعاون، والابتكار لضمان وصول المساعدات لمن يحتاجها بشكل فعال ومستدام.
             </p>
           </div>
         </div>
