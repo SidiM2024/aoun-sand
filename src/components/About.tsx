@@ -1,22 +1,44 @@
-import { Target, BookOpen, Users } from 'lucide-react';
+import { Target, Users } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useEffect, useState, useRef } from 'react';
 
 export const About = () => {
   const { t, language } = useLanguage();
+  const [sectionVisible, setSectionVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+
+  // كشف وصول القسم إلى العرض عند التمرير
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const rect = sectionRef.current.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.8) {
+        setSectionVisible(true);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <section id="about" className="py-20 bg-white dark:bg-slate-900 transition-colors duration-300">
+    <section
+      id="about"
+      className="py-20 bg-white dark:bg-slate-900 transition-colors duration-300"
+      ref={sectionRef}
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
+
           {/* العنوان الرئيسي */}
-          <h2 className={`section-title text-4xl md:text-5xl font-bold mb-12 text-center ${language === 'ar' ? 'font-arabic' : ''}`}>
+          <h2 className={`section-title text-4xl md:text-5xl font-bold mb-12 text-center transition-all duration-700 ${sectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'} ${language === 'ar' ? 'font-arabic' : ''}`}>
             {t.about.title || "عن جمعية عون وسند"}
           </h2>
 
           {/* الوصف والفيديو */}
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+          <div className={`grid lg:grid-cols-2 gap-12 items-center transition-all duration-700 ${sectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             {/* الوصف والنص الجذاب */}
-            <div className="animate-slideLeft space-y-6">
+            <div className="space-y-6">
               <p className={`text-lg text-gray-700 dark:text-gray-300 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''}`}>
                 جمعية <strong>عون وسند</strong> هي منظمة خيرية تهدف لدعم المجتمعات المحتاجة، وتعزيز روح التعاون والمبادرة الإنسانية. نحن نؤمن بأن التغيير يبدأ بالمشاركة والعطاء، ونعمل على تقديم مساعدات متنوعة تشمل الغذاء، التعليم، والصحة، لنصنع فرقاً حقيقياً في حياة الناس.
               </p>
@@ -38,7 +60,7 @@ export const About = () => {
             </div>
 
             {/* أهداف الجمعية */}
-            <div className="animate-slideRight">
+            <div>
               <h3 className={`text-3xl font-bold mb-8 text-teal-600 dark:text-teal-400 flex items-center gap-3 ${language === 'ar' ? 'font-arabic' : ''}`}>
                 <Target className="w-8 h-8" />
                 أهداف الجمعية
@@ -62,7 +84,7 @@ export const About = () => {
           </div>
 
           {/* فريق الجمعية */}
-          <div className="bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8 md:p-12 shadow-lg animate-fadeIn">
+          <div className={`bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8 md:p-12 shadow-lg mt-12 transition-all duration-700 ${sectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className="flex items-center gap-4 mb-6">
               <Users className="w-10 h-10 text-teal-600 dark:text-teal-400" />
               <h3 className={`text-3xl font-bold text-teal-600 dark:text-teal-400 ${language === 'ar' ? 'font-arabic' : ''}`}>
