@@ -111,6 +111,52 @@ export const Hero = () => {
         </div>
       </div>
 
+      {/* 🔷 قسم التقرير المالي الشهري */}
+<div className="mt-16 px-4">
+  <div className="bg-white/80 dark:bg-slate-800/80 rounded-3xl shadow-xl p-6 md:p-10 text-center backdrop-blur-sm">
+    <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent font-arabic">
+      التقرير المالي لشهر سبتمبر
+    </h2>
+
+    {/* البطاقات */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 transition-transform">
+        <Calendar className="w-10 h-10 text-teal-600 dark:text-teal-400" />
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">الشهر</h3>
+        <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 font-arabic">سبتمبر 2025</p>
+      </div>
+
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 transition-transform">
+        <Wallet className="w-10 h-10 text-teal-600 dark:text-teal-400" />
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">إجمالي المبلغ</h3>
+        <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 font-arabic">103,000 MRU</p>
+      </div>
+
+      <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 transition-transform">
+        <Banknote className="w-10 h-10 text-teal-600 dark:text-teal-400" />
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">رقم بنكيلي</h3>
+        <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 select-all font-mono">
+          32203250
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-arabic">(انسخ الرقم للتحويل)</p>
+      </div>
+    </div>
+
+    {/* زر التبرع */}
+    <Link
+      to="/donate"
+      className="mt-8 inline-block bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold text-lg px-8 py-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-105"
+    >
+      💚 تبرع الآن
+    </Link>
+
+    <p className="mt-6 text-sm text-gray-600 dark:text-gray-400 font-arabic">
+      تبرعاتكم تساهم في استمرار مشاريع الجمعية الخيرية لخدمة المحتاجين.
+    </p>
+  </div>
+</div>
+
+
       {/* تأثير التدرج السفلي */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-slate-900 to-transparent"></div>
     </section>
