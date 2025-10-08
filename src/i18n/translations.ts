@@ -173,7 +173,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
         'Participation aux événements et formations bénévoles',
       ],
       formTitle: '  formulaire d’adhésion',
-      formButton: 'S’inscrire maintenant',
+      formButton: 'Utilise ton vrai e-mail pour t’inscrire.',
       closingMessage: 'Soyez une aide et un soutien... un pas de vous crée un grand impact',
     },
     footer: {
@@ -263,7 +263,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
         'Attend events and volunteer training courses',
       ],
       formTitle: 'Membership Form ',
-      formButton: 'Register Now',
+      formButton: 'Use your real email to sign up. ',
       closingMessage: 'Be an aid and support... one step from you creates a big impact',
     },
     footer: {
