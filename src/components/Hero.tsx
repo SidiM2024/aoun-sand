@@ -1,4 +1,4 @@
-import { Heart, Users, Video, Calendar, Wallet, Banknote } from 'lucide-react';
+import { Heart, Users, Video, Calendar, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -111,48 +111,25 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* 🔷 قسم التقرير المالي الشهري (محسن) */}
-      <div className="mt-16 px-4">
-        <div className="bg-white/80 dark:bg-slate-800/80 rounded-3xl shadow-xl p-6 md:p-10 text-center backdrop-blur-sm animate-fadeIn">
-          <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent font-arabic">
-            التقرير المالي لشهر سبتمبر
-          </h2>
+      {/* 🔷 قسم التقرير المالي - بطاقة واحدة صغيرة */}
+      <div className="mt-16 px-4 flex justify-center">
+        <div className="bg-white/90 dark:bg-slate-800/80 rounded-3xl shadow-xl p-6 md:p-8 text-center backdrop-blur-sm max-w-sm w-full animate-fadeIn">
+          <div className="flex flex-col items-center gap-3">
+            <Calendar className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">الشهر</h3>
+            <p className="text-xl font-bold text-teal-600 dark:text-teal-400 font-arabic">سبتمبر 2025</p>
 
-          {/* البطاقات */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 hover:shadow-2xl transition-all duration-500 animate-slideUp">
-              <Calendar className="w-10 h-10 text-teal-600 dark:text-teal-400" />
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">الشهر</h3>
-              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 font-arabic">سبتمبر 2025</p>
-            </div>
+            <Wallet className="w-8 h-8 text-teal-600 dark:text-teal-400 mt-4" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">إجمالي المبلغ</h3>
+            <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 font-arabic">103,000 MRU</p>
 
-            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 hover:shadow-2xl transition-all duration-500 animate-slideUp delay-150">
-              <Wallet className="w-10 h-10 text-teal-600 dark:text-teal-400" />
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">إجمالي المبلغ</h3>
-              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 font-arabic">103,000 MRU</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800 p-6 rounded-2xl shadow-md flex flex-col items-center gap-3 hover:scale-105 hover:shadow-2xl transition-all duration-500 animate-slideUp delay-300">
-              <Banknote className="w-10 h-10 text-teal-600 dark:text-teal-400" />
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 font-arabic">رقم بنكيلي</h3>
-              <p className="text-2xl font-bold text-teal-600 dark:text-teal-400 select-all font-mono">
-                32203250
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-arabic">(انسخ الرقم للتحويل)</p>
-            </div>
+            <Link
+              to="/donate"
+              className="mt-6 inline-block bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-105"
+            >
+              💚 تبرع الآن
+            </Link>
           </div>
-
-          {/* زر التبرع */}
-          <Link
-            to="/donate"
-            className="mt-8 inline-block bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold text-lg px-8 py-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 animate-slideUp delay-450"
-          >
-            💚 تبرع الآن
-          </Link>
-
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-400 font-arabic animate-slideUp delay-550">
-            تبرعاتكم تساهم في استمرار مشاريع الجمعية الخيرية لخدمة المحتاجين.
-          </p>
         </div>
       </div>
 
