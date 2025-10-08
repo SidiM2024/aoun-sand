@@ -111,8 +111,12 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* 🔷 قسم التقرير المالي - بطاقة واحدة صغيرة */}
-      <div className="mt-16 px-4 flex justify-center">
+      {/* 🔷 قسم التقرير المالي - عنوان + بطاقة واحدة صغيرة */}
+      <div className="mt-16 px-4 flex flex-col items-center">
+        <h2 className="text-3xl md:text-4xl font-bold mb-6 text-teal-600 dark:text-teal-400 font-arabic text-center animate-fadeIn">
+          التقرير المالي لشهر سبتمبر 2025
+        </h2>
+
         <div className="bg-white/90 dark:bg-slate-800/80 rounded-3xl shadow-xl p-6 md:p-8 text-center backdrop-blur-sm max-w-sm w-full animate-fadeIn">
           <div className="flex flex-col items-center gap-3">
             <Calendar className="w-8 h-8 text-teal-600 dark:text-teal-400" />
