@@ -31,7 +31,8 @@ export const Header = () => {
               alt="Logo"
               className="h-12 w-12 object-contain rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
             />
-            <span className="text-xl font-bold text-teal-600 dark:text-teal-400 hidden sm:block">
+            {/* الاسم يظهر دائمًا على كل الأجهزة */}
+            <span className="text-xl font-bold text-teal-600 dark:text-teal-400">
               {language === 'ar' ? 'عون وسند' : language === 'fr' ? 'Aide et Soutien' : 'Aid & Support'}
             </span>
           </Link>
