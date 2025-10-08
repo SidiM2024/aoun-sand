@@ -83,7 +83,7 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
         'حضور الفعاليات والدورات التطوعية',
       ],
       formTitle: ' نموذج الانتساب',
-      formButton: 'سجّل الآن',
+      formButton: ' استخدم بريدك الإلكتروني الحقيقي للتسجيل.',
       closingMessage: 'كن عونًا وسندًا... خطوة منك تصنع أثرًا كبيرًا',
     },
     footer: {
