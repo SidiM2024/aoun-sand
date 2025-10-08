@@ -57,9 +57,8 @@ export const Hero = () => {
             </Link>
           </div>
 
-          {/* الفيديو (تصميم حديث) */}
+          {/* الفيديو */}
           <div className="max-w-3xl mx-auto relative animate-fadeIn" style={{ animationDelay: '0.4s' }}>
-            {/* صورة معاينة + زر التشغيل */}
             {!showVideo && (
               <div
                 className="relative rounded-2xl overflow-hidden shadow-2xl cursor-pointer group"
@@ -70,9 +69,7 @@ export const Hero = () => {
                   alt="فيديو تعريفي"
                   className="w-full h-auto transition-transform duration-500 group-hover:scale-105"
                 />
-                {/* خلفية داكنة */}
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition"></div>
-                {/* زر التشغيل */}
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="bg-white/80 text-teal-700 rounded-full p-4 md:p-6 shadow-lg hover:scale-110 transition">
                     <Video className="w-8 h-8 md:w-10 md:h-10" />
@@ -81,7 +78,6 @@ export const Hero = () => {
               </div>
             )}
 
-            {/* تشغيل الفيديو */}
             {showVideo && (
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <iframe
@@ -91,8 +87,6 @@ export const Hero = () => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 ></iframe>
-
-                {/* زر إغلاق */}
                 <button
                   onClick={() => setShowVideo(false)}
                   className="absolute top-3 right-3 bg-white/80 hover:bg-white text-black rounded-full px-3 py-1 shadow-md"
@@ -102,10 +96,21 @@ export const Hero = () => {
               </div>
             )}
           </div>
+
+          {/* الصورة تحت الفيديو */}
+          <div className="mt-8 flex flex-col items-center">
+            <img
+              src="/Gaza.jpg"
+              alt="تبرع جمعية لأهلنا في غزة"
+              className="w-full max-w-md h-auto rounded-lg shadow-lg object-cover"
+            />
+            <h2 className="mt-4 text-xl md:text-2xl font-semibold text-teal-700 dark:text-teal-400 text-center">
+              تبرع جمعية لأهلنا في غزة
+            </h2>
+          </div>
         </div>
       </div>
 
-      {/* تأثير التدرج السفلي */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-slate-900 to-transparent"></div>
     </section>
   );
