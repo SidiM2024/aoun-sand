@@ -62,34 +62,6 @@ export const MembershipPage = () => {
               </p>
             </div>
 
-            {/* فوائد العضوية */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 md:p-12 mb-12 animate-slideUp">
-              <h2 className={`text-3xl font-bold mb-8 text-teal-600 dark:text-teal-400 flex items-center gap-3 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                <CheckCircle2 className="w-8 h-8" />
-                {t.membership.benefitsTitle}
-              </h2>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                {benefits.map((benefit, index) => {
-                  const Icon = benefit.icon;
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-start gap-4 p-6 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-slate-700 dark:to-slate-600 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                      <p className={`text-gray-700 dark:text-gray-300 font-medium ${language === 'ar' ? 'font-arabic text-right flex-1' : ''}`}>
-                        {benefit.text}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* قسم نموذج العضوية */}
             <div
               ref={formRef}
@@ -130,6 +102,35 @@ export const MembershipPage = () => {
                 {t.membership.closingMessage}
               </p>
             </div>
+
+            {/* فوائد العضوية */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 md:p-12 mt-12 animate-slideUp">
+              <h2 className={`text-3xl font-bold mb-8 text-teal-600 dark:text-teal-400 flex items-center gap-3 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <CheckCircle2 className="w-8 h-8" />
+                {t.membership.benefitsTitle}
+              </h2>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {benefits.map((benefit, index) => {
+                  const Icon = benefit.icon;
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-start gap-4 p-6 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-slate-700 dark:to-slate-600 rounded-xl hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <p className={`text-gray-700 dark:text-gray-300 font-medium ${language === 'ar' ? 'font-arabic text-right flex-1' : ''}`}>
+                        {benefit.text}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
