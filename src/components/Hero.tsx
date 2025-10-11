@@ -111,6 +111,59 @@ export const Hero = () => {
         </div>
       </div>
 
+      <section class="bg-[#1f1b3a] text-white py-12 px-4">
+  <div class="max-w-6xl mx-auto text-center">
+    <h2 class="text-3xl font-bold mb-2">📅 جدول العمل السنوي لجمعية عون وسند</h2>
+    <p class="text-gray-300 mb-10">2025 - 2026</p>
+
+    <div class="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-6">
+      <div class="bg-[#2b2654] rounded-2xl shadow-lg p-5 border border-gray-600 hover:scale-[1.02] transition">
+        <h3 class="bg-[#7b6cd9] text-white py-2 px-3 rounded-md font-semibold inline-block mb-3">20 أكتوبر 2025</h3>
+        <p class="text-sm leading-relaxed text-gray-200">
+          انطلاق حملة الانتساب للجمعية، تهدف إلى استقبال الأعضاء الجدد وتعريفهم برسالة الجمعية وأهدافها.
+        </p>
+      </div>
+
+      <div class="bg-[#2b2654] rounded-2xl shadow-lg p-5 border border-gray-600 hover:scale-[1.02] transition">
+        <h3 class="bg-[#7b6cd9] text-white py-2 px-3 rounded-md font-semibold inline-block mb-3">نوفمبر 2025</h3>
+        <p class="text-sm leading-relaxed text-gray-200">
+          إطلاق حملة التبرع بالدم بالتعاون مع المركز الوطني، مساهمة في العمل الإنساني لطلبة الجامعات.
+        </p>
+      </div>
+
+      <div class="bg-[#2b2654] rounded-2xl shadow-lg p-5 border border-gray-600 hover:scale-[1.02] transition">
+        <h3 class="bg-[#7b6cd9] text-white py-2 px-3 rounded-md font-semibold inline-block mb-3">29 ديسمبر 2025</h3>
+        <p class="text-sm leading-relaxed text-gray-200">
+          إقامة حفل مرور عام من العطاء، تكريم الأعضاء المتطوعين، وانطلاق حملة إفطار الصائم الرمضانية.
+        </p>
+      </div>
+
+      <div class="bg-[#2b2654] rounded-2xl shadow-lg p-5 border border-gray-600 hover:scale-[1.02] transition">
+        <h3 class="bg-[#7b6cd9] text-white py-2 px-3 rounded-md font-semibold inline-block mb-3">17 فبراير 2026</h3>
+        <p class="text-sm leading-relaxed text-gray-200">
+          إطلاق الحملة الرمضانية لتوزيع السلال الغذائية، برامج صحية وتوعوية خلال شهر رمضان المبارك.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-10 grid md:grid-cols-2 grid-cols-1 gap-6 text-gray-200">
+      <div class="bg-[#292550] rounded-2xl p-5 border border-gray-600">
+        <h4 class="font-semibold text-yellow-400 mb-2">طوال العام</h4>
+        <p class="text-sm leading-relaxed">استمرار برنامج السقايات الشهرية ومتابعة مشاريع الجمعية الدائمة.</p>
+      </div>
+      <div class="bg-[#292550] rounded-2xl p-5 border border-gray-600">
+        <h4 class="font-semibold text-yellow-400 mb-2">في العطل الصغيرة</h4>
+        <p class="text-sm leading-relaxed">مشروع إدخال الماء للأسر المحتاجة وأنشطة تطوعية موسمية.</p>
+      </div>
+    </div>
+
+    <div class="mt-8 text-sm text-gray-300 italic">
+      ⚠️ الجدول قابل للتغيير حسب الظروف والمستجدات.
+    </div>
+  </div>
+</section>
+
+
       {/* 🔷 قسم التقرير المالي - عنوان + بطاقة واحدة صغيرة */}
       <div className="mt-16 px-4 flex flex-col items-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-6 text-teal-600 dark:text-teal-400 font-arabic text-center animate-fadeIn">
