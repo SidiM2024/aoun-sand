@@ -10,7 +10,7 @@ export const Hero = () => {
   return (
     <section
       id="home"
-      className="relative pt-24 pb-16 bg-gradient-to-b from-[#eef5ff] via-[#e8f8f5] to-[#f7faff] 
+      className="relative pt-24 pb-16 bg-gradient-to-b from-[#eef5ff] via-[#e8f8f5] to-[#f7faff]
       dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0f172a] transition-all duration-300 overflow-hidden"
     >
       <div className="container mx-auto px-4">
@@ -18,20 +18,27 @@ export const Hero = () => {
           {/* العنوان والوصف */}
           <div className="mb-8">
             <h1
-              className={`text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-teal-600 to-cyan-500 
+              className={`text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-teal-600 to-cyan-500
               dark:from-cyan-400 dark:via-teal-400 dark:to-blue-400 bg-clip-text text-transparent ${
                 language === 'ar' ? 'font-arabic' : ''
               }`}
             >
               {t.hero.title}
             </h1>
+
             <p
-              className={`text-base md:text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed ${
+              className={`text-base md:text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed ${
                 language === 'ar' ? 'font-arabic' : ''
               }`}
             >
               {t.hero.subtitle}
             </p>
+
+            {/* رقم الترخيص وتاريخ الإنشاء */}
+            <div className="flex flex-col items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <p className="font-semibold">{t.hero.license}</p>
+              <p>{t.hero.date}</p>
+            </div>
           </div>
 
           {/* الأزرار */}
@@ -62,7 +69,7 @@ export const Hero = () => {
                   alt="فيديو تعريفي"
                   className="w-full h-auto transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition"></div>
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                   <div className="bg-white/90 text-teal-700 rounded-full p-4 shadow-md hover:scale-110 transition">
                     <Video className="w-6 h-6 md:w-8 md:h-8" />
@@ -77,7 +84,7 @@ export const Hero = () => {
                   title="فيديو الجمعية"
                   allow="autoplay; encrypted-media"
                   allowFullScreen
-                ></iframe>
+                />
                 <button
                   onClick={() => setShowVideo(false)}
                   className="absolute top-3 right-3 bg-white/80 hover:bg-white text-black rounded-full px-2 py-1 shadow"
@@ -86,6 +93,18 @@ export const Hero = () => {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* صورة توضيحية */}
+          <div className="mt-8 flex flex-col items-center">
+            <img
+              src="/Gaza.jpg"
+              alt="تبرع جمعية لأهلنا في غزة"
+              className="w-full max-w-md h-auto rounded-lg shadow-lg object-cover"
+            />
+            <h2 className="mt-4 text-xl md:text-2xl font-semibold text-teal-700 dark:text-teal-400 text-center">
+              تبرع جمعية لأهلنا في غزة
+            </h2>
           </div>
 
           {/* 📅 جدول العمل السنوي */}
