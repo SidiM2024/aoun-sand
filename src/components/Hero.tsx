@@ -1,4 +1,4 @@
-import { Heart, Users, Video, Calendar, Wallet } from 'lucide-react';
+import { Heart, Users, Video, Calendar, Wallet, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -19,17 +19,15 @@ export const Hero = () => {
           <div className="mb-8">
             <h1
               className={`text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-teal-600 to-cyan-500
-              dark:from-cyan-400 dark:via-teal-400 dark:to-blue-400 bg-clip-text text-transparent ${
-                language === 'ar' ? 'font-arabic' : ''
-              }`}
+              dark:from-cyan-400 dark:via-teal-400 dark:to-blue-400 bg-clip-text text-transparent ${language === 'ar' ? 'font-arabic' : ''
+                }`}
             >
               {t.hero.title}
             </h1>
 
             <p
-              className={`text-base md:text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed ${
-                language === 'ar' ? 'font-arabic' : ''
-              }`}
+              className={`text-base md:text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''
+                }`}
             >
               {t.hero.subtitle}
             </p>
@@ -42,18 +40,35 @@ export const Hero = () => {
           </div>
 
           {/* الأزرار */}
-          <div className="flex flex-wrap justify-center gap-3 mb-10">
-            <Link to="/about" className="btn-primary flex items-center gap-2 px-4 py-2 text-sm md:text-base rounded-xl">
-              <Heart className="w-4 h-4" />
-              {t.hero.learnMore}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10 w-full max-w-md mx-auto sm:max-w-none">
+            <Link
+              to="/about"
+              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#1E88E5] hover:bg-[#1976D2] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+            >
+              <div className="bg-white/20 p-1 rounded-full">
+                <Info className="w-5 h-5" />
+              </div>
+              <span className="font-semibold text-lg">تعرف علينا</span>
             </Link>
-            <Link to="/donate" className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm md:text-base rounded-xl">
-              <Heart className="w-4 h-4" />
-              {t.hero.donateNow}
+
+            <Link
+              to="/donate"
+              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#2E8B57] hover:bg-[#257345] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+            >
+              <div className="bg-white/20 p-1 rounded-full">
+                <Heart className="w-5 h-5 animate-pulse" />
+              </div>
+              <span className="font-semibold text-lg">تبرع الآن</span>
             </Link>
-            <Link to="/membership" className="btn-outline flex items-center gap-2 px-4 py-2 text-sm md:text-base rounded-xl">
-              <Users className="w-4 h-4" />
-              {t.hero.membership}
+
+            <Link
+              to="/membership"
+              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#F2C94C] hover:bg-[#E0B836] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+            >
+              <div className="bg-white/20 p-1 rounded-full">
+                <Users className="w-5 h-5" />
+              </div>
+              <span className="font-semibold text-lg">الانتساب</span>
             </Link>
           </div>
 
