@@ -3,55 +3,54 @@ import { VideoCard } from '../components/VideoCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Search, SortAsc, SortDesc, Filter } from 'lucide-react';
 
-// Mock Data for Videos
-const MOCK_VIDEOS = [
+const LESSONS_DATA = [
     {
         id: '1',
-        title: 'شرح كتاب المحجة البيضاء - الدرس الأول',
-        date: '2024-03-15',
-        duration: '45:20',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ' // Placeholder ID
+        title: 'شرح الأخضري – باب العقيدة – الدرس الأول',
+        date: '2024-01-01',
+        duration: 'Lesson 1',
+        thumbnail: 'https://img.youtube.com/vi/c5xNbaDpVgI/maxresdefault.jpg',
+        videoId: 'c5xNbaDpVgI'
     },
     {
         id: '2',
-        title: 'شرح كتاب المحجة البيضاء - الدرس الثاني',
-        date: '2024-03-22',
-        duration: '42:15',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ'
+        title: 'شرح الأربعون النووية – الدرس الأول',
+        date: '2024-01-02',
+        duration: 'Lesson 1',
+        thumbnail: 'https://img.youtube.com/vi/ZViZByx12iY/maxresdefault.jpg',
+        videoId: 'ZViZByx12iY'
     },
     {
         id: '3',
-        title: 'أهمية الأخلاق في الإسلام - محاضرة خاصة',
-        date: '2024-04-05',
-        duration: '55:10',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ'
+        title: 'شرح الأربعون النووية',
+        date: '2024-01-03',
+        duration: 'Lesson 2',
+        thumbnail: 'https://img.youtube.com/vi/KznMI6sOWyE/maxresdefault.jpg', // Assuming high res might not exist for some, but typically works
+        videoId: 'KznMI6sOWyE'
     },
     {
         id: '4',
-        title: 'تفسير سورة الفاتحة - دروس رمضانية',
-        date: '2024-03-10',
-        duration: '38:45',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ'
+        title: 'سلسلة التأملات المحجة البيضاء مع البدوي محمدو ديدي',
+        date: '2024-01-04',
+        duration: 'Special',
+        thumbnail: 'https://img.youtube.com/vi/-9FMkS2vSsw/maxresdefault.jpg',
+        videoId: '-9FMkS2vSsw'
     },
     {
         id: '5',
-        title: 'شرح كتاب المحجة البيضاء - الدرس الثالث',
-        date: '2024-03-29',
-        duration: '48:30',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ'
+        title: 'مع القرأن القارئ محمد سالم ولد زين',
+        date: '2024-01-05',
+        duration: 'Special',
+        thumbnail: 'https://img.youtube.com/vi/qpEf5QQZuXc/maxresdefault.jpg',
+        videoId: 'qpEf5QQZuXc'
     },
     {
         id: '6',
-        title: 'كيف نستقبل شهر رمضان؟',
-        date: '2024-03-01',
-        duration: '30:00',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        videoId: 'dQw4w9WgXcQ'
+        title: 'شرح الاخضري الدري الثالث',
+        date: '2024-01-06',
+        duration: 'Lesson 3',
+        thumbnail: 'https://img.youtube.com/vi/srttIid_rpY/maxresdefault.jpg',
+        videoId: 'srttIid_rpY'
     }
 ];
 
@@ -60,7 +59,7 @@ export const LessonsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-    const filteredVideos = MOCK_VIDEOS.filter(video =>
+    const filteredVideos = LESSONS_DATA.filter(video =>
         video.title.toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => {
         const dateA = new Date(a.date).getTime();
@@ -74,7 +73,7 @@ export const LessonsPage = () => {
                 {/* Header Section */}
                 <div className="text-center mb-12 animate-fadeIn">
                     <h1 className="section-title mb-4">
-                        {language === 'ar' ? 'دروس المحجة البيضاء' : 'Al-Mahjah Al-Bayda Lessons'}
+                        {language === 'ar' ? 'الدروس والمحاضرات' : 'Lessons & Lectures'}
                     </h1>
                     <p className="section-subtitle">
                         {language === 'ar'
@@ -104,8 +103,8 @@ export const LessonsPage = () => {
                         <button
                             onClick={() => setSortOrder('newest')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${sortOrder === 'newest'
-                                    ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
                         >
                             <SortDesc className="w-4 h-4" />
@@ -114,8 +113,8 @@ export const LessonsPage = () => {
                         <button
                             onClick={() => setSortOrder('oldest')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${sortOrder === 'oldest'
-                                    ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 }`}
                         >
                             <SortAsc className="w-4 h-4" />
