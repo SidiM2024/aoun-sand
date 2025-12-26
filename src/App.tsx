@@ -11,13 +11,14 @@ import { VolunteerPage } from './pages/VolunteerPage';
 import { DonatePage } from './pages/DonatePage';
 import { ContactPage } from './pages/ContactPage';
 import { MembershipPage } from './pages/MembershipPage';
+import { LessonsPage } from './pages/LessonsPage';
 
 function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <Router>
-          <div className="min-h-screen flex flex-col">
+          <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
             <PWAInstallPrompt />
             <Header />
             <main className="flex-1">
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/membership" element={<MembershipPage />} />
                 <Route path="/donate" element={<DonatePage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/lessons" element={<LessonsPage />} />
               </Routes>
             </main>
             <Footer />

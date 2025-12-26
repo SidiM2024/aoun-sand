@@ -1,4 +1,4 @@
-import { Heart, Users, Video, Calendar, Wallet, Info } from 'lucide-react';
+import { Heart, Users, Video, Calendar, Wallet, Info, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -10,176 +10,170 @@ export const Hero = () => {
   return (
     <section
       id="home"
-      className="relative pt-24 pb-16 bg-gradient-to-b from-[#eef5ff] via-[#e8f8f5] to-[#f7faff]
-      dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0f172a] transition-all duration-300 overflow-hidden"
+      className="relative pt-32 pb-20 bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-hidden"
     >
-      <div className="container mx-auto px-4">
+      {/* Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-float animation-delay-500"></div>
+      </div>
+
+      <div className="container-custom relative z-10">
         <div className="max-w-5xl mx-auto text-center">
-          {/* العنوان والوصف */}
-          <div className="mb-8">
-            <h1
-              className={`text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-teal-600 to-cyan-500
-              dark:from-cyan-400 dark:via-teal-400 dark:to-blue-400 bg-clip-text text-transparent ${language === 'ar' ? 'font-arabic' : ''
-                }`}
-            >
+          {/* Title & Subtitle */}
+          <div className="mb-12 animate-fadeIn">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 dark:from-teal-400 dark:via-cyan-400 dark:to-blue-400 bg-clip-text text-transparent leading-tight">
               {t.hero.title}
             </h1>
 
-            <p
-              className={`text-base md:text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''
-                }`}
-            >
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed max-w-3xl mx-auto">
               {t.hero.subtitle}
             </p>
 
-            {/* رقم الترخيص وتاريخ الإنشاء */}
-            <div className="flex flex-col items-center gap-1 text-sm text-gray-600 dark:text-gray-400 mb-6">
-              <p className="font-semibold">{t.hero.license}</p>
-              <p>{t.hero.date}</p>
+            {/* License & Date */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-10 bg-white/50 dark:bg-slate-800/50 inline-flex px-6 py-2 rounded-full backdrop-blur-sm border border-slate-200 dark:border-slate-700">
+              <span className="font-semibold">{t.hero.license}</span>
+              <span className="hidden sm:inline">•</span>
+              <span>{t.hero.date}</span>
             </div>
           </div>
 
-          {/* الأزرار */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10 w-full max-w-md mx-auto sm:max-w-none">
-            <Link
-              to="/about"
-              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#1E88E5] hover:bg-[#1976D2] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-            >
-              <div className="bg-white/20 p-1 rounded-full">
-                <Info className="w-5 h-5" />
-              </div>
-              <span className="font-semibold text-lg">تعرف علينا</span>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16 animate-slideUp animation-delay-200">
+            <Link to="/donate" className="btn-primary group">
+              <Heart className="w-5 h-5 group-hover:animate-pulse" />
+              <span>{language === 'ar' ? 'تبرع الآن' : 'Donate Now'}</span>
             </Link>
 
-            <Link
-              to="/donate"
-              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#2E8B57] hover:bg-[#257345] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-            >
-              <div className="bg-white/20 p-1 rounded-full">
-                <Heart className="w-5 h-5 animate-pulse" />
-              </div>
-              <span className="font-semibold text-lg">تبرع الآن</span>
+            <Link to="/membership" className="btn-secondary group">
+              <Users className="w-5 h-5" />
+              <span>{language === 'ar' ? 'الانتساب' : 'Membership'}</span>
             </Link>
 
-            <Link
-              to="/membership"
-              className="group flex items-center justify-center gap-3 px-6 py-3 bg-[#F2C94C] hover:bg-[#E0B836] text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
-            >
-              <div className="bg-white/20 p-1 rounded-full">
-                <Users className="w-5 h-5" />
-              </div>
-              <span className="font-semibold text-lg">الانتساب</span>
+            <Link to="/about" className="btn-outline group">
+              <Info className="w-5 h-5" />
+              <span>{language === 'ar' ? 'تعرف علينا' : 'About Us'}</span>
             </Link>
           </div>
 
-          {/* الفيديو */}
-          <div className="max-w-2xl mx-auto relative">
+          {/* Video Section */}
+          <div className="max-w-3xl mx-auto relative mb-20 animate-slideUp animation-delay-300">
             {!showVideo ? (
               <div
-                className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group"
+                className="relative rounded-2xl overflow-hidden shadow-2xl cursor-pointer group aspect-video border-4 border-white dark:border-slate-800"
                 onClick={() => setShowVideo(true)}
               >
                 <img
                   src="https://img.youtube.com/vi/Q0jCQP8YveY/maxresdefault.jpg"
-                  alt="فيديو تعريفي"
-                  className="w-full h-auto transition-transform duration-500 group-hover:scale-105"
+                  alt="Intro Video"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
                 <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="bg-white/90 text-teal-700 rounded-full p-4 shadow-md hover:scale-110 transition">
-                    <Video className="w-6 h-6 md:w-8 md:h-8" />
+                  <div className="w-20 h-20 bg-white/90 text-teal-600 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300">
+                    <Video className="w-8 h-8 fill-current ml-1" />
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="relative rounded-2xl overflow-hidden shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video border-4 border-white dark:border-slate-800">
                 <iframe
-                  className="w-full h-[240px] sm:h-[300px] md:h-[400px]"
+                  className="w-full h-full"
                   src="https://www.youtube.com/embed/Q0jCQP8YveY?autoplay=1&rel=0"
-                  title="فيديو الجمعية"
+                  title="Intro Video"
                   allow="autoplay; encrypted-media"
                   allowFullScreen
                 />
                 <button
                   onClick={() => setShowVideo(false)}
-                  className="absolute top-3 right-3 bg-white/80 hover:bg-white text-black rounded-full px-2 py-1 shadow"
+                  className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
                 >
-                  ✕
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* صورة توضيحية */}
-          <div className="mt-8 flex flex-col items-center">
-            <img
-              src="/Gaza.jpg"
-              alt="تبرع جمعية لأهلنا في غزة"
-              className="w-full max-w-md h-auto rounded-lg shadow-lg object-cover"
-            />
-            <h2 className="mt-4 text-xl md:text-2xl font-semibold text-teal-700 dark:text-teal-400 text-center">
-              تبرع جمعية لأهلنا في غزة
-            </h2>
+          {/* Gaza Donation Callout */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 mb-20 border border-slate-100 dark:border-slate-700 animate-slideUp animation-delay-400">
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="w-full md:w-1/2">
+                <img
+                  src="/Gaza.jpg"
+                  alt="Gaza Donation"
+                  className="w-full h-64 object-cover rounded-2xl shadow-lg"
+                />
+              </div>
+              <div className="w-full md:w-1/2 text-center md:text-right">
+                <h2 className="text-3xl font-bold mb-4 text-slate-800 dark:text-white">
+                  {language === 'ar' ? 'حملة إغاثة أهلنا في غزة' : 'Gaza Relief Campaign'}
+                </h2>
+                <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                  {language === 'ar'
+                    ? 'ساهم معنا في تقديم المساعدات العاجلة والضرورية لأهلنا في قطاع غزة. تبرعك يصنع فرقاً وينقذ حياة.'
+                    : 'Contribute with us to provide urgent and necessary aid to our people in the Gaza Strip. Your donation makes a difference and saves lives.'}
+                </p>
+                <Link to="/donate" className="btn-accent w-full md:w-auto">
+                  {language === 'ar' ? 'تبرع لغزة الآن' : 'Donate for Gaza'}
+                </Link>
+              </div>
+            </div>
           </div>
 
-          {/* 📅 جدول العمل السنوي */}
-          <section className="mt-16 bg-gradient-to-r from-[#1b1b2f] via-[#1f1b3a] to-[#1b1b2f] text-white py-10 px-4 rounded-3xl shadow-inner">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-center">📅 جدول العمل السنوي</h2>
-            <p className="text-gray-300 mb-8 text-center">2025 - 2026</p>
+          {/* Annual Schedule */}
+          <section className="bg-slate-900 text-white rounded-3xl p-8 md:p-12 shadow-2xl mb-20 relative overflow-hidden animate-slideUp animation-delay-500">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl"></div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { date: '20 أكتوبر 2025', text: 'انطلاق حملة الانتساب للجمعية.' },
-                { date: 'نوفمبر 2025', text: 'حملة التبرع بالدم بالتعاون مع المركز الوطني.' },
-                { date: '29 ديسمبر 2025', text: 'حفل مرور عام وتكريم الأعضاء المتطوعين.' },
-                { date: '17 فبراير 2026', text: 'الحملة الرمضانية لتوزيع السلال الغذائية.' },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-[#26224a] hover:bg-[#312c5e] rounded-2xl shadow-md p-4 border border-gray-700 hover:scale-[1.02] transition"
-                >
-                  <h3 className="bg-[#7b6cd9] text-white py-1 px-3 rounded-md text-sm font-semibold inline-block mb-2">
-                    {item.date}
-                  </h3>
-                  <p className="text-xs text-gray-200 leading-relaxed">{item.text}</p>
-                </div>
-              ))}
-            </div>
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold mb-2 text-center flex items-center justify-center gap-3">
+                <Calendar className="w-8 h-8 text-teal-400" />
+                {language === 'ar' ? 'جدول العمل السنوي' : 'Annual Schedule'}
+              </h2>
+              <p className="text-slate-400 mb-10 text-center">2025 - 2026</p>
 
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-200">
-              <div className="bg-[#292550] rounded-2xl p-4 border border-gray-700 text-sm">
-                <h4 className="font-semibold text-yellow-400 mb-1">طوال العام</h4>
-                استمرار برنامج السقايات الشهرية ومتابعة المشاريع.
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { date: '20 Oct 2025', text: language === 'ar' ? 'انطلاق حملة الانتساب للجمعية' : 'Membership Campaign Launch' },
+                  { date: 'Nov 2025', text: language === 'ar' ? 'حملة التبرع بالدم' : 'Blood Donation Campaign' },
+                  { date: '29 Dec 2025', text: language === 'ar' ? 'حفل تكريم المتطوعين' : 'Volunteers Ceremony' },
+                  { date: '17 Feb 2026', text: language === 'ar' ? 'الحملة الرمضانية' : 'Ramadan Campaign' },
+                ].map((item, i) => (
+                  <div key={i} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 hover:border-teal-500/50 transition-colors">
+                    <span className="inline-block px-3 py-1 bg-teal-500/20 text-teal-400 rounded-lg text-sm font-bold mb-3">
+                      {item.date}
+                    </span>
+                    <p className="text-slate-300 text-sm">{item.text}</p>
+                  </div>
+                ))}
               </div>
-              <div className="bg-[#292550] rounded-2xl p-4 border border-gray-700 text-sm">
-                <h4 className="font-semibold text-yellow-400 mb-1">في العطل الصغيرة</h4>
-                أنشطة موسمية ومشاريع إدخال الماء.
-              </div>
-            </div>
 
-            <p className="mt-5 text-xs text-gray-400 italic text-center">
-              ⚠️ الجدول قابل للتعديل حسب الظروف والمستجدات.
-            </p>
+              <p className="mt-8 text-xs text-slate-500 text-center">
+                {language === 'ar' ? '⚠️ الجدول قابل للتعديل حسب الظروف والمستجدات' : '⚠️ Schedule subject to change'}
+              </p>
+            </div>
           </section>
 
-          {/* 🔷 التقرير المالي */}
-          <div className="mt-14 px-4">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-teal-600 dark:text-teal-400 text-center">
-              التقرير المالي لشهر سبتمبر 2025
-            </h2>
-            <div className="bg-white/90 dark:bg-slate-800/80 rounded-2xl shadow-md p-6 max-w-xs mx-auto text-center">
-              <Calendar className="w-7 h-7 text-teal-600 dark:text-teal-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-700 dark:text-gray-300">الشهر</p>
-              <p className="text-lg font-bold text-teal-600 dark:text-teal-400">سبتمبر 2025</p>
-              <Wallet className="w-7 h-7 text-teal-600 dark:text-teal-400 mx-auto mt-3 mb-2" />
-              <p className="text-sm text-gray-700 dark:text-gray-300">إجمالي المبلغ</p>
-              <p className="text-xl font-bold text-teal-600 dark:text-teal-400">103,000 MRU</p>
-              <Link
-                to="/donate"
-                className="mt-4 inline-block bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold text-sm px-5 py-2 rounded-xl shadow-md transition-transform hover:scale-105"
-              >
-                💚 تبرع الآن
-              </Link>
+          {/* Financial Report */}
+          <div className="max-w-sm mx-auto animate-slideUp animation-delay-500">
+            <div className="card p-8 text-center border-t-4 border-teal-500">
+              <h3 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">
+                {language === 'ar' ? 'التقرير المالي - سبتمبر 2025' : 'Financial Report - Sep 2025'}
+              </h3>
+
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">{language === 'ar' ? 'إجمالي التبرعات' : 'Total Donations'}</p>
+                  <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 flex items-center justify-center gap-2">
+                    <Wallet className="w-6 h-6" />
+                    103,000
+                    <span className="text-sm text-slate-400 font-normal">MRU</span>
+                  </p>
+                </div>
+
+                <Link to="/donate" className="btn-outline w-full justify-center">
+                  {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
