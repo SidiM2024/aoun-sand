@@ -108,14 +108,7 @@ export const Hero = () => {
                 <h2 className="text-3xl font-bold mb-4 text-slate-800 dark:text-white">
                   {language === 'ar' ? 'حملة إغاثة أهلنا في غزة' : 'Gaza Relief Campaign'}
                 </h2>
-                <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                  {language === 'ar'
-                    ? 'ساهم معنا في تقديم المساعدات العاجلة والضرورية لأهلنا في قطاع غزة. تبرعك يصنع فرقاً وينقذ حياة.'
-                    : 'Contribute with us to provide urgent and necessary aid to our people in the Gaza Strip. Your donation makes a difference and saves lives.'}
-                </p>
-                <Link to="/donate" className="btn-accent w-full md:w-auto">
-                  {language === 'ar' ? 'تبرع لغزة الآن' : 'Donate for Gaza'}
-                </Link>
+    
               </div>
             </div>
           </div>
