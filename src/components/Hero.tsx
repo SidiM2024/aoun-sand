@@ -1,4 +1,4 @@
-import { Heart, Users, Video, Calendar, Wallet, Info, ArrowRight } from 'lucide-react';
+import { Heart, Users, Video, Calendar, Wallet, Info, ArrowRight, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -36,6 +36,20 @@ export const Hero = () => {
               <span className="hidden sm:inline">•</span>
               <span>{t.hero.date}</span>
             </div>
+          </div>
+
+          {/* New "Al-Mahajja Al-Baida" Button */}
+          <div className="mb-8 animate-slideUp">
+            <Link
+              to="/lessons"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+              <BookOpen className="w-8 h-8 group-hover:scale-110 transition-transform" />
+              <span className="text-xl md:text-2xl font-bold">
+                {language === 'ar' ? 'المحجة البيضاء' : 'The White Path'}
+              </span>
+            </Link>
           </div>
 
           {/* Action Buttons */}
