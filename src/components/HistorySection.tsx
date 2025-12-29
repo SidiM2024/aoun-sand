@@ -47,10 +47,7 @@ export const HistorySection = () => {
                             />
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
-                            {language === 'ar' ? 'يرجى الانتظار قليلاً حتى يتم تحميل الملف...' : 'Please wait a moment for the file to load...'}
-                        </div>
+                       
                     </div>
                 </div>
             </div>
