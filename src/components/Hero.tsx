@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
 
+import { HistorySection } from './HistorySection';
+
 export const Hero = () => {
   const { t, language } = useLanguage();
   const [showVideo, setShowVideo] = useState(false);
@@ -108,6 +110,11 @@ export const Hero = () => {
             )}
           </div>
 
+          {/* History Record Section */}
+          <div className="mb-20">
+            <HistorySection />
+          </div>
+
           {/* Gaza Donation Callout */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 mb-20 border border-slate-100 dark:border-slate-700 animate-slideUp animation-delay-400">
             <div className="flex flex-col md:flex-row items-center gap-8">
@@ -122,7 +129,7 @@ export const Hero = () => {
                 <h2 className="text-3xl font-bold mb-4 text-slate-800 dark:text-white">
                   {language === 'ar' ? 'حملة إغاثة أهلنا في غزة' : 'Gaza Relief Campaign'}
                 </h2>
-    
+
               </div>
             </div>
           </div>
