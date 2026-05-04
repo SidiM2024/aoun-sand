@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     location TEXT,
     national_id TEXT,
     fcm_token TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT valid_phone CHECK (phone ~ '^[234][0-9]{7}$')
 );
 
 -- Enable RLS for users table

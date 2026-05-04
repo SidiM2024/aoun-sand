@@ -20,6 +20,7 @@ export const AuthPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'check' | 'signup'>('check');
+  const [errorMsg, setErrorMsg] = useState('');
   
   // Check/Login form
   const [email, setEmail] = useState('');
@@ -32,10 +33,21 @@ export const AuthPage = () => {
   const [location, setLocation] = useState('');
   const [nationalId, setNationalId] = useState('');
 
+  const validatePhone = (p: string) => {
+    return /^[234]\d{7}$/.test(p);
+  };
+
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+    
     if (!email || !phone) {
-      toast.error(isRTL ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف' : 'Please enter email and phone');
+      setErrorMsg(isRTL ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف' : 'Please enter email and phone');
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      setErrorMsg(isRTL ? 'رقم الهاتف غير صالح. يجب أن يتكون من 8 أرقام ويبدأ بـ 2، 3، أو 4.' : 'Invalid phone. Must be 8 digits and start with 2, 3, or 4.');
       return;
     }
     
@@ -52,10 +64,10 @@ export const AuthPage = () => {
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
         // User not found or wrong password (phone). Assume not found and go to signup.
-        toast(isRTL ? 'الحساب غير موجود، يرجى إكمال التسجيل' : 'Account not found, please complete signup', { icon: 'ℹ️' });
         setStep('signup');
+        setErrorMsg(''); // Clear error on step change
       } else {
-        toast.error(error.message);
+        setErrorMsg(error.message);
       }
     } else {
       toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
@@ -66,6 +78,13 @@ export const AuthPage = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+
+    if (!validatePhone(phone)) {
+      setErrorMsg(isRTL ? 'رقم الهاتف غير صالح. يجب أن يتكون من 8 أرقام ويبدأ بـ 2، 3، أو 4.' : 'Invalid phone. Must be 8 digits and start with 2, 3, or 4.');
+      return;
+    }
+
     setIsLoading(true);
     const securePassword = `${phone}Awn1!`;
 
@@ -85,7 +104,7 @@ export const AuthPage = () => {
     });
 
     if (error) {
-      toast.error(error.message);
+      setErrorMsg(error.message);
     } else {
       // Insert into users table
       if (data.user) {
@@ -138,6 +157,17 @@ export const AuthPage = () => {
         </div>
 
         <AnimatePresence mode="wait">
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm border border-red-200 dark:border-red-800"
+            >
+              {errorMsg}
+            </motion.div>
+          )}
+
           {step === 'check' ? (
             <motion.form 
               key="check"
