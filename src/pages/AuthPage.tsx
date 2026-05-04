@@ -62,7 +62,9 @@ export const AuthPage = () => {
     });
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
+      if (error.message === 'Failed to fetch') {
+        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت.' : 'Failed to connect to the server. Please check your internet connection.');
+      } else if (error.message.includes('Invalid login credentials')) {
         // User not found or wrong password (phone). Assume not found and go to signup.
         setStep('signup');
         setErrorMsg(''); // Clear error on step change
@@ -104,7 +106,11 @@ export const AuthPage = () => {
     });
 
     if (error) {
-      setErrorMsg(error.message);
+      if (error.message === 'Failed to fetch') {
+        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت.' : 'Failed to connect to the server. Please check your internet connection.');
+      } else {
+        setErrorMsg(error.message);
+      }
     } else {
       // Insert into users table
       if (data.user) {
@@ -149,10 +155,14 @@ export const AuthPage = () => {
           <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
             {isRTL ? 'مرحباً بك' : 'Welcome'}
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
             {step === 'check' 
-              ? (isRTL ? 'سجل دخولك أو أنشئ حساباً جديداً' : 'Sign in or create a new account')
-              : (isRTL ? 'أكمل بياناتك لإنشاء الحساب' : 'Complete your details to sign up')}
+              ? (isRTL 
+                ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف (8 أرقام). إذا كان لديك حساب سيتم تسجيل الدخول، وإلا سيتم توجيهك لإنشاء حساب جديد.' 
+                : 'Please enter your email and 8-digit phone number. If registered, you will be logged in; otherwise, you will be redirected to sign up.')
+              : (isRTL 
+                ? 'أكمل بياناتك لإنشاء الحساب' 
+                : 'Complete your details to sign up')}
           </p>
         </div>
 
