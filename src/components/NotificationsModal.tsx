@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { requestForToken } from '../lib/firebase';
-import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export const NotificationsModal = () => {
@@ -30,18 +28,8 @@ export const NotificationsModal = () => {
       if ('Notification' in window) {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          const token = await requestForToken();
-          if (token && user) {
-            // Save token securely to Supabase
-            const { error } = await supabase
-              .from('users')
-              .update({ fcm_token: token })
-              .eq('id', user.id);
-              
-            if (error) throw error;
-            
-            toast.success(isRTL ? 'تم تفعيل الإشعارات بنجاح' : 'Notifications enabled successfully');
-          }
+          // Firebase removed: Just set UI state
+          toast.success(isRTL ? 'تم تفعيل الإشعارات بنجاح' : 'Notifications enabled successfully');
           localStorage.setItem('notifications_prompt_dismissed', 'true');
           setIsOpen(false);
         }

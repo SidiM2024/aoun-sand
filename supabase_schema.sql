@@ -17,7 +17,11 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- Enable RLS for users table
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
 CREATE POLICY "Users can view their own profile" ON public.users FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
 CREATE POLICY "Users can update their own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
 
 -- 2. Notifications Table
@@ -30,7 +34,11 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 -- Enable RLS for notifications
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view notifications" ON public.notifications;
 CREATE POLICY "Anyone can view notifications" ON public.notifications FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only admin can insert notifications" ON public.notifications;
 CREATE POLICY "Only admin can insert notifications" ON public.notifications FOR INSERT WITH CHECK (true); -- Note: Secure this properly in production
 
 -- 3. Polls Table
@@ -60,12 +68,19 @@ CREATE TABLE IF NOT EXISTS public.poll_votes (
 
 -- Disable RLS or set policies for polls, options, and votes so users can read them and vote.
 ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can view polls" ON public.polls;
 CREATE POLICY "Anyone can view polls" ON public.polls FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only admin can modify polls" ON public.polls;
 CREATE POLICY "Only admin can modify polls" ON public.polls FOR ALL USING (true); -- update for prod
 
 ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can view poll options" ON public.poll_options;
 CREATE POLICY "Anyone can view poll options" ON public.poll_options FOR SELECT USING (true);
 
 ALTER TABLE public.poll_votes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can vote once" ON public.poll_votes;
 CREATE POLICY "Users can vote once" ON public.poll_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view votes" ON public.poll_votes;
 CREATE POLICY "Users can view votes" ON public.poll_votes FOR SELECT USING (true);

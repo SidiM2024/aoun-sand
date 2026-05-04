@@ -83,28 +83,15 @@ export const AdminPage = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Send the actual push notification via Vercel API
-      const res = await fetch('/api/send-push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: notificationTitle,
-          message: notificationMsg,
-          adminPasscode: password // using the admin password as passcode
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send push notification');
-      }
-
-      // Also save it to DB
-      await supabase.from('notifications').insert([{
+      // Save it directly to DB only
+      const { error } = await supabase.from('notifications').insert([{
         title: notificationTitle,
         message: notificationMsg
       }]);
+      
+      if (error) {
+        throw error;
+      }
       
       toast.success(isRTL ? 'تم إرسال الإشعار بنجاح!' : 'Notification sent successfully!');
       setNotificationTitle('');
