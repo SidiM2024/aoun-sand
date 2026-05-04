@@ -15,7 +15,23 @@ import { LessonsPage } from './pages/LessonsPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminPage } from './pages/AdminPage';
 import { NotificationsModal } from './components/NotificationsModal';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAdmin } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user && !isAdmin) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
 
 function App() {
   return (
@@ -29,16 +45,16 @@ function App() {
               <NotificationsModal />
               <main className="flex-1">
                 <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/volunteer" element={<VolunteerPage />} />
-                <Route path="/membership" element={<MembershipPage />} />
-                <Route path="/donate" element={<DonatePage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/lessons" element={<LessonsPage />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+                  <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                  <Route path="/volunteer" element={<ProtectedRoute><VolunteerPage /></ProtectedRoute>} />
+                  <Route path="/membership" element={<ProtectedRoute><MembershipPage /></ProtectedRoute>} />
+                  <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
+                  <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
+                  <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
                 </Routes>
               </main>
               <Footer />

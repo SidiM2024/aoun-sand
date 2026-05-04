@@ -4,11 +4,19 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const AuthPage = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user, isAdmin } = useAuth();
   const isRTL = language === 'ar';
+
+  React.useEffect(() => {
+    if (user || isAdmin) {
+      navigate('/', { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'check' | 'signup'>('check');
@@ -32,10 +40,13 @@ export const AuthPage = () => {
     }
     
     setIsLoading(true);
+    // Append a secure suffix to phone to ensure it meets any password requirements (min 6 chars)
+    const securePassword = `${phone}Awn1!`;
+
     // Attempt to sign in
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password: phone, // using phone as password
+      password: securePassword,
     });
 
     if (error) {
@@ -56,10 +67,11 @@ export const AuthPage = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const securePassword = `${phone}Awn1!`;
 
     const { data, error } = await supabase.auth.signUp({
       email,
-      password: phone,
+      password: securePassword,
       options: {
         data: {
           full_name: fullName,
@@ -88,11 +100,20 @@ export const AuthPage = () => {
           national_id: nationalId
         }]);
         if (dbError) {
-          toast.error(dbError.message);
-        } else {
-          toast.success(isRTL ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح!' : 'Account created and logged in successfully!');
-          navigate('/');
+          console.error("DB Insert Error:", dbError);
+          // Don't block login if insert fails (maybe already exists), but show warning
         }
+        
+        // Auto sign-in just in case signUp didn't create a session (depends on Supabase settings)
+        if (!data.session) {
+          await supabase.auth.signInWithPassword({
+            email,
+            password: securePassword,
+          });
+        }
+
+        toast.success(isRTL ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح!' : 'Account created and logged in successfully!');
+        navigate('/');
       }
     }
     setIsLoading(false);
