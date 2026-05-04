@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon, Globe, Home, Info, FolderHeart, HandHeart, CreditCard, HeartHandshake, Phone, Youtube, Mail } from 'lucide-react';
+import { Menu, X, Sun, Moon, Globe, Home, Info, FolderHeart, HandHeart, CreditCard, HeartHandshake, Phone, Youtube, Mail, LogIn, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,6 +11,7 @@ export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { user, isAdmin } = useAuth();
   const location = useLocation();
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -86,6 +88,15 @@ export const Header = () => {
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
+            {/* Auth Button */}
+            <Link
+              to={user || isAdmin ? "/admin" : "/auth"}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300 hidden sm:flex items-center gap-1"
+              title={user || isAdmin ? (language === 'ar' ? 'حسابي' : 'Account') : (language === 'ar' ? 'تسجيل الدخول' : 'Login')}
+            >
+              {user || isAdmin ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+            </Link>
+
             <div className="relative">
               <button
                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
@@ -142,6 +153,14 @@ export const Header = () => {
                   <span>{item.label}</span>
                 </Link>
               ))}
+              <Link
+                to={user || isAdmin ? "/admin" : "/auth"}
+                onClick={closeMenu}
+                className={`mobile-nav-link ${isActive('/auth') || isActive('/admin') ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''}`}
+              >
+                {user || isAdmin ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+                <span>{user || isAdmin ? (language === 'ar' ? 'حسابي' : 'Account') : (language === 'ar' ? 'تسجيل الدخول' : 'Login')}</span>
+              </Link>
             </div>
             {/* Mobile Contact Info */}
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
