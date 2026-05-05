@@ -285,7 +285,6 @@ export const HomePage = () => {
                         className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
                       />
                     </div>
-                    </div>
                   </div>
                 </div>
               </div>
