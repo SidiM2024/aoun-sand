@@ -139,15 +139,6 @@ export const DonationsTab = ({ fetchDashboardData }: DonationsTabProps) => {
     setEditCampaign(null);
     await saveToSupabase(newCampaigns, isVisible);
 
-    // Auto-notify users when a new campaign is published
-    if (isNew && editCampaign.is_public !== false) {
-      await supabase.from('notifications').insert([{
-        title: isRTL ? `🤝 حملة تبرع جديدة: ${editCampaign.title}` : `🤝 New Donation Campaign: ${editCampaign.title}`,
-        message: isRTL
-          ? (editCampaign.description || 'انضم إلينا وساهم في دعم هذه الحملة الخيرية.')
-          : (editCampaign.description || 'Join us and support this charitable campaign.'),
-      }]);
-    }
   };
 
   const handleDeleteCampaign = async (id: string) => {

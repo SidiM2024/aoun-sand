@@ -215,3 +215,41 @@ CREATE POLICY "media_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id
 
 DROP POLICY IF EXISTS "media_delete" ON storage.objects;
 CREATE POLICY "media_delete" ON storage.objects FOR DELETE USING (bucket_id = 'media');
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 11. AUTH TRIGGER — Automatically copy new users to public.users
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, full_name, email, phone, membership_type, current_status, location, national_id)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'مستخدم جديد'),
+    NEW.email,
+    NEW.raw_user_meta_data->>'phone',
+    COALESCE(NEW.raw_user_meta_data->>'membership_type', 'عضو'),
+    COALESCE(NEW.raw_user_meta_data->>'current_status', 'لا شيء'),
+    NEW.raw_user_meta_data->>'location',
+    NEW.raw_user_meta_data->>'national_id'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
+    membership_type = EXCLUDED.membership_type,
+    current_status = EXCLUDED.current_status,
+    location = EXCLUDED.location,
+    national_id = EXCLUDED.national_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -67,12 +67,12 @@ const NotifCard = ({
       </div>
 
       {/* Title */}
-      <h3 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white mb-2 leading-snug">
+      <h3 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white mb-2 leading-snug break-words">
         {notif.title}
       </h3>
 
       {/* Message */}
-      <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
         {notif.message}
       </p>
 
@@ -263,10 +263,10 @@ export const NotificationsModal = () => {
                 'relative w-full bg-white dark:bg-slate-900',
                 'border border-slate-200/80 dark:border-slate-700/60',
                 'flex flex-col overflow-hidden',
-                // Mobile: bottom sheet, max 82% viewport height
-                'rounded-t-[28px] max-h-[82svh]',
+                // Mobile: bottom sheet, max 90% viewport height
+                'rounded-t-[32px] max-h-[90svh]',
                 // Desktop: centered card, max width + full rounded corners
-                'sm:rounded-[28px] sm:max-w-md sm:max-h-[88vh]',
+                'sm:rounded-[32px] sm:max-w-lg sm:max-h-[90vh]',
                 'shadow-[0_-8px_60px_rgba(0,0,0,0.18)] sm:shadow-[0_24px_80px_rgba(0,0,0,0.22)]',
               ].join(' ')}
               onClick={e => e.stopPropagation()}
