@@ -72,14 +72,33 @@ export const DonationsTab = ({ fetchDashboardData }: DonationsTabProps) => {
       campaigns: newCampaigns,
     };
 
-    const { error } = await supabase
+    // First try UPDATE, if row doesn't exist fall back to INSERT
+    const { error: updateError } = await supabase
       .from('site_settings')
-      .upsert({ id: 'donation_section', value: newValue, updated_at: new Date().toISOString() });
+      .upsert(
+        { id: 'donation_section', value: newValue, updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
 
-    if (error) {
-      toast.error(isRTL ? `خطأ: ${error.message}` : `Error: ${error.message}`);
+    if (updateError) {
+      console.error('saveToSupabase error:', updateError);
+      if (updateError.code === '42501') {
+        toast.error(
+          isRTL
+            ? '⚠️ خطأ في الصلاحيات. يرجى تشغيل ملف site_settings_schema.sql في Supabase SQL Editor لإصلاح السياسات.'
+            : '⚠️ Permission denied. Please run site_settings_schema.sql in Supabase SQL Editor to fix policies.'
+        );
+      } else if (updateError.code === 'PGRST116') {
+        toast.error(
+          isRTL
+            ? '⚠️ جدول site_settings غير موجود. يرجى تشغيل site_settings_schema.sql أولاً.'
+            : '⚠️ Table site_settings not found. Please run site_settings_schema.sql first.'
+        );
+      } else {
+        toast.error(isRTL ? `خطأ: ${updateError.message}` : `Error: ${updateError.message}`);
+      }
     } else {
-      toast.success(isRTL ? 'تم حفظ إعدادات التبرعات بنجاح ✓' : 'Donation settings saved ✓');
+      toast.success(isRTL ? '✓ تم حفظ التبرعات في Supabase' : '✓ Saved to Supabase successfully');
       fetchDashboardData();
     }
     setSaving(false);
