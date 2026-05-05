@@ -5,19 +5,11 @@ import { LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText } fro
 import { motion } from 'framer-motion';
 
 export const AccountPage = () => {
-  const { userProfile, logout } = useAuth();
+  const { user, userProfile, logout } = useAuth();
   const { language } = useLanguage();
   const isRTL = language === 'ar';
 
-  if (!userProfile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center pt-16 pb-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-      </div>
-    );
-  }
-
-  const details = [
+  const details = userProfile ? [
     { label: isRTL ? 'الاسم الكامل' : 'Full Name', value: userProfile.full_name, icon: User },
     { label: isRTL ? 'البريد الإلكتروني' : 'Email', value: userProfile.email, icon: Mail },
     { label: isRTL ? 'رقم الهاتف' : 'Phone', value: userProfile.phone, icon: Phone },
@@ -25,6 +17,8 @@ export const AccountPage = () => {
     { label: isRTL ? 'الانتساب' : 'Membership', value: userProfile.membership_type, icon: CreditCard },
     { label: isRTL ? 'الحالة الحالية' : 'Status', value: userProfile.current_status, icon: Activity },
     { label: isRTL ? 'السكن' : 'Location', value: userProfile.location, icon: MapPin },
+  ] : [
+    { label: isRTL ? 'البريد الإلكتروني' : 'Email', value: user?.email || '', icon: Mail },
   ];
 
   return (
@@ -38,8 +32,8 @@ export const AccountPage = () => {
           <div className="w-20 h-20 bg-teal-100 dark:bg-teal-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-10 h-10 text-teal-600 dark:text-teal-400" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">{userProfile.full_name}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{userProfile.email}</p>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">{userProfile?.full_name || (isRTL ? 'مستخدم' : 'User')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{userProfile?.email || user?.email}</p>
         </motion.div>
 
         <motion.div 

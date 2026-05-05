@@ -108,37 +108,56 @@ export const Header = () => {
             
             <AnimatePresence>
               {isNotifOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsNotifOpen(false)}>
                   <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50`}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
                   >
-                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                      <h3 className="font-bold text-slate-800 dark:text-white">{isRTL ? 'الإشعارات' : 'Notifications'}</h3>
-                      <button onClick={() => setIsNotifOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>
+                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 backdrop-blur-md sticky top-0 z-10">
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-indigo-500" />
+                        {isRTL ? 'الإشعارات' : 'Notifications'}
+                      </h3>
+                      <button 
+                        onClick={() => setIsNotifOpen(false)} 
+                        className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors"
+                      >
+                        <X className="w-5 h-5"/>
+                      </button>
                     </div>
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-slate-500 text-sm">
-                        {isRTL ? 'لا توجد إشعارات حالياً' : 'No notifications yet'}
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                        {notifications.map((notif) => (
-                          <div key={notif.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">{notif.title}</h4>
-                            <p className="text-xs text-slate-500 mt-1">{notif.message}</p>
-                            <span className="text-[10px] text-slate-400 mt-2 block">
-                              {new Date(notif.created_at).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
-                            </span>
+                    
+                    <div className="overflow-y-auto flex-1 p-2">
+                      {notifications.length === 0 ? (
+                        <div className="p-12 text-center flex flex-col items-center justify-center">
+                          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                            <Bell className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <p className="text-slate-500 font-medium">
+                            {isRTL ? 'لا توجد إشعارات حالياً' : 'No notifications yet'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {notifications.map((notif) => (
+                            <div key={notif.id} className="p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700 cursor-default">
+                              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-1">{notif.title}</h4>
+                              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{notif.message}</p>
+                              <span className="text-xs text-slate-400 dark:text-slate-500 mt-3 block font-medium">
+                                {new Date(notif.created_at).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', {
+                                  weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </motion.div>
-                </>
+                </div>
               )}
             </AnimatePresence>
           </div>

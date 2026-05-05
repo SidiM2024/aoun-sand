@@ -134,62 +134,34 @@ export const Hero = () => {
             </div>
           </div>
 
-          {/* Annual Schedule */}
-          <section className="bg-slate-900 text-white rounded-3xl p-8 md:p-12 shadow-2xl mb-20 relative overflow-hidden animate-slideUp animation-delay-500">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl"></div>
-
-            <div className="relative z-10">
-              <h2 className="text-3xl font-bold mb-2 text-center flex items-center justify-center gap-3">
-                <Calendar className="w-8 h-8 text-teal-400" />
-                {language === 'ar' ? 'جدول العمل السنوي' : 'Annual Schedule'}
-              </h2>
-              <p className="text-slate-400 mb-10 text-center">2025 - 2026</p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { date: '20 Oct 2025', text: language === 'ar' ? 'انطلاق حملة الانتساب للجمعية' : 'Membership Campaign Launch' },
-                  { date: 'Nov 2025', text: language === 'ar' ? 'حملة التبرع بالدم' : 'Blood Donation Campaign' },
-                  { date: '29 Dec 2025', text: language === 'ar' ? 'حفل تكريم المتطوعين' : 'Volunteers Ceremony' },
-                  { date: '17 Feb 2026', text: language === 'ar' ? 'الحملة الرمضانية' : 'Ramadan Campaign' },
-                ].map((item, i) => (
-                  <div key={i} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 hover:border-teal-500/50 transition-colors">
-                    <span className="inline-block px-3 py-1 bg-teal-500/20 text-teal-400 rounded-lg text-sm font-bold mb-3">
-                      {item.date}
-                    </span>
-                    <p className="text-slate-300 text-sm">{item.text}</p>
+          {/* Quick Links Section */}
+          <section className="animate-slideUp animation-delay-500">
+            <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-white flex items-center justify-center gap-2">
+              <BookOpen className="w-6 h-6 text-teal-500" />
+              {language === 'ar' ? 'روابط سريعة' : 'Quick Links'}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { path: '/about', label: language === 'ar' ? 'من نحن' : 'About Us', icon: Info, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                { path: '/volunteer', label: language === 'ar' ? 'التطوع' : 'Volunteer', icon: Users, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
+                { path: '/lessons', label: language === 'ar' ? 'الدروس' : 'Lessons', icon: Video, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                { path: '/contact', label: language === 'ar' ? 'اتصل بنا' : 'Contact Us', icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' }
+              ].map((link, i) => (
+                <Link
+                  key={i}
+                  to={link.path}
+                  className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:-translate-y-1 transition-all group"
+                >
+                  <div className={`w-14 h-14 rounded-full ${link.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <link.icon className={`w-7 h-7 ${link.color}`} />
                   </div>
-                ))}
-              </div>
-
-              <p className="mt-8 text-xs text-slate-500 text-center">
-                {language === 'ar' ? '⚠️ الجدول قابل للتعديل حسب الظروف والمستجدات' : '⚠️ Schedule subject to change'}
-              </p>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {link.label}
+                  </span>
+                </Link>
+              ))}
             </div>
           </section>
-
-          {/* Financial Report */}
-          <div className="max-w-sm mx-auto animate-slideUp animation-delay-500">
-            <div className="card p-8 text-center border-t-4 border-teal-500">
-              <h3 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">
-                {language === 'ar' ? 'التقرير المالي - سبتمبر 2025' : 'Financial Report - Sep 2025'}
-              </h3>
-
-              <div className="space-y-6">
-                <div>
-                  <p className="text-sm text-slate-500 mb-1">{language === 'ar' ? 'إجمالي التبرعات' : 'Total Donations'}</p>
-                  <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 flex items-center justify-center gap-2">
-                    <Wallet className="w-6 h-6" />
-                    103,000
-                    <span className="text-sm text-slate-400 font-normal">MRU</span>
-                  </p>
-                </div>
-
-                <Link to="/donate" className="btn-outline w-full justify-center">
-                  {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
