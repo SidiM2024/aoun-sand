@@ -7,7 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import {
   Users, TrendingUp, HandHeart, Sparkles,
   BookOpen, Video, Info, Heart, ArrowLeft, ArrowRight,
-  Target, CheckCircle2
+  Target, CheckCircle2, Bell
 } from 'lucide-react';
 import { PollsSection } from '../components/PollsSection';
 
@@ -48,8 +48,8 @@ const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) =>
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      whileHover={{ y: -4 }}
-      className="relative bg-white dark:bg-slate-800/80 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-md hover:shadow-xl transition-all overflow-hidden group"
+      whileHover={{ y: -4, scale: 1.01 }}
+      className="relative bg-white dark:bg-slate-800/80 rounded-3xl p-5 border border-slate-100 dark:border-slate-700 shadow-md hover:shadow-xl transition-all overflow-hidden group"
     >
       {/* Glow top */}
       <div className={`absolute top-0 inset-x-0 h-1 rounded-t-3xl ${isComplete ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`} />
@@ -62,10 +62,10 @@ const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) =>
         </div>
       )}
 
-      <div className="mb-4 pe-10">
-        <h4 className="font-bold text-base sm:text-lg text-slate-800 dark:text-white leading-snug mb-1.5">{campaign.title}</h4>
+      <div className="mb-3 pe-10">
+        <h4 className="font-bold text-base text-slate-800 dark:text-white leading-snug mb-1">{campaign.title}</h4>
         {campaign.description && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{campaign.description}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{campaign.description}</p>
         )}
       </div>
 
@@ -80,7 +80,7 @@ const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) =>
       </div>
 
       {/* Progress */}
-      <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
+      <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
         <motion.div
           initial={{ width: 0 }}
           whileInView={{ width: `${percent}%` }}
@@ -96,14 +96,116 @@ const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) =>
           <Users className="w-3.5 h-3.5" />
           <span>{campaign.donors_count || 0} {isRTL ? 'متبرع' : 'donors'}</span>
         </div>
-        <span className={`text-sm font-black ${isComplete ? 'text-emerald-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
-          {percent}%
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-black ${isComplete ? 'text-emerald-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+            {percent}%
+          </span>
+          <Link
+            to="/donate"
+            className="text-xs font-bold px-3 py-1 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            {isRTL ? 'تبرع' : 'Donate'}
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── Donation Banner (shows when admin publishes campaigns) ── */
+const DonationBanner = ({ campaigns, settings, isRTL, language }: { campaigns: any[]; settings: any; isRTL: boolean; language: string }) => {
+  const donationRef = useRef(null);
+  const isDonationInView = useInView(donationRef, { once: true, margin: '-60px' });
+  const totalDonations = settings?.campaigns?.reduce((s: number, c: any) => s + (c.current_amount || 0), 0) || settings?.total_donations || 0;
+  const animatedDonations = useCounter(totalDonations, 2500);
+
+  return (
+    <motion.section
+      ref={donationRef}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isDonationInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+      aria-label="Donations"
+      className="mb-10"
+    >
+      {/* Banner Header */}
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-500 p-6 sm:p-8 mb-5 shadow-xl shadow-indigo-500/20">
+        {/* Animated blobs */}
+        <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -bottom-8 -start-8 w-32 h-32 rounded-full bg-rose-400/20 blur-xl" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-inner shrink-0">
+              <HandHeart className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-white/60 uppercase tracking-widest">
+                  {isRTL ? 'حملة التبرعات' : 'Donation Campaign'}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-400 text-white px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                  {isRTL ? 'نشطة' : 'Live'}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                {isRTL
+                  ? (settings?.title_ar || 'معاً نصنع الأثر')
+                  : (language === 'fr' ? (settings?.title_fr || 'Ensemble') : (settings?.title_en || 'Together We Make an Impact'))}
+              </h2>
+              {(isRTL ? settings?.desc_ar : language === 'fr' ? settings?.desc_fr : settings?.desc_en) && (
+                <p className="text-sm text-white/70 mt-1 leading-relaxed line-clamp-2">
+                  {isRTL ? settings?.desc_ar : language === 'fr' ? settings?.desc_fr : settings?.desc_en}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Collected amount */}
+            <div className="bg-white/15 backdrop-blur-md rounded-2xl px-4 py-3 text-center border border-white/20">
+              <p className="text-xs text-white/60 font-semibold mb-0.5">
+                {isRTL ? 'إجمالي التبرعات' : 'Total Collected'}
+              </p>
+              <div className="flex items-baseline gap-1" dir="ltr">
+                <span className="text-2xl font-black text-white tabular-nums">{animatedDonations.toLocaleString()}</span>
+                <span className="text-xs font-bold text-white/70">MRU</span>
+              </div>
+            </div>
+
+            <Link
+              to="/donate"
+              className="flex items-center gap-2 px-5 py-3.5 bg-white text-indigo-700 hover:bg-indigo-50 active:scale-95 font-black text-sm rounded-2xl shadow-lg transition-all group"
+            >
+              <Heart className="w-4 h-4 fill-current group-hover:scale-125 transition-transform" />
+              {isRTL ? 'تبرع الآن' : 'Donate Now'}
+              {isRTL ? <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> : <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* Clickable overlay */}
-      <Link to="/donate" className="absolute inset-0 z-10" aria-label={`Donate to ${campaign.title}`} />
-    </motion.div>
+      {/* Campaign Cards */}
+      {campaigns.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+              <Target className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 dark:text-white">
+              {isRTL ? `حملات التبرع النشطة (${campaigns.length})` : `Active Campaigns (${campaigns.length})`}
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {campaigns.map((campaign: any) => (
+              <CampaignCard key={campaign.id} campaign={campaign} isRTL={isRTL} />
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.section>
   );
 };
 
@@ -118,52 +220,62 @@ export const HomePage = () => {
   const [settings, setSettings] = useState<any>(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  const donationRef = useRef(null);
-  const isDonationInView = useInView(donationRef, { once: true, margin: '-100px' });
-
   /* ── Fetch & Realtime ── */
   useEffect(() => {
     const fetchAll = async () => {
-      // Users count
-      const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
+      // Users count — use count:exact for accuracy
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
       if (count !== null) setUsersCount(count);
 
-      // Donation settings — fetch the whole row not just value to handle null
-      const { data, error } = await supabase
+      // Donation settings
+      const { data } = await supabase
         .from('site_settings')
         .select('value')
         .eq('id', 'donation_section')
-        .maybeSingle(); // maybeSingle doesn't throw if row missing
+        .maybeSingle();
       if (data?.value) setSettings(data.value);
       setSettingsLoaded(true);
     };
 
     fetchAll();
 
-    const ch1 = supabase.channel('hp:users')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, () => setUsersCount(p => p + 1))
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'users' }, () => setUsersCount(p => Math.max(0, p - 1)))
+    // Real-time: users INSERT/DELETE
+    const ch1 = supabase.channel('hp:users:v3')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, () => {
+        setUsersCount(p => p + 1);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'users' }, () => {
+        setUsersCount(p => Math.max(0, p - 1));
+      })
       .subscribe();
 
-    // Listen to ALL events on site_settings (INSERT + UPDATE)
-    const ch2 = supabase.channel('hp:settings:v2')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
+    // Real-time: site_settings
+    const ch2 = supabase.channel('hp:settings:v3')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
         (payload) => {
           if (payload.new && (payload.new as any).value) {
             setSettings((payload.new as any).value);
+          } else if (payload.eventType === 'DELETE') {
+            setSettings(null);
           }
         })
       .subscribe();
 
-    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); };
+    return () => {
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
+    };
   }, []);
 
   const animatedMembers = useCounter(usersCount, 2000);
-  const totalDonations = settings?.campaigns?.reduce((s: number, c: any) => s + (c.current_amount || 0), 0) || settings?.total_donations || 0;
-  const animatedDonations = useCounter(totalDonations, 2500);
   const quickLinks = getQuickLinks(isRTL, language);
-  const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true);
-  const showDonationsSection = settingsLoaded && (settings?.is_visible !== false);
+
+  // Only show donation section if admin has published public campaigns
+  const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true && c.status === 'active');
+  const showDonationsSection = settingsLoaded && settings?.is_visible !== false && publicCampaigns.length > 0;
 
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -181,7 +293,7 @@ export const HomePage = () => {
         <motion.section
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-14"
+          className="text-center mb-12"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 text-sm font-semibold mb-5 select-none">
             <Sparkles className="w-4 h-4 shrink-0" />
@@ -201,25 +313,64 @@ export const HomePage = () => {
             {hp.welcomeDesc || 'We are delighted to have you join us in making an impact and giving.'}
           </p>
 
-          <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35, duration: 0.5 }} className="inline-block mt-10 relative group">
+          {/* ── User Counter Card ── */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="inline-block mt-10 relative group"
+          >
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-teal-400 to-emerald-500 blur-xl opacity-25 group-hover:opacity-40 transition-opacity duration-500" />
             <div className="relative flex items-center gap-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 rounded-3xl px-6 py-5 shadow-2xl">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shrink-0">
                 <Users className="w-7 h-7 text-white" />
               </div>
               <div className="text-start">
-                <p className="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-widest mb-1">{hp.totalMembers || 'Total Members'}</p>
+                {/* ✅ Updated label as per requirement */}
+                <p className="text-xs sm:text-sm font-bold text-slate-400 mb-1 leading-snug">
+                  {isRTL ? 'عدد المسجلين في الجمعية' : (language === 'fr' ? 'Membres inscrits' : 'Registered Members')}
+                </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums">+{animatedMembers.toLocaleString()}</span>
-                  <span className="text-lg font-bold text-teal-500">{hp.member || 'Member'}</span>
+                  <span className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums">
+                    +{animatedMembers.toLocaleString()}
+                  </span>
+                  <span className="text-lg font-bold text-teal-500">
+                    {isRTL ? 'عضو' : (language === 'fr' ? 'membre' : 'Member')}
+                  </span>
                 </div>
               </div>
             </div>
           </motion.div>
         </motion.section>
 
+        {/* ═══ DONATION CAMPAIGNS (above Quick Links — shown only when admin publishes) ═══ */}
+        <AnimatePresence>
+          {showDonationsSection && (
+            <motion.div
+              key="donation-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <DonationBanner
+                campaigns={publicCampaigns}
+                settings={settings}
+                isRTL={isRTL}
+                language={language}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ═══ QUICK LINKS ═══ */}
-        <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.6 }} className="mb-14" aria-label="Quick Links">
+        <motion.section
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.6 }}
+          className="mb-14"
+          aria-label="Quick Links"
+        >
           <h2 className="text-xl sm:text-2xl font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-500" />
             {isRTL ? 'روابط سريعة' : (language === 'fr' ? 'Liens rapides' : 'Quick Links')}
@@ -241,90 +392,6 @@ export const HomePage = () => {
 
         {/* ═══ POLLS ═══ */}
         <PollsSection />
-
-        {/* ═══ DONATIONS SECTION ═══ */}
-        {showDonationsSection && (
-          <motion.section
-            ref={donationRef}
-            initial={{ opacity: 0, y: 40 }}
-            animate={isDonationInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            aria-label="Donations"
-            className="relative rounded-[2rem] sm:rounded-[3rem] overflow-hidden bg-white/50 dark:bg-slate-800/50 backdrop-blur-2xl border border-white/70 dark:border-slate-700/60 shadow-[0_12px_48px_-12px_rgba(99,102,241,0.15)] dark:shadow-[0_12px_48px_-12px_rgba(0,0,0,0.5)]"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-transparent to-teal-50/30 dark:from-indigo-900/20 dark:to-teal-900/10 pointer-events-none" />
-
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-0">
-              {/* Info */}
-              <div className="p-8 sm:p-10 lg:p-14 flex flex-col justify-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6 -rotate-6">
-                  <HandHeart className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-800 dark:text-white mb-4 leading-tight">
-                  {isRTL ? (settings?.title_ar || 'معاً نصنع الأثر') : (language === 'fr' ? (settings?.title_fr || 'Ensemble') : (settings?.title_en || 'Together We Make an Impact'))}
-                </h2>
-                <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
-                  {isRTL ? (settings?.desc_ar || 'بفضل مساهماتكم نستمر في خدمة المجتمع') : (language === 'fr' ? (settings?.desc_fr || '') : (settings?.desc_en || ''))}
-                </p>
-                <Link to="/donate" className="inline-flex items-center gap-2 self-start px-7 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 active:scale-95 text-white rounded-2xl font-bold text-base shadow-lg shadow-indigo-500/30 transition-all duration-200 group">
-                  {hp.contribute || 'Contribute Now'}
-                  {isRTL ? <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> : <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-                </Link>
-              </div>
-
-              {/* Counter */}
-              <div className="p-8 sm:p-10 lg:p-14 flex items-center justify-center border-t lg:border-t-0 border-s-0 lg:border-s border-slate-100/70 dark:border-slate-700/50">
-                <div className="relative w-full max-w-xs">
-                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-indigo-500 to-purple-600 blur-2xl opacity-15 dark:opacity-30" />
-                  <div className="relative bg-white dark:bg-slate-800 rounded-[2rem] p-8 sm:p-10 border border-slate-100 dark:border-slate-700 shadow-2xl flex flex-col items-center text-center overflow-hidden">
-                    <div className="absolute -top-10 -end-10 w-28 h-28 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full blur-2xl opacity-40" />
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-50 dark:bg-indigo-900/40 rounded-full flex items-center justify-center mb-5 border border-indigo-100 dark:border-indigo-800 relative z-10">
-                      <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-3 relative z-10">{hp.totalDonations || 'Total Donations'}</p>
-                    <div className="flex items-baseline gap-2 relative z-10 mb-6">
-                      <span className="text-4xl sm:text-5xl md:text-6xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent tabular-nums">{animatedDonations.toLocaleString()}</span>
-                      <span className="text-lg sm:text-xl font-bold text-slate-400">MRU</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden relative z-10">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={isDonationInView ? { width: `${totalDonations > 0 ? Math.min(100, (totalDonations / 500000) * 100) : 5}%` } : {}}
-                        transition={{ duration: 1.8, ease: 'easeOut', delay: 0.3 }}
-                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Campaigns */}
-            <AnimatePresence>
-              {publicCampaigns.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="border-t border-slate-100/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 p-6 sm:p-8 lg:p-10"
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
-                      <Target className="w-4 h-4 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                      {isRTL ? `حملات التبرع النشطة (${publicCampaigns.length})` : `Active Campaigns (${publicCampaigns.length})`}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {publicCampaigns.map((campaign: any) => (
-                      <CampaignCard key={campaign.id} campaign={campaign} isRTL={isRTL} />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.section>
-        )}
 
       </div>
     </div>
