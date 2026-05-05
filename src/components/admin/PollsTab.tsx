@@ -18,6 +18,7 @@ export const PollsTab = ({ polls, fetchDashboardData }: { polls: any[], fetchDas
   const [pollDesc, setPollDesc] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [expiresAt, setExpiresAt] = useState('');
+  const [allowMultiple, setAllowMultiple] = useState(false);
 
   // Edit state
   const [editingPoll, setEditingPoll] = useState<any>(null);
@@ -54,7 +55,7 @@ export const PollsTab = ({ polls, fetchDashboardData }: { polls: any[], fetchDas
       return;
     }
     setIsLoading(true);
-    const payload: any = { title: pollTitle, description: pollDesc };
+    const payload: any = { title: pollTitle, description: pollDesc, allow_multiple: allowMultiple };
     if (expiresAt) payload.expires_at = new Date(expiresAt).toISOString();
 
     const { data: newPoll, error: pollError } = await supabase
@@ -69,7 +70,7 @@ export const PollsTab = ({ polls, fetchDashboardData }: { polls: any[], fetchDas
       toast.error(optErr.message);
     } else {
       toast.success(isRTL ? 'تم إنشاء التصويت بنجاح!' : 'Poll created successfully!');
-      setPollTitle(''); setPollDesc(''); setPollOptions(['', '']); setExpiresAt('');
+      setPollTitle(''); setPollDesc(''); setPollOptions(['', '']); setExpiresAt(''); setAllowMultiple(false);
       setShowCreateForm(false);
       fetchDashboardData();
     }
@@ -192,12 +193,22 @@ export const PollsTab = ({ polls, fetchDashboardData }: { polls: any[], fetchDas
                   <PlusCircle className="w-4 h-4" />{isRTL ? 'إضافة خيار' : 'Add option'}
                 </button>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />{isRTL ? 'تاريخ الانتهاء (اختياري)' : 'Expiry Date (Optional)'}
-                </label>
-                <input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
-                  className="px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 outline-none w-full sm:w-auto" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />{isRTL ? 'تاريخ الانتهاء (اختياري)' : 'Expiry Date (Optional)'}
+                  </label>
+                  <input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
+                    className="px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-teal-500 outline-none w-full" />
+                </div>
+                <div className="flex-1 flex items-center h-full pt-6">
+                  <label className="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 w-full hover:bg-slate-100 transition-colors">
+                    <input type="checkbox" checked={allowMultiple} onChange={e => setAllowMultiple(e.target.checked)} className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500" />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {isRTL ? 'السماح باختيار أكثر من خيار' : 'Allow multiple choices'}
+                    </span>
+                  </label>
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreateForm(false)}

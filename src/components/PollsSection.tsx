@@ -13,7 +13,8 @@ export const PollsSection = () => {
 
   const [polls, setPolls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState<string | null>(null); // pollId being submitted
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetchActivePolls();
@@ -37,7 +38,7 @@ export const PollsSection = () => {
     finally { setLoading(false); }
   };
 
-  const handleVote = async (pollId: string, optionId: string) => {
+  const handleSingleVote = async (pollId: string, optionId: string) => {
     if (!user) { toast.error(isRTL ? 'يجب تسجيل الدخول للتصويت' : 'Login to vote'); return; }
     setSubmitting(pollId);
     try {
@@ -52,6 +53,34 @@ export const PollsSection = () => {
         fetchActivePolls();
       }
     } catch (e: any) { toast.error(e.message); }
+    finally { setSubmitting(null); }
+  };
+
+  const toggleOption = (pollId: string, optionId: string) => {
+    setSelectedOptions(prev => {
+      const current = prev[pollId] || [];
+      if (current.includes(optionId)) return { ...prev, [pollId]: current.filter(id => id !== optionId) };
+      return { ...prev, [pollId]: [...current, optionId] };
+    });
+  };
+
+  const handleMultipleSubmit = async (pollId: string) => {
+    if (!user) { toast.error(isRTL ? 'يجب تسجيل الدخول للتصويت' : 'Login to vote'); return; }
+    const opts = selectedOptions[pollId] || [];
+    if (opts.length === 0) return;
+    
+    setSubmitting(pollId);
+    try {
+      const inserts = opts.map(oId => ({ poll_id: pollId, option_id: oId, user_id: user.id }));
+      const { error } = await supabase.from('poll_votes').insert(inserts);
+      if (error) throw error;
+      toast.success(isRTL ? '✓ تم تسجيل أصواتك!' : '✓ Votes recorded!');
+      setSelectedOptions(prev => ({ ...prev, [pollId]: [] }));
+      fetchActivePolls();
+    } catch (e: any) { 
+      if (e.code === '23505') toast.error(isRTL ? 'صوّتَّ مسبقاً في هذا الاستطلاع' : 'Already voted');
+      else toast.error(e.message); 
+    }
     finally { setSubmitting(null); }
   };
 
@@ -85,18 +114,26 @@ export const PollsSection = () => {
       <div className="space-y-4">
         {polls.map((poll, i) => {
           const totalVotes = poll.poll_votes?.length || 0;
-          const userVote = user ? poll.poll_votes?.find((v: any) => v.user_id === user.id) : null;
-          const hasVoted = !!userVote;
+          const userVotes = user ? poll.poll_votes?.filter((v: any) => v.user_id === user.id) : [];
+          const hasVoted = userVotes && userVotes.length > 0;
           const isSubmittingThis = submitting === poll.id;
+          const allowMultiple = poll.allow_multiple === true;
+          const selectedForThis = selectedOptions[poll.id] || [];
 
           // Sorted options for results display (highest first)
-          const optionsWithVotes = (poll.poll_options || []).map((opt: any) => ({
-            ...opt,
-            votes: poll.poll_votes?.filter((v: any) => v.option_id === opt.id).length || 0,
-            pct: totalVotes > 0
-              ? Math.round(((poll.poll_votes?.filter((v: any) => v.option_id === opt.id).length || 0) / totalVotes) * 100)
-              : 0,
-          }));
+          const optionsWithVotes = (poll.poll_options || []).map((opt: any) => {
+            const votesForOpt = poll.poll_votes?.filter((v: any) => v.option_id === opt.id).length || 0;
+            // In multiple choice, percentage might be based on total participants, but we use total votes for simplicity
+            // To be more accurate for multiple, pct = (votes / totalParticipants) * 100. 
+            // We approximate participants by counting unique user_ids if needed, but totalVotes is fine for UI
+            const uniqueVoters = new Set(poll.poll_votes?.map((v:any) => v.user_id)).size;
+            const divisor = allowMultiple ? Math.max(uniqueVoters, 1) : Math.max(totalVotes, 1);
+            return {
+              ...opt,
+              votes: votesForOpt,
+              pct: totalVotes > 0 ? Math.round((votesForOpt / divisor) * 100) : 0,
+            };
+          });
           const maxPct = Math.max(...optionsWithVotes.map((o: any) => o.pct), 0);
 
           return (
@@ -125,8 +162,9 @@ export const PollsSection = () => {
                 {/* Options */}
                 <div className="space-y-2.5">
                   {optionsWithVotes.map((opt: any, idx: number) => {
-                    const isChosen = userVote?.option_id === opt.id;
+                    const isChosen = userVotes?.some((v:any) => v.option_id === opt.id);
                     const isLeading = hasVoted && opt.pct === maxPct && opt.pct > 0;
+                    const isSelected = selectedForThis.includes(opt.id);
 
                     return (
                       <div key={opt.id}>
@@ -134,18 +172,22 @@ export const PollsSection = () => {
                           /* ── Unvoted: WhatsApp-style option button ── */
                           <motion.button
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => handleVote(poll.id, opt.id)}
+                            onClick={() => allowMultiple ? toggleOption(poll.id, opt.id) : handleSingleVote(poll.id, opt.id)}
                             disabled={isSubmittingThis}
                             className="w-full text-start flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-transparent hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all duration-150 disabled:opacity-50 group"
                           >
-                            {/* Radio circle */}
-                            <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-teal-500 flex items-center justify-center shrink-0 transition-colors">
-                              <div className="w-2.5 h-2.5 rounded-full bg-transparent group-hover:bg-teal-500 transition-colors" />
+                            {/* Radio/Checkbox circle */}
+                            <div className={`w-5 h-5 flex items-center justify-center shrink-0 transition-colors ${allowMultiple ? 'rounded-md' : 'rounded-full'} border-2 ${isSelected ? 'border-teal-500 bg-teal-500' : 'border-slate-300 dark:border-slate-600 group-hover:border-teal-500'}`}>
+                              {allowMultiple ? (
+                                isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                              ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-transparent group-hover:bg-teal-500 transition-colors" />
+                              )}
                             </div>
                             <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
                               {opt.option_text}
                             </span>
-                            {isSubmittingThis && idx === 0 && (
+                            {!allowMultiple && isSubmittingThis && idx === 0 && (
                               <div className="ms-auto w-4 h-4 border-2 border-teal-400/40 border-t-teal-500 rounded-full animate-spin shrink-0" />
                             )}
                           </motion.button>
@@ -155,15 +197,15 @@ export const PollsSection = () => {
                             {/* Fill bar */}
                             <motion.div
                               initial={{ width: 0 }}
-                              animate={{ width: `${opt.pct}%` }}
+                              animate={{ width: `${Math.min(100, opt.pct)}%` }}
                               transition={{ duration: 0.9, ease: 'easeOut', delay: idx * 0.06 }}
                               className={`absolute inset-y-0 start-0 rounded-2xl ${isChosen ? 'bg-teal-100 dark:bg-teal-900/40' : 'bg-slate-100 dark:bg-slate-800/60'}`}
                             />
                             <div className="relative z-10 flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 {/* Chosen check */}
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isChosen ? 'border-teal-500 bg-teal-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                  {isChosen && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                <div className={`w-5 h-5 flex items-center justify-center shrink-0 transition-all ${allowMultiple ? 'rounded-md' : 'rounded-full'} border-2 ${isChosen ? 'border-teal-500 bg-teal-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                  {isChosen && <CheckCircle2 className="w-3.5 h-3.5 text-white" /> }
                                 </div>
                                 <span className={`text-sm sm:text-base font-semibold truncate ${isChosen ? 'text-teal-700 dark:text-teal-300' : 'text-slate-600 dark:text-slate-300'}`}>
                                   {opt.option_text}
@@ -193,10 +235,21 @@ export const PollsSection = () => {
               <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                   <Users className="w-3.5 h-3.5" />
-                  <span>{totalVotes} {isRTL ? (totalVotes === 1 ? 'صوت' : 'أصوات') : (totalVotes === 1 ? 'vote' : 'votes')}</span>
+                  <span>{new Set(poll.poll_votes?.map((v:any)=>v.user_id)).size} {isRTL ? 'مشارك' : 'participants'}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {!hasVoted && allowMultiple && selectedForThis.length > 0 && (
+                    <button
+                      onClick={() => handleMultipleSubmit(poll.id)}
+                      disabled={isSubmittingThis}
+                      className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+                    >
+                      {isSubmittingThis ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {isRTL ? 'تصويت' : 'Submit'}
+                    </button>
+                  )}
+
                   {poll.expires_at && (
                     <div className="flex items-center gap-1 text-xs text-amber-500">
                       <Clock className="w-3 h-3" />
@@ -215,7 +268,9 @@ export const PollsSection = () => {
                       {isRTL ? 'صوّتَّ' : 'Voted'}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-400">{isRTL ? 'اختر خياراً' : 'Select an option'}</span>
+                    <span className="text-xs text-slate-400">
+                      {isRTL ? (allowMultiple ? 'اختر خياراً أو أكثر' : 'اختر خياراً') : (allowMultiple ? 'Select one or more' : 'Select an option')}
+                    </span>
                   )}
                 </div>
               </div>
@@ -226,3 +281,4 @@ export const PollsSection = () => {
     </section>
   );
 };
+
