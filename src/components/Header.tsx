@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon, Globe, Home, Info, FolderHeart, HandHeart, CreditCard, HeartHandshake, Phone, Youtube, Mail, LogIn, User } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Sun, Moon, Globe, Bell, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
-  const { user, isAdmin } = useAuth();
-  const location = useLocation();
-
-  const closeMenu = () => setIsMenuOpen(false);
+  const { language, setLanguage } = useLanguage();
+  const isRTL = language === 'ar';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,157 +24,172 @@ export const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (data) {
+      setNotifications(data);
+      const lastSeen = localStorage.getItem('last_notification_seen');
+      if (data.length > 0 && (!lastSeen || new Date(data[0].created_at) > new Date(lastSeen))) {
+        setHasUnread(true);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const subscription = supabase.channel('public:notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
+        setNotifications((prev) => [payload.new, ...prev].slice(0, 10));
+        setHasUnread(true);
+        // Also show browser notification if enabled
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(payload.new.title, { body: payload.new.message });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const openNotifications = () => {
+    setHasUnread(false);
+    setIsNotifOpen(!isNotifOpen);
+    if (notifications.length > 0) {
+      localStorage.setItem('last_notification_seen', new Date().toISOString());
+    }
+  };
+
   const languages = [
     { code: 'ar' as const, label: 'العربية', flag: '🇲🇷' },
     { code: 'fr' as const, label: 'Français', flag: '🇫🇷' },
     { code: 'en' as const, label: 'English', flag: '🇬🇧' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
-
-  const navItems = [
-    { path: '/', label: t.nav.home, icon: Home },
-    { path: '/about', label: t.nav.about, icon: Info },
-    { path: '/projects', label: t.nav.projects, icon: FolderHeart },
-    { path: '/volunteer', label: t.nav.volunteer, icon: HandHeart },
-    { path: '/membership', label: t.nav.membership, icon: CreditCard },
-    { path: '/donate', label: t.nav.donate, icon: HeartHandshake },
-    { path: '/lessons', label: language === 'ar' ? 'الدروس' : 'Lessons', icon: Youtube },
-    { path: '/contact', label: t.nav.contact, icon: Phone },
-  ];
-
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-      ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-lg'
+      ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm'
       : 'bg-white dark:bg-slate-900 shadow-sm'
       }`}>
 
-      <nav className="container-custom py-2">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative overflow-hidden rounded-full shadow-lg">
-              <img
-                src="/ABC.jpg"
-                alt="Logo"
-                className="h-10 w-10 md:h-12 md:w-12 object-cover transform group-hover:scale-110 transition-transform duration-500"
-              />
-            </div>
-            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
-              {language === 'ar' ? 'عون وسند' : language === 'fr' ? 'Aide et Soutien' : 'Aid & Support'}
-            </span>
-          </Link>
+      <nav className="px-4 py-3 max-w-md mx-auto flex items-center justify-between relative">
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="relative overflow-hidden rounded-full shadow-md">
+            <img
+              src="/ABC.jpg"
+              alt="Logo"
+              className="h-9 w-9 object-cover transform group-hover:scale-110 transition-transform duration-500"
+            />
+          </div>
+          <span className="text-lg font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            {language === 'ar' ? 'عون وسند' : language === 'fr' ? 'Aide et Soutien' : 'Aid & Support'}
+          </span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden xl:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`nav-link px-3 py-2 flex items-center gap-2 ${isActive(item.path) ? 'active' : ''
-                  }`}
-              >
-                <item.icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+        <div className="flex items-center gap-1">
+          <div className="relative">
+            <button
+              onClick={openNotifications}
+              className="relative p-2 rounded-full hover:bg-slate-100 dark:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {hasUnread && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+              )}
+            </button>
+            
+            <AnimatePresence>
+              {isNotifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50`}
+                  >
+                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                      <h3 className="font-bold text-slate-800 dark:text-white">{isRTL ? 'الإشعارات' : 'Notifications'}</h3>
+                      <button onClick={() => setIsNotifOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500 text-sm">
+                        {isRTL ? 'لا توجد إشعارات حالياً' : 'No notifications yet'}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                        {notifications.map((notif) => (
+                          <div key={notif.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">{notif.title}</h4>
+                            <p className="text-xs text-slate-500 mt-1">{notif.message}</p>
+                            <span className="text-[10px] text-slate-400 mt-2 block">
+                              {new Date(notif.created_at).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+
+          <div className="relative">
             <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
-              aria-label="Toggle theme"
+              onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 text-slate-600 dark:text-slate-300"
+              aria-label="Change language"
             >
-              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              <Globe className="w-5 h-5" />
             </button>
 
-            {/* Auth Button */}
-            <Link
-              to={user || isAdmin ? "/admin" : "/auth"}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300 hidden sm:flex items-center gap-1"
-              title={user || isAdmin ? (language === 'ar' ? 'حسابي' : 'Account') : (language === 'ar' ? 'تسجيل الدخول' : 'Login')}
-            >
-              {user || isAdmin ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-            </Link>
-
-            <div className="relative">
-              <button
-                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 text-slate-600 dark:text-slate-300"
-                aria-label="Change language"
-              >
-                <Globe className="w-5 h-5" />
-                <span className="text-sm font-medium">{languages.find(l => l.code === language)?.flag}</span>
-              </button>
-
+            <AnimatePresence>
               {isLangMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 animate-fadeIn overflow-hidden">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setLanguage(lang.code);
-                        setIsLangMenuOpen(false);
-                      }}
-                      className={`w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors flex items-center gap-3 ${language === lang.code ? 'text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/10' : 'text-slate-600 dark:text-slate-300'
-                        }`}
-                    >
-                      <span className="text-lg">{lang.flag}</span>
-                      <span className="font-medium">{lang.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 z-50`}
+                  >
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setIsLangMenuOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors flex items-center gap-3 ${language === lang.code ? 'text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/10' : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        <span className="font-medium">{lang.label}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
               )}
-            </div>
-
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="xl:hidden p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            </AnimatePresence>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="xl:hidden mt-4 pb-4 animate-slideDown border-t border-slate-100 dark:border-slate-800 pt-4">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={closeMenu}
-                  className={`mobile-nav-link ${isActive(item.path) ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''
-                    }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-              <Link
-                to={user || isAdmin ? "/admin" : "/auth"}
-                onClick={closeMenu}
-                className={`mobile-nav-link ${isActive('/auth') || isActive('/admin') ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' : ''}`}
-              >
-                {user || isAdmin ? <User className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-                <span>{user || isAdmin ? (language === 'ar' ? 'حسابي' : 'Account') : (language === 'ar' ? 'تسجيل الدخول' : 'Login')}</span>
-              </Link>
-            </div>
-            {/* Mobile Contact Info */}
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <a href="tel:32203250" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                <span>32203250</span>
-              </a>
-              <a href="mailto:associationaidesoutien@gmail.com" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                <span>associationaidesoutien@gmail.com</span>
-              </a>
-            </div>
-          </div>
-        )}
       </nav>
     </header>
   );

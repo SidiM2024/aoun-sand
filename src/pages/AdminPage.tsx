@@ -64,7 +64,10 @@ export const AdminPage = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'Awn' && password === 'Sanad#2025') {
+    const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
+    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+    if (username === envUsername && password === envPassword) {
       localStorage.setItem('admin_auth', 'true');
       setIsAuthenticated(true);
       fetchDashboardData();

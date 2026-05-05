@@ -2,47 +2,84 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  isAdmin: boolean;
+export interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  membership_type: string;
+  current_status: string;
+  location: string;
+  national_id: string;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, isAdmin: false });
+interface AuthContextType {
+  user: User | null;
+  userProfile: UserProfile | null;
+  loading: boolean;
+  isAdmin: boolean;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({ 
+  user: null, 
+  userProfile: null, 
+  loading: true, 
+  isAdmin: false,
+  logout: async () => {} 
+});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase.from('users').select('*').eq('id', userId).single();
+    if (data) {
+      setUserProfile(data);
+    } else {
+      setUserProfile(null);
+    }
+  };
+
   useEffect(() => {
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      checkIfAdmin(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+      checkIfAdmin();
       setLoading(false);
     });
 
-    // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      checkIfAdmin(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+      }
+      checkIfAdmin();
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkIfAdmin = (currentUser: User | null) => {
-    // Basic admin check based on metadata or specific email
-    // Since the prompt specified Awn / Sanad#2025 for admin, we might handle admin login separately.
-    // For now, if the user role is admin or they login through admin page, we set this.
-    // Let's rely on localStorage for admin state if it's a simple passcode login.
+  const checkIfAdmin = () => {
     const adminSession = localStorage.getItem('admin_session');
     setIsAdmin(adminSession === 'true');
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('admin_session');
+    setUser(null);
+    setUserProfile(null);
+    setIsAdmin(false);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isAdmin, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,8 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { Header } from './components/Header';
-import { Footer } from './components/Footer';
+import { BottomNav } from './components/BottomNav';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { HomePage } from './pages/HomePage';
 import { AboutPage } from './pages/AboutPage';
@@ -14,9 +14,9 @@ import { MembershipPage } from './pages/MembershipPage';
 import { LessonsPage } from './pages/LessonsPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminPage } from './pages/AdminPage';
+import { AccountPage } from './pages/AccountPage';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Navigate, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAdmin } = useAuth();
@@ -43,21 +43,22 @@ function App() {
               <PWAInstallPrompt />
               <Header />
               <NotificationsModal />
-              <main className="flex-1">
+              <main className="flex-1 pb-16">
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-                  <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
-                  <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-                  <Route path="/volunteer" element={<ProtectedRoute><VolunteerPage /></ProtectedRoute>} />
-                  <Route path="/membership" element={<ProtectedRoute><MembershipPage /></ProtectedRoute>} />
-                  <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
-                  <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
-                  <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/projects" element={<ProjectsPage />} />
+                  <Route path="/volunteer" element={<VolunteerPage />} />
+                  <Route path="/membership" element={<MembershipPage />} />
+                  <Route path="/donate" element={<DonatePage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/lessons" element={<LessonsPage />} />
+                  <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
                 </Routes>
               </main>
-              <Footer />
+              <BottomNav />
             </AuthProvider>
           </div>
         </Router>

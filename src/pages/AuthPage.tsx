@@ -62,8 +62,10 @@ export const AuthPage = () => {
     });
 
     if (error) {
-      if (error.message === 'Failed to fetch') {
-        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت.' : 'Failed to connect to the server. Please check your internet connection.');
+      if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co') {
+        setErrorMsg(isRTL ? 'خطأ في الإعدادات: لم يتم العثور على روابط متصلة بخادم Supabase (بيئة غير مكتملة).' : 'Configuration error: Supabase environment variables are missing.');
+      } else if (error.message === 'Failed to fetch') {
+        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت أو عدم حظر الطلبات (مثل إضافة AdBlock).' : 'Failed to connect to the server. Please check your internet connection or ad blocker.');
       } else if (error.message.includes('Invalid login credentials')) {
         // User not found or wrong password (phone). Assume not found and go to signup.
         setStep('signup');
@@ -72,8 +74,24 @@ export const AuthPage = () => {
         setErrorMsg(error.message);
       }
     } else {
+      // Sync user to users table if missing
+      if (data.user) {
+        const { data: existingUser } = await supabase.from('users').select('id').eq('id', data.user.id).single();
+        if (!existingUser) {
+          await supabase.from('users').insert([{
+            id: data.user.id,
+            email: email,
+            phone: phone,
+            full_name: 'مستخدم جديد',
+            membership_type: 'عضو',
+            current_status: 'لا شيء',
+            location: '',
+            national_id: ''
+          }]);
+        }
+      }
       toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
-      navigate('/');
+      navigate('/account');
     }
     setIsLoading(false);
   };
@@ -106,15 +124,17 @@ export const AuthPage = () => {
     });
 
     if (error) {
-      if (error.message === 'Failed to fetch') {
-        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت.' : 'Failed to connect to the server. Please check your internet connection.');
+      if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co') {
+        setErrorMsg(isRTL ? 'خطأ في الإعدادات: لم يتم العثور على روابط متصلة بخادم Supabase (بيئة غير مكتملة).' : 'Configuration error: Supabase environment variables are missing.');
+      } else if (error.message === 'Failed to fetch') {
+        setErrorMsg(isRTL ? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصالك بالإنترنت أو عدم حظر الطلبات (مثل إضافة AdBlock).' : 'Failed to connect to the server. Please check your internet connection or ad blocker.');
       } else {
         setErrorMsg(error.message);
       }
     } else {
       // Insert into users table
       if (data.user) {
-        const { error: dbError } = await supabase.from('users').insert([{
+        const { error: dbError } = await supabase.from('users').upsert([{
           id: data.user.id,
           full_name: fullName,
           email: email,
@@ -123,13 +143,13 @@ export const AuthPage = () => {
           current_status: currentStatus,
           location: location,
           national_id: nationalId
-        }]);
+        }], { onConflict: 'id' });
+        
         if (dbError) {
           console.error("DB Insert Error:", dbError);
-          // Don't block login if insert fails (maybe already exists), but show warning
         }
         
-        // Auto sign-in just in case signUp didn't create a session (depends on Supabase settings)
+        // Auto sign-in just in case signUp didn't create a session
         if (!data.session) {
           await supabase.auth.signInWithPassword({
             email,
@@ -138,7 +158,7 @@ export const AuthPage = () => {
         }
 
         toast.success(isRTL ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح!' : 'Account created and logged in successfully!');
-        navigate('/');
+        navigate('/account');
       }
     }
     setIsLoading(false);
