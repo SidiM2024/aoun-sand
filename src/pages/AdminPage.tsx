@@ -33,35 +33,68 @@ export const AdminPage = () => {
   // Media state
   const [mediaFile, setMediaFile] = useState<File | null>(null);
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+
   useEffect(() => {
     if (localStorage.getItem('admin_auth') === 'true') {
       setIsAuthenticated(true);
       fetchDashboardData();
+      setupRealtimeSubscriptions();
     }
   }, []);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    
-    // Fetch users using the secure RPC
+  const setupRealtimeSubscriptions = () => {
+    supabase.channel('admin-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => {
+        fetchPolls();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => {
+        fetchPolls();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+        fetchNotifications();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchUsers();
+      })
+      .subscribe();
+  };
+
+  const fetchUsers = async () => {
     const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
     const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
-    
     if (usersData && !usersError) {
       setUsers(usersData);
       setUsersCount(usersData.length);
-    } else {
-      console.error("Error fetching users:", usersError);
     }
+  };
 
-    // Fetch polls
+  const fetchPolls = async () => {
     const { data: pollsData } = await supabase
       .from('polls')
       .select('*, poll_options(*), poll_votes(*)');
     if (pollsData) {
       setPolls(pollsData);
     }
-    
+  };
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setNotifications(data);
+  };
+
+  const fetchMedia = async () => {
+    const { data } = await supabase.storage.from('media').list();
+    if (data) setMediaFiles(data);
+  };
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    await Promise.all([fetchUsers(), fetchPolls(), fetchNotifications(), fetchMedia()]);
     setIsLoading(false);
   };
 
@@ -102,6 +135,7 @@ export const AdminPage = () => {
       toast.success(isRTL ? 'تم إرسال الإشعار بنجاح!' : 'Notification sent successfully!');
       setNotificationTitle('');
       setNotificationMsg('');
+      fetchNotifications();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -176,6 +210,7 @@ export const AdminPage = () => {
     } else {
       toast.success(isRTL ? 'تم رفع الملف بنجاح' : 'File uploaded successfully');
       setMediaFile(null);
+      fetchMedia();
     }
     setIsLoading(false);
   };
@@ -374,6 +409,24 @@ export const AdminPage = () => {
                       {isLoading ? (isRTL ? 'جاري الإرسال...' : 'Sending...') : (isRTL ? 'إرسال الإشعار' : 'Send Notification')}
                     </button>
                   </form>
+
+                  <h3 className="text-xl font-bold mt-12 mb-4 text-slate-800 dark:text-white">
+                    {isRTL ? 'الإشعارات السابقة' : 'Past Notifications'}
+                  </h3>
+                  <div className="space-y-4">
+                    {notifications.map((notif: any) => (
+                      <div key={notif.id} className="p-5 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-900/50">
+                        <h4 className="font-bold text-lg text-slate-800 dark:text-white mb-2">{notif.title}</h4>
+                        <p className="text-slate-600 dark:text-slate-400 mb-3">{notif.message}</p>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {new Date(notif.created_at).toLocaleString(isRTL ? 'ar-SA' : 'en-US')}
+                        </span>
+                      </div>
+                    ))}
+                    {notifications.length === 0 && (
+                      <p className="text-slate-500 text-center py-4">{isRTL ? 'لا توجد إشعارات سابقة' : 'No past notifications'}</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -513,6 +566,37 @@ export const AdminPage = () => {
                       {isLoading ? (isRTL ? 'جاري الرفع...' : 'Uploading...') : (isRTL ? 'رفع الملف' : 'Upload File')}
                     </button>
                   </form>
+
+                  <h3 className="text-xl font-bold mt-12 mb-4 text-slate-800 dark:text-white">
+                    {isRTL ? 'الوسائط المرفوعة' : 'Uploaded Media'}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {mediaFiles.map((file: any) => (
+                      <div key={file.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+                        {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <div className="aspect-square bg-slate-200 dark:bg-slate-800 relative group">
+                            <img 
+                              src={supabase.storage.from('media').getPublicUrl(`uploads/${file.name}`).data.publicUrl} 
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-square bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                            <Upload className="w-8 h-8 text-slate-400" />
+                          </div>
+                        )}
+                        <div className="p-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 truncate" title={file.name}>
+                            {file.name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {mediaFiles.length === 0 && (
+                      <p className="text-slate-500 col-span-full text-center py-4">{isRTL ? 'لا توجد وسائط' : 'No media found'}</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
