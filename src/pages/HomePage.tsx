@@ -220,51 +220,65 @@ export const HomePage = () => {
   const [settings, setSettings] = useState<any>(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  /* ── Fetch & Realtime ── */
+  /* ── Fetch accurate user count via RPC (reads auth.users) ── */
+  const fetchUsersCount = async () => {
+    // Primary: RPC reads directly from auth.users (most accurate)
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_registered_count');
+    if (!rpcErr && rpcData !== null) {
+      setUsersCount(Number(rpcData));
+      return;
+    }
+    // Fallback: count from public.users
+    const { count } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+    if (count !== null) setUsersCount(count);
+  };
+
+  /* ── Fetch donation settings ── */
+  const fetchSettings = async () => {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('id', 'donation_section')
+      .maybeSingle();
+    if (data?.value) setSettings(data.value);
+    else setSettings(null);
+    setSettingsLoaded(true);
+  };
+
   useEffect(() => {
-    const fetchAll = async () => {
-      // Users count — use count:exact for accuracy
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true });
-      if (count !== null) setUsersCount(count);
+    // Initial load
+    fetchUsersCount();
+    fetchSettings();
 
-      // Donation settings
-      const { data } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('id', 'donation_section')
-        .maybeSingle();
-      if (data?.value) setSettings(data.value);
-      setSettingsLoaded(true);
-    };
+    // Periodic refresh every 30s — safety net for missed realtime events
+    const interval = setInterval(() => {
+      fetchUsersCount();
+    }, 30000);
 
-    fetchAll();
-
-    // Real-time: users INSERT/DELETE
-    const ch1 = supabase.channel('hp:users:v3')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, () => {
-        setUsersCount(p => p + 1);
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'users' }, () => {
-        setUsersCount(p => Math.max(0, p - 1));
-      })
+    // Realtime: user joins → re-fetch accurate count from auth.users
+    const ch1 = supabase.channel('hp:users:v4')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' },
+        () => fetchUsersCount())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'users' },
+        () => fetchUsersCount())
       .subscribe();
 
-    // Real-time: site_settings
-    const ch2 = supabase.channel('hp:settings:v3')
+    // Realtime: donation settings change
+    const ch2 = supabase.channel('hp:settings:v4')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
         (payload) => {
-          if (payload.new && (payload.new as any).value) {
-            setSettings((payload.new as any).value);
-          } else if (payload.eventType === 'DELETE') {
-            setSettings(null);
-          }
+          const val = (payload.new as any)?.value;
+          if (val) setSettings(val);
+          else if (payload.eventType === 'DELETE') setSettings(null);
+          else fetchSettings(); // re-fetch on UPDATE without full payload
         })
       .subscribe();
 
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(ch1);
       supabase.removeChannel(ch2);
     };

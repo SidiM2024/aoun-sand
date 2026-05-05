@@ -332,7 +332,7 @@ export const NotificationsModal = () => {
 
           {/* ── Modal ── */}
           <div
-            className="fixed inset-0 z-[201] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[201] flex items-end sm:items-center justify-center sm:p-4 pb-0"
             dir={isRTL ? 'rtl' : 'ltr'}
             role="dialog"
             aria-modal
@@ -340,11 +340,11 @@ export const NotificationsModal = () => {
           >
             <motion.div
               key="notif-modal"
-              initial={{ opacity: 0, scale: 0.88, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88, y: 24 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 360 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2rem] shadow-[0_32px_80px_-12px_rgba(0,0,0,0.35)] overflow-hidden border border-white/80 dark:border-slate-700/60"
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 60, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 380 }}
+              className="relative w-full sm:max-w-md bg-white dark:bg-slate-900 sm:rounded-[2rem] rounded-t-[2rem] shadow-[0_-8px_40px_-4px_rgba(0,0,0,0.25)] sm:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.35)] border border-white/80 dark:border-slate-700/60 flex flex-col max-h-[85svh] sm:max-h-[90vh] overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               {/* Top gradient bar */}
@@ -390,8 +390,8 @@ export const NotificationsModal = () => {
                 </button>
               </div>
 
-              {/* ── Notification Content (swipeable) ── */}
-              <div className="relative px-6 py-5 min-h-[200px] overflow-hidden">
+              {/* ── Scrollable Notification Content (swipeable) ── */}
+              <div className="relative px-6 py-5 overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     key={current.id}
