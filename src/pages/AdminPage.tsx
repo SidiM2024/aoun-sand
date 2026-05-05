@@ -42,13 +42,16 @@ export const AdminPage = () => {
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    // Fetch users
-    const { data: usersData, count: usersCount } = await supabase
-      .from('users')
-      .select('*', { count: 'exact' });
-    if (usersData) {
+    
+    // Fetch users using the secure RPC
+    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
+    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
+    
+    if (usersData && !usersError) {
       setUsers(usersData);
-      setUsersCount(usersCount || 0);
+      setUsersCount(usersData.length);
+    } else {
+      console.error("Error fetching users:", usersError);
     }
 
     // Fetch polls
