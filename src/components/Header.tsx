@@ -6,7 +6,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ActivePollsWidget } from './ActivePollsWidget';
 
 export const Header = () => {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -182,22 +181,7 @@ export const Header = () => {
                     </div>
 
                     {/* Scrollable content */}
-                    <div className="overflow-y-auto flex-1 p-4 space-y-5">
-
-                      {/* Active Polls */}
-                      <ActivePollsWidget />
-
-                      {/* Divider */}
-                      {notifications.length > 0 && (
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            {isRTL ? 'الإشعارات' : 'Notifications'}
-                          </span>
-                          <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                        </div>
-                      )}
-
+                    <div className="overflow-y-auto flex-1 p-4 space-y-3">
                       {/* Notification list */}
                       {notifications.length === 0 ? (
                         <div className="py-10 text-center flex flex-col items-center gap-3">

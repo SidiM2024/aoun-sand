@@ -8,6 +8,7 @@ import {
   Users, TrendingUp, HandHeart, Sparkles,
   BookOpen, Video, Info, Heart, ArrowLeft, ArrowRight
 } from 'lucide-react';
+import { PollsSection } from '../components/PollsSection';
 
 /* ── Animated Counter ── */
 const useCounter = (target: number, duration = 2000) => {
@@ -194,6 +195,9 @@ export const HomePage = () => {
           </div>
         </motion.section>
 
+        {/* ═══════════════════════════════ POLLS SECTION ═══════════════════════════════ */}
+        <PollsSection />
+
         {/* ═══════════════════════════════ DONATIONS SECTION ═══════════════════════════════ */}
         {settings?.is_visible && (
           <motion.section
@@ -221,14 +225,14 @@ export const HomePage = () => {
 
                 <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-800 dark:text-white mb-4 leading-tight">
                   {isRTL
-                    ? settings.title_ar
-                    : (language === 'fr' ? settings.title_fr : settings.title_en ?? settings.title_fr)}
+                    ? (settings?.title_ar || 'معاً نصنع الأثر')
+                    : (language === 'fr' ? (settings?.title_fr || 'Ensemble') : (settings?.title_en ?? settings?.title_fr ?? 'Together We Make an Impact'))}
                 </h2>
 
                 <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
                   {isRTL
-                    ? settings.desc_ar
-                    : (language === 'fr' ? settings.desc_fr : settings.desc_en ?? settings.desc_fr)}
+                    ? (settings?.desc_ar || 'بفضل مساهماتكم نستمر في خدمة المجتمع')
+                    : (language === 'fr' ? (settings?.desc_fr || '') : (settings?.desc_en ?? settings?.desc_fr ?? ''))}
                 </p>
 
                 <Link
