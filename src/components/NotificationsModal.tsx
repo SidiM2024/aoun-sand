@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bell, BellOff, X, ChevronLeft, ChevronRight,
+  Bell, X, ChevronLeft, ChevronRight,
   ExternalLink, Image as ImageIcon, Video as VideoIcon,
   Sparkles, Clock, CheckCheck
 } from 'lucide-react';
@@ -21,96 +21,68 @@ interface Notification {
 
 /* ── Media Preview ── */
 const MediaPreview = ({ url }: { url: string }) => {
-  const isVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url) || url.includes('video');
-  const isImage = /\.(jpg|jpeg|png|gif|webp|svg|avif)(\?.*)?$/i.test(url) || url.includes('image');
-
+  const isVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url);
   if (isVideo) {
     return (
-      <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-video mt-4">
-        <video
-          src={url}
-          controls
-          preload="metadata"
-          className="w-full h-full object-contain"
-          playsInline
-        />
+      <div className="w-full rounded-2xl overflow-hidden bg-black aspect-video mt-3">
+        <video src={url} controls preload="metadata" className="w-full h-full object-contain" playsInline />
       </div>
     );
   }
-
-  if (isImage || (!isVideo && url)) {
-    return (
-      <div className="relative w-full rounded-2xl overflow-hidden mt-4 bg-slate-100 dark:bg-slate-700 shadow-inner">
-        <img
-          src={url}
-          alt="notification media"
-          className="w-full object-cover rounded-2xl max-h-64"
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-        />
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div className="w-full rounded-2xl overflow-hidden mt-3 bg-slate-100 dark:bg-slate-700">
+      <img
+        src={url} alt="media"
+        className="w-full object-cover max-h-48"
+        loading="lazy"
+        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+      />
+    </div>
+  );
 };
 
-/* ── Single Notification Card (used inside the modal) ── */
+/* ── Notification Card Content ── */
 const NotifCard = ({
-  notif,
-  index,
-  total,
-  isRTL,
-  language,
-  onClose,
+  notif, index, total, isRTL, language,
 }: {
-  notif: Notification;
-  index: number;
-  total: number;
-  isRTL: boolean;
-  language: string;
-  onClose: () => void;
+  notif: Notification; index: number; total: number; isRTL: boolean; language: string;
 }) => {
-  const mediaType = notif.media_url
-    ? /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(notif.media_url) ? 'video' : 'image'
-    : null;
+  const isVideo = notif.media_url && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(notif.media_url);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Badge */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+    <div>
+      {/* Label row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50">
+          <Sparkles className="w-3 h-3 text-indigo-500" />
+          <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
             {isRTL ? 'إشعار رسمي' : 'Official Notice'}
           </span>
         </div>
         {total > 1 && (
-          <span className="text-xs font-bold text-slate-400 tabular-nums">
+          <span className="text-xs font-bold text-slate-400 tabular-nums bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
             {index + 1} / {total}
           </span>
         )}
       </div>
 
       {/* Title */}
-      <h3 className="text-xl font-black text-slate-800 dark:text-white mb-3 leading-snug">
+      <h3 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white mb-2 leading-snug">
         {notif.title}
       </h3>
 
       {/* Message */}
-      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed flex-1">
+      <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
         {notif.message}
       </p>
 
       {/* Media */}
-      {notif.media_url && (
-        <MediaPreview url={notif.media_url} />
-      )}
+      {notif.media_url && <MediaPreview url={notif.media_url} />}
 
-      {/* Footer */}
-      <div className="mt-5 flex items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Clock className="w-3.5 h-3.5" />
+      {/* Links + Date */}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1 text-[11px] text-slate-400">
+          <Clock className="w-3 h-3" />
           <span>
             {new Date(notif.created_at).toLocaleDateString(
               isRTL ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US',
@@ -119,29 +91,19 @@ const NotifCard = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {notif.media_url && (
-            <a
-              href={notif.media_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
-            >
-              {mediaType === 'video'
-                ? <VideoIcon className="w-3.5 h-3.5" />
-                : <ImageIcon className="w-3.5 h-3.5" />}
-              {isRTL ? 'فتح الوسيط' : 'Open Media'}
+            <a href={notif.media_url} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors">
+              {isVideo ? <VideoIcon className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+              {isRTL ? 'الوسيط' : 'Media'}
             </a>
           )}
           {notif.link && (
-            <a
-              href={notif.link}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              {isRTL ? 'اقرأ المزيد' : 'Read More'}
+            <a href={notif.link} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
+              <ExternalLink className="w-3 h-3" />
+              {isRTL ? 'المزيد' : 'More'}
             </a>
           )}
         </div>
@@ -150,26 +112,23 @@ const NotifCard = ({
   );
 };
 
-/* ══════════════════════════════════════════
-   Main Notifications Modal Component
-   ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   Main Notifications Modal
+   ══════════════════════════════════════════════════════ */
 export const NotificationsModal = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
   const isRTL = language === 'ar';
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen]           = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
-  const [direction, setDirection] = useState(0); // -1 prev, 1 next
+  const [currentIndex, setCurrentIndex]   = useState(0);
+  const [seenIds, setSeenIds]             = useState<Set<string>>(new Set());
+  const [direction, setDirection]         = useState(0);
 
-  /* Swipe support */
-  const dragX = useMotionValue(0);
-  const opacity = useTransform(dragX, [-150, 0, 150], [0.5, 1, 0.5]);
-
-  /* ── Load seen IDs from localStorage ── */
   const storageKey = `notif_seen_${user?.id || 'guest'}`;
+
+  /* Load seen IDs */
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -179,72 +138,55 @@ export const NotificationsModal = () => {
     }
   }, [user?.id]);
 
-  /* ── Fetch notifications ── */
+  /* Fetch */
   const fetchNotifications = useCallback(async () => {
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .is('scheduled_at', null) // only unscheduled (published immediately)
-      .order('created_at', { ascending: false })
-      .limit(20);
+    const now = new Date().toISOString();
+    const { data: instant } = await supabase
+      .from('notifications').select('*')
+      .is('scheduled_at', null)
+      .order('created_at', { ascending: false }).limit(20);
 
-    // Also get scheduled ones that are past their time
     const { data: scheduled } = await supabase
-      .from('notifications')
-      .select('*')
+      .from('notifications').select('*')
       .not('scheduled_at', 'is', null)
-      .lte('scheduled_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(10);
+      .lte('scheduled_at', now)
+      .order('created_at', { ascending: false }).limit(10);
 
-    const all = [...(data || []), ...(scheduled || [])];
-    // Sort by created_at desc
+    const all = [...(instant || []), ...(scheduled || [])];
     all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
     return all as Notification[];
   }, []);
 
-  /* ── Initial load + real-time subscription ── */
+  /* Init + Realtime */
   useEffect(() => {
-    if (!user) return; // only for logged-in users
+    if (!user) return;
 
     const load = async () => {
       const notifs = await fetchNotifications();
       setNotifications(notifs);
-
-      // Check if there are any unseen notifications
       const stored = JSON.parse(localStorage.getItem(storageKey) || '[]') as string[];
       const unseen = notifs.filter(n => !stored.includes(n.id));
-      if (unseen.length > 0) {
-        // Delay slightly for a natural feel
-        setTimeout(() => setIsOpen(true), 1500);
-      }
+      if (unseen.length > 0) setTimeout(() => setIsOpen(true), 1200);
     };
-
     load();
 
-    // Real-time subscription
-    const ch = supabase.channel('notif-modal:v3')
+    const ch = supabase.channel('notif-modal:v4')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' },
         async (payload) => {
-          const newNotif = payload.new as Notification;
-          // Check if it's scheduled for the future
-          if (newNotif.scheduled_at && new Date(newNotif.scheduled_at) > new Date()) return;
-
-          setNotifications(prev => [newNotif, ...prev]);
+          const n = payload.new as Notification;
+          if (n.scheduled_at && new Date(n.scheduled_at) > new Date()) return;
+          setNotifications(prev => [n, ...prev]);
           setCurrentIndex(0);
           setIsOpen(true);
         })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications' },
-        (payload) => {
-          setNotifications(prev => prev.filter(n => n.id !== (payload.old as any).id));
-        })
+        (payload) => setNotifications(prev => prev.filter(n => n.id !== (payload.old as any).id)))
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
   }, [user, fetchNotifications, storageKey]);
 
-  /* ── Mark all as seen on close ── */
+  /* Close + mark all seen */
   const handleClose = useCallback(() => {
     setIsOpen(false);
     const allIds = notifications.map(n => n.id);
@@ -252,161 +194,131 @@ export const NotificationsModal = () => {
     setSeenIds(new Set(allIds));
   }, [notifications, storageKey]);
 
-  /* ── Navigation ── */
+  /* Navigation */
   const goNext = useCallback(() => {
     if (currentIndex < notifications.length - 1) {
-      setDirection(1);
-      setCurrentIndex(i => i + 1);
+      setDirection(1); setCurrentIndex(i => i + 1);
     } else {
       handleClose();
     }
   }, [currentIndex, notifications.length, handleClose]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex > 0) {
-      setDirection(-1);
-      setCurrentIndex(i => i - 1);
-    }
+    if (currentIndex > 0) { setDirection(-1); setCurrentIndex(i => i - 1); }
   }, [currentIndex]);
 
-  /* ── Keyboard support ── */
+  /* Keyboard */
   useEffect(() => {
     if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
+    const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
       if (e.key === 'ArrowRight') isRTL ? goPrev() : goNext();
-      if (e.key === 'ArrowLeft') isRTL ? goNext() : goPrev();
+      if (e.key === 'ArrowLeft')  isRTL ? goNext() : goPrev();
     };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, [isOpen, handleClose, goNext, goPrev, isRTL]);
 
-  /* ── Swipe drag end ── */
-  const handleDragEnd = (_: any, info: any) => {
-    const threshold = 80;
-    if (info.offset.x < -threshold) {
-      isRTL ? goPrev() : goNext();
-    } else if (info.offset.x > threshold) {
-      isRTL ? goNext() : goPrev();
-    }
-    dragX.set(0);
-  };
-
-  /* Don't render if no notifications or user not logged in */
   if (!user || notifications.length === 0) return null;
 
-  const current = notifications[currentIndex];
-  const isLast = currentIndex === notifications.length - 1;
+  const current    = notifications[currentIndex];
+  const isLast     = currentIndex === notifications.length - 1;
   const unseenCount = notifications.filter(n => !seenIds.has(n.id)).length;
 
-  /* Slide variants */
   const slideVariants = {
-    enter: (d: number) => ({
-      x: d > 0 ? (isRTL ? -60 : 60) : (isRTL ? 60 : -60),
-      opacity: 0,
-      scale: 0.96,
-    }),
-    center: { x: 0, opacity: 1, scale: 1 },
-    exit: (d: number) => ({
-      x: d > 0 ? (isRTL ? 60 : -60) : (isRTL ? -60 : 60),
-      opacity: 0,
-      scale: 0.96,
-    }),
+    enter: (d: number) => ({ x: d > 0 ? (isRTL ? -50 : 50) : (isRTL ? 50 : -50), opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit:  (d: number) => ({ x: d > 0 ? (isRTL ? 50 : -50) : (isRTL ? -50 : 50), opacity: 0 }),
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* ── Backdrop ── */}
+          {/* Backdrop */}
           <motion.div
-            key="notif-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            key="backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px]"
             onClick={handleClose}
-            aria-hidden
           />
 
-          {/* ── Modal ── */}
+          {/* Modal container — bottom sheet on mobile, centered on sm+ */}
           <div
-            className="fixed inset-0 z-[201] flex items-end sm:items-center justify-center sm:p-4 pb-0"
+            className="fixed inset-0 z-[201] flex flex-col justify-end sm:justify-center sm:items-center sm:p-4"
             dir={isRTL ? 'rtl' : 'ltr'}
-            role="dialog"
-            aria-modal
-            aria-label={isRTL ? 'الإشعارات' : 'Notifications'}
+            role="dialog" aria-modal aria-label={isRTL ? 'الإشعارات' : 'Notifications'}
           >
             <motion.div
-              key="notif-modal"
-              initial={{ opacity: 0, y: 60, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 60, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 30, stiffness: 380 }}
-              className="relative w-full sm:max-w-md bg-white dark:bg-slate-900 sm:rounded-[2rem] rounded-t-[2rem] shadow-[0_-8px_40px_-4px_rgba(0,0,0,0.25)] sm:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.35)] border border-white/80 dark:border-slate-700/60 flex flex-col max-h-[85svh] sm:max-h-[90vh] overflow-hidden"
+              key="modal"
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 32, stiffness: 360 }}
+              /* On sm+, reset transform for centered modal */
+              style={{ y: undefined }}
+              className={[
+                // Base
+                'relative w-full bg-white dark:bg-slate-900',
+                'border border-slate-200/80 dark:border-slate-700/60',
+                'flex flex-col overflow-hidden',
+                // Mobile: bottom sheet, max 82% viewport height
+                'rounded-t-[28px] max-h-[82svh]',
+                // Desktop: centered card, max width + full rounded corners
+                'sm:rounded-[28px] sm:max-w-md sm:max-h-[88vh]',
+                'shadow-[0_-8px_60px_rgba(0,0,0,0.18)] sm:shadow-[0_24px_80px_rgba(0,0,0,0.22)]',
+              ].join(' ')}
               onClick={e => e.stopPropagation()}
             >
-              {/* Top gradient bar */}
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500" />
+              {/* Gradient top bar */}
+              <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-400 rounded-t-[28px]" />
 
-              {/* Background decorations */}
-              <div className="absolute -top-20 -end-20 w-48 h-48 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-16 -start-16 w-40 h-40 rounded-full bg-teal-500/5 blur-2xl pointer-events-none" />
+              {/* ── Drag handle (mobile only) ── */}
+              <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+              </div>
 
-              {/* ── Header ── */}
-              <div className="relative z-10 flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+              {/* ── Header (sticky) ── */}
+              <div className="shrink-0 flex items-center justify-between px-5 pt-2 sm:pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-md shadow-indigo-500/25">
-                      <Bell className="w-5 h-5 text-white" />
+                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
+                      <Bell className="w-4 h-4 text-white" />
                     </div>
                     {unseenCount > 0 && (
-                      <span className="absolute -top-1 -end-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
+                      <span className="absolute -top-1 -end-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
                         {unseenCount > 9 ? '9+' : unseenCount}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h2 className="font-black text-slate-800 dark:text-white text-base leading-tight">
+                    <h2 className="font-black text-slate-800 dark:text-white text-sm leading-tight">
                       {isRTL ? 'الإشعارات' : 'Notifications'}
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium">
-                      {isRTL
-                        ? `${notifications.length} إشعار`
-                        : `${notifications.length} notification${notifications.length !== 1 ? 's' : ''}`}
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      {isRTL ? `${notifications.length} إشعار` : `${notifications.length} notice${notifications.length !== 1 ? 's' : ''}`}
                     </p>
                   </div>
                 </div>
-
-                {/* Close button */}
                 <button
                   id="notif-close-btn"
                   onClick={handleClose}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group"
-                  aria-label="Close"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
                 >
-                  <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* ── Scrollable Notification Content (swipeable) ── */}
-              <div className="relative px-6 py-5 overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
+              {/* ── Scrollable Content ── */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 overscroll-contain">
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     key={current.id}
                     custom={direction}
                     variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ type: 'spring', damping: 32, stiffness: 380, duration: 0.25 }}
-                    drag="x"
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.12}
-                    onDragEnd={handleDragEnd}
-                    style={{ opacity }}
-                    className="cursor-grab active:cursor-grabbing select-none"
+                    initial="enter" animate="center" exit="exit"
+                    transition={{ duration: 0.22, ease: 'easeInOut' }}
                   >
                     <NotifCard
                       notif={current}
@@ -414,7 +326,6 @@ export const NotificationsModal = () => {
                       total={notifications.length}
                       isRTL={isRTL}
                       language={language}
-                      onClose={handleClose}
                     />
                   </motion.div>
                 </AnimatePresence>
@@ -422,77 +333,57 @@ export const NotificationsModal = () => {
 
               {/* ── Dot indicators ── */}
               {notifications.length > 1 && (
-                <div className="flex justify-center gap-1.5 pb-4 px-6">
+                <div className="shrink-0 flex justify-center gap-1.5 py-2 px-5">
                   {notifications.map((_, i) => (
                     <button
                       key={i}
                       onClick={() => { setDirection(i > currentIndex ? 1 : -1); setCurrentIndex(i); }}
                       className={`transition-all duration-300 rounded-full ${
                         i === currentIndex
-                          ? 'w-6 h-2 bg-indigo-500'
-                          : 'w-2 h-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
+                          ? 'w-5 h-1.5 bg-indigo-500'
+                          : 'w-1.5 h-1.5 bg-slate-200 dark:bg-slate-700'
                       }`}
-                      aria-label={`Go to notification ${i + 1}`}
                     />
                   ))}
                 </div>
               )}
 
-              {/* ── Navigation Footer ── */}
-              <div className="flex items-center justify-between gap-3 px-6 pb-5 pt-2">
-                {/* Prev button */}
+              {/* ── Footer (sticky) ── */}
+              <div className="shrink-0 flex items-center justify-between gap-2 px-5 pb-5 pt-2 border-t border-slate-100 dark:border-slate-800"
+                   style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))' }}>
+                {/* Prev */}
                 {notifications.length > 1 ? (
                   <button
-                    onClick={goPrev}
-                    disabled={currentIndex === 0}
-                    className="flex items-center gap-1.5 text-sm font-bold px-4 py-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    onClick={goPrev} disabled={currentIndex === 0}
+                    className="flex items-center gap-1 text-sm font-bold px-3 py-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
                   >
                     {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
                     {isRTL ? 'السابق' : 'Prev'}
                   </button>
-                ) : (
-                  <div />
-                )}
+                ) : <div />}
 
-                {/* Dismiss / Next */}
-                {notifications.length > 1 ? (
-                  <button
-                    onClick={goNext}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                      isLast
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-500/25 active:scale-95'
-                        : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
-                    }`}
-                  >
-                    {isLast ? (
-                      <>
-                        <CheckCheck className="w-4 h-4" />
-                        {isRTL ? 'تم القراءة' : 'Done'}
-                      </>
-                    ) : (
-                      <>
-                        {isRTL ? 'التالي' : 'Next'}
-                        {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleClose}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md shadow-indigo-500/25 active:scale-95 transition-all"
-                  >
-                    <CheckCheck className="w-4 h-4" />
-                    {isRTL ? 'حسناً، شكراً' : 'Got it, Thanks'}
-                  </button>
-                )}
+                {/* Next / Done */}
+                <button
+                  onClick={goNext}
+                  className={`flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
+                    isLast || notifications.length === 1
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25'
+                      : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+                  }`}
+                >
+                  {isLast || notifications.length === 1 ? (
+                    <>
+                      <CheckCheck className="w-4 h-4" />
+                      {isRTL ? 'حسناً ✓' : 'Done ✓'}
+                    </>
+                  ) : (
+                    <>
+                      {isRTL ? 'التالي' : 'Next'}
+                      {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </>
+                  )}
+                </button>
               </div>
-
-              {/* Swipe hint */}
-              {notifications.length > 1 && (
-                <p className="text-center text-[11px] text-slate-300 dark:text-slate-600 pb-4 font-medium select-none">
-                  {isRTL ? '← اسحب للتنقل بين الإشعارات →' : '← Swipe to navigate →'}
-                </p>
-              )}
             </motion.div>
           </div>
         </>
