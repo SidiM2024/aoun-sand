@@ -115,24 +115,7 @@ export const Hero = () => {
             <HistorySection />
           </div>
 
-          {/* Gaza Donation Callout */}
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 mb-20 border border-slate-100 dark:border-slate-700 animate-slideUp animation-delay-400">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="w-full md:w-1/2">
-                <img
-                  src="/Gaza.jpg"
-                  alt="Gaza Donation"
-                  className="w-full h-64 object-cover rounded-2xl shadow-lg"
-                />
-              </div>
-              <div className="w-full md:w-1/2 text-center md:text-right">
-                <h2 className="text-3xl font-bold mb-4 text-slate-800 dark:text-white">
-                  {language === 'ar' ? 'حملة إغاثة أهلنا في غزة' : 'Gaza Relief Campaign'}
-                </h2>
 
-              </div>
-            </div>
-          </div>
 
           {/* Quick Links Section */}
           <section className="animate-slideUp animation-delay-500">

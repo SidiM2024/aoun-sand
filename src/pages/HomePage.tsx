@@ -289,7 +289,7 @@ export const HomePage = () => {
 
   // Only show donation section if admin has published public campaigns
   const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true && c.status === 'active');
-  const showDonationsSection = settingsLoaded && settings?.is_visible !== false && publicCampaigns.length > 0;
+  const showDonationsSection = settingsLoaded && settings?.is_visible === true && publicCampaigns.length > 0;
 
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
