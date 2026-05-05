@@ -90,6 +90,15 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       rights: 'جميع الحقوق محفوظة',
       description: 'جمعية عون وسند الخيرية - نشر الخير والأمل',
     },
+    homePage: {
+      platform: 'منصة الأعضاء الرسمية',
+      welcome: 'جمعية عون وسند ترحب بك',
+      welcomeDesc: 'سعداء بانضمامك معنا لصناعة الأثر والعطاء. معاً نبني مجتمعاً متكافلاً ومبادراً.',
+      totalMembers: 'إجمالي الأعضاء',
+      member: 'عضو',
+      contribute: 'ساهم الآن',
+      totalDonations: 'إجمالي التبرعات',
+    }
   },
   fr: {
     nav: {
@@ -180,6 +189,15 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       rights: 'Tous droits réservés',
       description: 'Association Caritative Aide et Soutien - Répandre le bien et l\'espoir',
     },
+    homePage: {
+      platform: 'Plateforme Officielle des Membres',
+      welcome: 'Aide et Soutien vous souhaite la bienvenue',
+      welcomeDesc: 'Nous sommes ravis de vous compter parmi nous pour créer de l\'impact et donner. Ensemble, nous construisons une communauté solidaire et proactive.',
+      totalMembers: 'Membres Totaux',
+      member: 'Membre',
+      contribute: 'Contribuez Maintenant',
+      totalDonations: 'Total des Dons',
+    }
   },
   en: {
     nav: {
@@ -270,5 +288,14 @@ export const translations: Record<'ar' | 'fr' | 'en', Translations> = {
       rights: 'All rights reserved',
       description: 'Aid and Support Charity Association - Spreading goodness and hope',
     },
+    homePage: {
+      platform: 'Official Members Platform',
+      welcome: 'Awn & Sanad welcomes',
+      welcomeDesc: 'We are delighted to have you join us in making an impact and giving. Together we build a supportive and proactive community.',
+      totalMembers: 'Total Members',
+      member: 'Member',
+      contribute: 'Contribute Now',
+      totalDonations: 'Total Donations',
+    }
   },
 };

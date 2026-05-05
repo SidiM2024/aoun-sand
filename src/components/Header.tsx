@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ActivePollsWidget } from './ActivePollsWidget';
 
 export const Header = () => {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -130,9 +131,15 @@ export const Header = () => {
                       </button>
                     </div>
                     
-                    <div className="overflow-y-auto flex-1 p-2">
+                    <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                      {/* Active Polls Section */}
+                      <ActivePollsWidget />
+                      
+                      {/* Divider if polls exist and notifications exist */}
+                      {notifications.length > 0 && <hr className="border-slate-100 dark:border-slate-700/50" />}
+
                       {notifications.length === 0 ? (
-                        <div className="p-12 text-center flex flex-col items-center justify-center">
+                        <div className="p-8 text-center flex flex-col items-center justify-center">
                           <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                             <Bell className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                           </div>
@@ -141,14 +148,34 @@ export const Header = () => {
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">
+                            {isRTL ? 'الإشعارات السابقة' : 'Recent Notifications'}
+                          </h4>
                           {notifications.map((notif) => (
-                            <div key={notif.id} className="p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700 cursor-default">
-                              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-1">{notif.title}</h4>
+                            <div key={notif.id} className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700">
+                              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-2">{notif.title}</h4>
                               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{notif.message}</p>
+                              
+                              {notif.link && (
+                                <a href={notif.link} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline">
+                                  {isRTL ? 'عرض الرابط' : 'View Link'}
+                                </a>
+                              )}
+                              
+                              {notif.media_url && (
+                                <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                                  {notif.media_type === 'video' ? (
+                                    <video src={notif.media_url} controls className="w-full h-auto max-h-40 object-cover" />
+                                  ) : (
+                                    <img src={notif.media_url} alt="media" className="w-full h-auto max-h-40 object-cover" />
+                                  )}
+                                </div>
+                              )}
+                              
                               <span className="text-xs text-slate-400 dark:text-slate-500 mt-3 block font-medium">
                                 {new Date(notif.created_at).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US', {
-                                  weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+                                  weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                 })}
                               </span>
                             </div>
