@@ -17,6 +17,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AccountPage } from './pages/AccountPage';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { usePushNotifications } from './hooks/usePushNotifications';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAdmin } = useAuth();
@@ -50,6 +51,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
+
+  // Register service worker + listen for push notifications via Supabase Realtime
+  usePushNotifications();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
