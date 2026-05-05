@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
 import { PollsTab } from '../components/admin/PollsTab';
 import { MediaTab } from '../components/admin/MediaTab';
+import { DonationsTab } from '../components/admin/DonationsTab';
 
 export const AdminPage = () => {
   const { language } = useLanguage();
@@ -18,7 +19,7 @@ export const AdminPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'voting' | 'media'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -181,10 +182,11 @@ export const AdminPage = () => {
   }
 
   const tabs = [
-    { id: 'users', icon: Users, label: isRTL ? 'المستخدمين' : 'Users', color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-    { id: 'notifications', icon: Bell, label: isRTL ? 'الإشعارات' : 'Notifications', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { id: 'voting', icon: Vote, label: isRTL ? 'التصويت' : 'Voting', color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
-    { id: 'media', icon: Upload, label: isRTL ? 'الوسائط' : 'Media', color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
+    { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
+    { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
+    { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
+    { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
   ];
 
   return (
@@ -259,10 +261,11 @@ export const AdminPage = () => {
             )}
             
             <AnimatePresence mode="wait">
-              {activeTab === 'users' && <UsersTab users={users} usersCount={usersCount} />}
+              {activeTab === 'users'         && <UsersTab users={users} usersCount={usersCount} />}
               {activeTab === 'notifications' && <NotificationsTab notifications={notifications} fetchDashboardData={fetchDashboardData} />}
-              {activeTab === 'voting' && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}
-              {activeTab === 'media' && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
+              {activeTab === 'voting'        && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}
+              {activeTab === 'donations'     && <DonationsTab fetchDashboardData={fetchDashboardData} />}
+              {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
             </AnimatePresence>
           </div>
         </div>

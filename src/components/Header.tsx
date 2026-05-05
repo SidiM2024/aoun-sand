@@ -153,18 +153,18 @@ export const Header = () => {
             <AnimatePresence>
               {isNotifOpen && (
                 <div
-                  className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-sm"
+                  className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
                   onClick={() => setIsNotifOpen(false)}
                 >
                   <motion.div
-                    initial={{ opacity: 0, y: 60, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 60, scale: 0.95 }}
+                    exit={{ opacity: 0, y: 30, scale: 0.95 }}
                     transition={{ type: 'spring', damping: 28, stiffness: 320 }}
                     onClick={e => e.stopPropagation()}
-                    className="w-full sm:max-w-md bg-white dark:bg-slate-900
-                      rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col
-                      max-h-[88vh] sm:max-h-[80vh]"
+                    className="w-full max-w-md bg-white dark:bg-slate-900
+                      rounded-3xl shadow-2xl overflow-hidden flex flex-col
+                      max-h-[85vh]"
                     dir={isRTL ? 'rtl' : 'ltr'}
                   >
                     {/* Panel header */}

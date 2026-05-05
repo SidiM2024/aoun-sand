@@ -76,8 +76,11 @@ export const HomePage = () => {
   }, []);
 
   const animatedMembers   = useCounter(usersCount, 2000);
-  const animatedDonations = useCounter(settings?.total_donations ?? 0, 2500);
+  const totalDonations = settings?.campaigns?.reduce((sum: number, c: any) => sum + (c.current_amount || 0), 0) || settings?.total_donations || 0;
+  const animatedDonations = useCounter(totalDonations, 2500);
   const quickLinks = getQuickLinks(isRTL, language);
+  
+  const publicCampaigns = settings?.campaigns?.filter((c: any) => c.is_public) || [];
 
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -282,11 +285,67 @@ export const HomePage = () => {
                         className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
                       />
                     </div>
-                    <p className="text-xs text-slate-400 mt-2 self-end relative z-10">72% of goal</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Campaigns List */}
+            {publicCampaigns.length > 0 && (
+              <div className="border-t border-slate-100/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 p-6 sm:p-8 lg:p-10">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                  <HandHeart className="w-5 h-5 text-indigo-500" />
+                  {isRTL ? 'حملات التبرع الحالية' : 'Active Donation Campaigns'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {publicCampaigns.map((campaign: any) => {
+                    const percent = Math.min(100, Math.round((campaign.current_amount / Math.max(campaign.target_amount, 1)) * 100));
+                    return (
+                      <div key={campaign.id} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden group">
+                        {campaign.status === 'completed' && (
+                          <div className="absolute top-4 end-4 w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                        )}
+                        <h4 className="font-bold text-lg text-slate-800 dark:text-white mb-2 pe-10">{campaign.title}</h4>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 leading-relaxed">{campaign.description}</p>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex justify-between text-sm font-bold text-slate-700 dark:text-slate-300" dir="ltr">
+                            <span>{campaign.current_amount.toLocaleString()} <span className="text-xs text-slate-400 font-normal">MRU</span></span>
+                            <span className="text-slate-400">{campaign.target_amount.toLocaleString()} <span className="text-xs font-normal">MRU</span></span>
+                          </div>
+                          <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              whileInView={{ width: `${percent}%` }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 1.5, ease: 'easeOut' }}
+                              className={`h-full rounded-full ${campaign.status === 'completed' ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <span>{campaign.donors_count} {isRTL ? 'متبرع' : 'Donors'}</span>
+                          </div>
+                          <span className={`${campaign.status === 'completed' ? 'text-emerald-500' : 'text-indigo-500'}`}>{percent}%</span>
+                        </div>
+                        
+                        <Link 
+                          to="/donate"
+                          className="absolute inset-0 z-10"
+                          aria-label={`Donate to ${campaign.title}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </motion.section>
         )}
 
