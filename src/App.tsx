@@ -47,34 +47,43 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AppContent = () => {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/auth';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      {!isAuthPage && <PWAInstallPrompt />}
+      {!isAuthPage && <Header />}
+      {!isAuthPage && <NotificationsModal />}
+      <main className={`flex-1 ${!isAuthPage ? 'pb-16' : ''}`}>
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+          <Route path="/volunteer" element={<ProtectedRoute><VolunteerPage /></ProtectedRoute>} />
+          <Route path="/membership" element={<ProtectedRoute><MembershipPage /></ProtectedRoute>} />
+          <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
+          <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+        </Routes>
+      </main>
+      {!isAuthPage && <BottomNav />}
+    </div>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <Router>
-          <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-            <AuthProvider>
-              <PWAInstallPrompt />
-              <Header />
-              <NotificationsModal />
-              <main className="flex-1 pb-16">
-                <Routes>
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-                  <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
-                  <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-                  <Route path="/volunteer" element={<ProtectedRoute><VolunteerPage /></ProtectedRoute>} />
-                  <Route path="/membership" element={<ProtectedRoute><MembershipPage /></ProtectedRoute>} />
-                  <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
-                  <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
-                  <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
-                  <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-                </Routes>
-              </main>
-              <BottomNav />
-            </AuthProvider>
-          </div>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
         </Router>
       </LanguageProvider>
     </ThemeProvider>

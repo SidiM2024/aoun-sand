@@ -7,6 +7,19 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck } from 'lucide-react';
 
+// Modern input field component
+const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
+  <div className="relative group">
+    <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 pl-4 rtl:pr-4 rtl:pl-0 flex items-center pointer-events-none">
+      <Icon className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+    </div>
+    <input 
+      className="block w-full ltr:pl-11 rtl:pr-11 rtl:pl-4 py-4 bg-white/40 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-clip-padding backdrop-filter backdrop-blur-sm transition-all hover:bg-white/60 dark:hover:bg-slate-900/60 outline-none shadow-sm"
+      {...props} 
+    />
+  </div>
+);
+
 export const AuthPage = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -69,7 +82,7 @@ export const AuthPage = () => {
       }
     } else {
       if (data.user) {
-        const { data: existingUser } = await supabase.from('users').select('id').eq('id', data.user.id).single();
+        const { data: existingUser } = await supabase.from('users').select('id, full_name').eq('id', data.user.id).single();
         if (!existingUser) {
           await supabase.from('users').insert([{
             id: data.user.id,
@@ -81,9 +94,13 @@ export const AuthPage = () => {
             location: '',
             national_id: ''
           }]);
+          toast.success(isRTL ? 'مرحباً بك يا مستخدم جديد!' : 'Welcome, new user!');
+        } else {
+          toast.success(isRTL ? `مرحباً بك مجدداً، ${existingUser.full_name}!` : `Welcome back, ${existingUser.full_name}!`);
         }
+      } else {
+        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       }
-      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       navigate('/');
     }
     setIsLoading(false);
@@ -137,25 +154,12 @@ export const AuthPage = () => {
             password: securePassword,
           });
         }
-        toast.success(isRTL ? 'تم إنشاء الحساب بنجاح!' : 'Account created successfully!');
+        toast.success(isRTL ? `مرحباً بك يا ${fullName}!` : `Welcome, ${fullName}!`);
         navigate('/');
       }
     }
     setIsLoading(false);
   };
-
-  // Modern input field component
-  const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
-    <div className="relative group">
-      <div className="absolute inset-y-0 ltr:left-0 rtl:right-0 pl-4 rtl:pr-4 rtl:pl-0 flex items-center pointer-events-none">
-        <Icon className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-      </div>
-      <input 
-        className="block w-full ltr:pl-11 rtl:pr-11 rtl:pl-4 py-4 bg-white/40 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 bg-clip-padding backdrop-filter backdrop-blur-sm transition-all hover:bg-white/60 dark:hover:bg-slate-900/60 outline-none shadow-sm"
-        {...props} 
-      />
-    </div>
-  );
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 lg:p-8 bg-[#f8fafc] dark:bg-[#0f172a] relative overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
