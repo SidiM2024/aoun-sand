@@ -252,9 +252,10 @@ export const HomePage = () => {
     fetchUsersCount();
     fetchSettings();
 
-    // Periodic refresh every 30s — safety net for missed realtime events
+    // Periodic refresh — safety net for missed realtime events
     const interval = setInterval(() => {
       fetchUsersCount();
+      fetchSettings(); // ✅ also refresh settings so donations always stay current
     }, 30000);
 
     // Realtime: user joins → re-fetch accurate count from auth.users
@@ -265,16 +266,18 @@ export const HomePage = () => {
         () => fetchUsersCount())
       .subscribe();
 
-    // Realtime: donation settings change
-    const ch2 = supabase.channel('hp:settings:v4')
+    // Realtime: donation settings change — always re-fetch for reliability
+    // (payload.new only works if REPLICA IDENTITY FULL is set on the table)
+    const ch2 = supabase.channel('hp:settings:v5')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
-        (payload) => {
-          const val = (payload.new as any)?.value;
-          if (val) setSettings(val);
-          else if (payload.eventType === 'DELETE') setSettings(null);
-          else fetchSettings(); // re-fetch on UPDATE without full payload
-        })
+        { event: 'INSERT', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
+        () => fetchSettings())
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
+        () => fetchSettings())
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
+        () => { setSettings(null); setSettingsLoaded(true); })
       .subscribe();
 
     return () => {

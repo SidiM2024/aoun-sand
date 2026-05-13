@@ -67,11 +67,14 @@ export const AdminPage = () => {
     if (realtimeChannelRef.current) {
       supabase.removeChannel(realtimeChannelRef.current);
     }
-    const channel = supabase.channel('admin-dashboard')
+    const channel = supabase.channel('admin-dashboard-v2')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => fetchPolls())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_options' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUsers())
+      // ✅ site_settings: refresh dashboard when admin saves donation/settings changes
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => fetchDashboardData())
       .subscribe();
     realtimeChannelRef.current = channel;
   };
