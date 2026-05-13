@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await supabase.auth.signOut();
-    sessionStorage.removeItem('admin_auth');
+    // Clear all user data from React state
     setUser(null);
     setUserProfile(null);
     setIsAdmin(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -30,6 +30,9 @@ export const AdminPage = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
 
+  // Keep a ref to the realtime channel so we can clean it up on logout/unmount
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   // ── Verify session on mount ──────────────────────────────────────────────
   useEffect(() => {
     const verifySession = async () => {
@@ -49,15 +52,28 @@ export const AdminPage = () => {
       setIsCheckingSession(false);
     };
     verifySession();
+
+    // Cleanup: remove realtime subscriptions on unmount
+    return () => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
+    };
   }, []);
 
   const setupRealtimeSubscriptions = () => {
-    supabase.channel('admin-dashboard')
+    // Clean up any existing channel before creating a new one
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+    const channel = supabase.channel('admin-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUsers())
       .subscribe();
+    realtimeChannelRef.current = channel;
   };
 
   const fetchUsers = async () => {
@@ -136,12 +152,22 @@ export const AdminPage = () => {
   };
 
   const handleLogout = async () => {
+    // 1. Stop all realtime subscriptions first (no stale listeners)
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
+    }
+    // 2. Sign out from Supabase (clears JWT from localStorage)
     await supabase.auth.signOut();
+    // 3. Wipe all admin data from React state (nothing stays in memory)
     setIsAuthenticated(false);
     setUsers([]);
     setPolls([]);
     setNotifications([]);
     setMediaFiles([]);
+    setUsersCount(0);
+    setEmail('');
+    setPassword('');
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
   };
 

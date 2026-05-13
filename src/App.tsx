@@ -51,16 +51,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
+  // Admin page also hides all user-facing chrome (Header, Nav, Notifications)
+  // to prevent context leakage and unnecessary queries during admin sessions
+  const isAdminPage = location.pathname === '/admin';
+  const isShellHidden = isAuthPage || isAdminPage;
 
   // Register service worker + listen for push notifications via Supabase Realtime
   usePushNotifications();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      {!isAuthPage && <PWAInstallPrompt />}
-      {!isAuthPage && <Header />}
-      {!isAuthPage && <NotificationsModal />}
-      <main className={`flex-1 ${!isAuthPage ? 'pb-16' : ''}`}>
+      {!isShellHidden && <PWAInstallPrompt />}
+      {!isShellHidden && <Header />}
+      {!isShellHidden && <NotificationsModal />}
+      <main className={`flex-1 ${!isShellHidden ? 'pb-16' : ''}`}>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/admin" element={<AdminPage />} />
@@ -75,7 +79,7 @@ const AppContent = () => {
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         </Routes>
       </main>
-      {!isAuthPage && <BottomNav />}
+      {!isShellHidden && <BottomNav />}
     </div>
   );
 };
