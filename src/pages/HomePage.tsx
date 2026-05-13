@@ -171,7 +171,7 @@ const DonationBanner = ({ campaigns, settings, isRTL, language }: { campaigns: a
               </p>
               <div className="flex items-baseline gap-1" dir="ltr">
                 <span className="text-2xl font-black text-white tabular-nums">{animatedDonations.toLocaleString()}</span>
-                <span className="text-xs font-bold text-white/70">MRU</span>
+                <span className="text-xs font-bold text-white/70">MRO</span>
               </div>
             </div>
 
