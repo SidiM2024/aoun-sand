@@ -14,29 +14,41 @@ import { DonationsTab } from '../components/admin/DonationsTab';
 export const AdminPage = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
-  
-  // Dashboard state
+
   const [usersCount, setUsersCount] = useState(0);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [polls, setPolls] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
 
+  // ── Verify session on mount ──────────────────────────────────────────────
   useEffect(() => {
-    // Basic session check
-    if (sessionStorage.getItem('admin_auth') === 'true' || localStorage.getItem('admin_auth') === 'true') {
-      setIsAuthenticated(true);
-      fetchDashboardData();
-      setupRealtimeSubscriptions();
-    }
+    const verifySession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: adminRecord } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (adminRecord) {
+          setIsAuthenticated(true);
+          fetchDashboardData();
+          setupRealtimeSubscriptions();
+        }
+      }
+      setIsCheckingSession(false);
+    };
+    verifySession();
   }, []);
 
   const setupRealtimeSubscriptions = () => {
@@ -49,18 +61,14 @@ export const AdminPage = () => {
   };
 
   const fetchUsers = async () => {
-    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
-    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
-    if (usersData && !usersError) {
-      setUsers(usersData);
-      setUsersCount(usersData.length);
-    } else {
-      // Fallback if rpc fails or doesn't exist
-      const { data } = await supabase.from('users').select('*');
-      if (data) {
-        setUsers(data);
-        setUsersCount(data.length);
-      }
+    // Direct query — RLS now allows admins to see all users
+    const { data } = await supabase
+      .from('users')
+      .select('id,full_name,email,phone,membership_type,current_status,location,national_id,created_at')
+      .order('created_at', { ascending: false });
+    if (data) {
+      setUsers(data);
+      setUsersCount(data.length);
     }
   };
 
@@ -93,40 +101,71 @@ export const AdminPage = () => {
     setIsLoading(false);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  // ── Login via Supabase Auth ──────────────────────────────────────────────
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
-    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    setIsLoading(true);
 
-    if (username === envUsername && password === envPassword) {
-      // Use sessionStorage for better security (expires when tab closes)
-      sessionStorage.setItem('admin_auth', 'true');
-      setIsAuthenticated(true);
-      fetchDashboardData();
-      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
-    } else {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error || !data.user) {
       toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      setIsLoading(false);
+      return;
     }
+
+    // Server-side admin verification — cannot be bypassed client-side
+    const { data: adminRecord } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (!adminRecord) {
+      await supabase.auth.signOut();
+      toast.error(isRTL ? 'ليس لديك صلاحية الوصول' : 'Access denied');
+      setIsLoading(false);
+      return;
+    }
+
+    setIsAuthenticated(true);
+    fetchDashboardData();
+    setupRealtimeSubscriptions();
+    toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+    setIsLoading(false);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_auth');
-    localStorage.removeItem('admin_auth');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
+    setUsers([]);
+    setPolls([]);
+    setNotifications([]);
+    setMediaFiles([]);
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
   };
 
+  // ── Loading spinner while checking session ───────────────────────────────
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Login form ───────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 pt-24" dir={isRTL ? 'rtl' : 'ltr'}>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 border border-slate-200 dark:border-slate-800"
         >
           <div className="text-center mb-8">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
@@ -145,13 +184,14 @@ export const AdminPage = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'اسم المستخدم' : 'Username'}
+                {isRTL ? 'البريد الإلكتروني' : 'Email'}
               </label>
-              <input 
-                type="text" 
+              <input
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
                 dir="ltr"
               />
@@ -160,20 +200,26 @@ export const AdminPage = () => {
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                 {isRTL ? 'كلمة المرور' : 'Password'}
               </label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium tracking-widest text-center"
                 dir="ltr"
               />
             </div>
-            <button 
-              type="submit" 
-              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
+              {isLoading ? (
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+              ) : (
+                isRTL ? 'تسجيل الدخول' : 'Sign In'
+              )}
             </button>
           </form>
         </motion.div>
@@ -192,7 +238,7 @@ export const AdminPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="container-custom max-w-7xl">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-4">
@@ -208,7 +254,7 @@ export const AdminPage = () => {
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-5 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl font-bold transition-colors"
           >
@@ -228,13 +274,13 @@ export const AdminPage = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center gap-3 px-5 py-4 rounded-2xl transition-all whitespace-nowrap font-bold text-lg relative ${
-                      isActive 
-                        ? 'text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800' 
+                      isActive
+                        ? 'text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800'
                         : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}
                   >
                     {isActive && (
-                      <motion.div 
+                      <motion.div
                         layoutId="activeTabIndicator"
                         className="absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"
                         style={{ zIndex: 0 }}
@@ -259,7 +305,7 @@ export const AdminPage = () => {
                 <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin" />
               </div>
             )}
-            
+
             <AnimatePresence mode="wait">
               {activeTab === 'users'         && <UsersTab users={users} usersCount={usersCount} />}
               {activeTab === 'notifications' && <NotificationsTab notifications={notifications} fetchDashboardData={fetchDashboardData} />}

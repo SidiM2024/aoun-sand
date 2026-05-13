@@ -23,6 +23,6 @@ serviceWorkerRegistration.register({
     }
   },
   onSuccess: () => {
-    console.log('SW Registered successfully');
+    // Service worker registered successfully (silent in production)
   }
 });

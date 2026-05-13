@@ -21,12 +21,12 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ 
-  user: null, 
-  userProfile: null, 
-  loading: true, 
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  userProfile: null,
+  loading: true,
   isAdmin: false,
-  logout: async () => {} 
+  logout: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -36,43 +36,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('users').select('*').eq('id', userId).single();
-    if (data) {
-      setUserProfile(data);
-    } else {
-      setUserProfile(null);
-    }
+    const { data } = await supabase
+      .from('users')
+      .select('id,full_name,email,phone,membership_type,current_status,location,national_id')
+      .eq('id', userId)
+      .single();
+    setUserProfile(data ?? null);
+  };
+
+  // Server-side admin check: queries the admins table — cannot be spoofed via localStorage
+  const checkIfAdmin = async (userId: string | undefined) => {
+    if (!userId) { setIsAdmin(false); return; }
+    const { data } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    setIsAdmin(!!data);
   };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      checkIfAdmin();
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        fetchProfile(u.id);
+        checkIfAdmin(u.id);
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        fetchProfile(u.id);
+        checkIfAdmin(u.id);
       } else {
         setUserProfile(null);
+        setIsAdmin(false);
       }
-      checkIfAdmin();
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkIfAdmin = () => {
-    const adminSession = localStorage.getItem('admin_session');
-    setIsAdmin(adminSession === 'true');
-  };
-
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('admin_session');
+    sessionStorage.removeItem('admin_auth');
     setUser(null);
     setUserProfile(null);
     setIsAdmin(false);

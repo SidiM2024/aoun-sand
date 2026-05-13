@@ -79,7 +79,6 @@ export const usePushNotifications = () => {
       );
 
       subscribedRef.current = true;
-      console.log('[Push] Subscribed ✓');
     } catch (e: any) {
       // User denied or browser issue — don't throw
       if (!e.message?.includes('denied')) {
