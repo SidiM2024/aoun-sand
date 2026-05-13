@@ -72,10 +72,10 @@ const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) =>
       {/* Amounts */}
       <div className="flex justify-between items-center text-xs font-bold mb-2" dir="ltr">
         <span className={`text-base font-black ${isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
-          {campaign.current_amount.toLocaleString()} <span className="text-xs font-medium text-slate-400">MRU</span>
+          {campaign.current_amount.toLocaleString()} <span className="text-xs font-medium text-slate-400">MRO</span>
         </span>
         <span className="text-slate-400 font-medium">
-          {isRTL ? 'من' : 'of'} {campaign.target_amount.toLocaleString()} MRU
+          {isRTL ? 'من' : 'of'} {campaign.target_amount.toLocaleString()} MRO
         </span>
       </div>
 
