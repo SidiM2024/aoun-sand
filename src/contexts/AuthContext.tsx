@@ -11,6 +11,7 @@ export interface UserProfile {
   current_status: string;
   location: string;
   national_id: string;
+  approval_status: string;
 }
 
 interface AuthContextType {
@@ -39,36 +40,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data } = await supabase.from('users').select('*').eq('id', userId).single();
     if (data) {
       setUserProfile(data);
+      // Query database admins table
+      const { data: adminData } = await supabase.from('admins').select('id').eq('id', userId).single();
+      if (adminData) {
+        setIsAdmin(true);
+        localStorage.setItem('admin_session', 'true');
+      } else {
+        setIsAdmin(false);
+        localStorage.removeItem('admin_session');
+      }
     } else {
       setUserProfile(null);
+      setIsAdmin(false);
+      localStorage.removeItem('admin_session');
     }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      checkIfAdmin();
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const initializeAuth = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
       } else {
         setUserProfile(null);
+        setIsAdmin(false);
+        localStorage.removeItem('admin_session');
       }
-      checkIfAdmin();
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setLoading(true);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+        setIsAdmin(false);
+        localStorage.removeItem('admin_session');
+      }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const checkIfAdmin = () => {
-    const adminSession = localStorage.getItem('admin_session');
-    setIsAdmin(adminSession === 'true');
-  };
 
   const logout = async () => {
     await supabase.auth.signOut();

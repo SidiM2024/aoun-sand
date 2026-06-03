@@ -3,23 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
 import { PollsTab } from '../components/admin/PollsTab';
 import { MediaTab } from '../components/admin/MediaTab';
 import { DonationsTab } from '../components/admin/DonationsTab';
+import { ApprovalsTab } from '../components/admin/ApprovalsTab';
+import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
+  const { isAdmin, logout } = useAuth();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -31,13 +34,13 @@ export const AdminPage = () => {
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
 
   useEffect(() => {
-    // Basic session check
-    if (sessionStorage.getItem('admin_auth') === 'true' || localStorage.getItem('admin_auth') === 'true') {
+    // Basic session check or dynamic database admin role check
+    if (sessionStorage.getItem('admin_auth') === 'true' || localStorage.getItem('admin_auth') === 'true' || isAdmin) {
       setIsAuthenticated(true);
       fetchDashboardData();
       setupRealtimeSubscriptions();
     }
-  }, []);
+  }, [isAdmin]);
 
   const setupRealtimeSubscriptions = () => {
     supabase.channel('admin-dashboard')
@@ -109,9 +112,10 @@ export const AdminPage = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sessionStorage.removeItem('admin_auth');
     localStorage.removeItem('admin_auth');
+    await logout();
     setIsAuthenticated(false);
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
   };
@@ -183,6 +187,7 @@ export const AdminPage = () => {
 
   const tabs = [
     { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
     { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
     { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
@@ -262,6 +267,7 @@ export const AdminPage = () => {
             
             <AnimatePresence mode="wait">
               {activeTab === 'users'         && <UsersTab users={users} usersCount={usersCount} />}
+              {activeTab === 'approvals'     && <ApprovalsTab users={users} onRefresh={fetchUsers} />}
               {activeTab === 'notifications' && <NotificationsTab notifications={notifications} fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'voting'        && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'donations'     && <DonationsTab fetchDashboardData={fetchDashboardData} />}

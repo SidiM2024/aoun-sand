@@ -1,6 +1,6 @@
 
 export function register(config?: { onUpdate?: (registration: ServiceWorkerRegistration) => void; onSuccess?: (registration: ServiceWorkerRegistration) => void }) {
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
         const publicUrl = new URL(import.meta.env.BASE_URL, window.location.href);
         if (publicUrl.origin !== window.location.origin) {
             return;

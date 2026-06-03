@@ -18,10 +18,14 @@ import { AccountPage } from './pages/AccountPage';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
+import { useLanguage } from './contexts/LanguageContext';
+import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, userProfile, loading, isAdmin, logout } = useAuth();
+  const { language } = useLanguage();
   const location = useLocation();
+  const isRTL = language === 'ar';
 
   if (loading) {
     return (
@@ -34,7 +38,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
         <h2 className="text-xl font-bold text-slate-800 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-teal-500">
-          جاري تجهيز بيئة العمل...
+          {isRTL ? 'جاري تجهيز بيئة العمل...' : 'Preparing workspace...'}
         </h2>
         <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Please wait while we verify your session</p>
       </div>
@@ -43,6 +47,68 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user && !isAdmin) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Intercept normal users who are not approved
+  if (user && !isAdmin) {
+    const status = userProfile?.approval_status || 'Pending Approval';
+
+    if (status !== 'Approved') {
+      let title = '';
+      let message = '';
+      let Icon = Clock;
+      let colorClass = 'text-amber-500 bg-amber-50 dark:bg-amber-900/20';
+
+      if (status === 'Pending Approval') {
+        title = isRTL ? 'قيد الانتظار' : 'Awaiting Approval';
+        message = isRTL 
+          ? 'حسابك في انتظار موافقة المسؤول.'
+          : 'Your account is awaiting administrator approval.';
+        Icon = Clock;
+        colorClass = 'text-amber-500 bg-amber-50 dark:bg-amber-900/20';
+      } else if (status === 'Rejected') {
+        title = isRTL ? 'تم رفض الحساب' : 'Account Rejected';
+        message = isRTL 
+          ? 'لقد تم رفض طلب التسجيل الخاص بك.'
+          : 'Your registration request has been rejected.';
+        Icon = XCircle;
+        colorClass = 'text-red-500 bg-red-50 dark:bg-red-900/20';
+      } else if (status === 'Suspended') {
+        title = isRTL ? 'تم تعليق الحساب' : 'Account Suspended';
+        message = isRTL 
+          ? 'تم تعليق حسابك.' 
+          : 'Your account has been suspended.';
+        Icon = Ban;
+        colorClass = 'text-rose-500 bg-rose-50 dark:bg-rose-900/20';
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950" dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 border border-slate-200 dark:border-slate-800 text-center space-y-6">
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto shadow-lg ${colorClass}`}>
+              <Icon className="w-10 h-10" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white">
+                {title}
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                {message}
+              </p>
+            </div>
+
+            <button 
+              onClick={logout}
+              className="w-full py-4 px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>{isRTL ? 'تسجيل الخروج' : 'Log Out'}</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
   }
 
   return <>{children}</>;

@@ -15,7 +15,7 @@ export interface Translations {
     date: string;
     learnMore: string;
     donateNow: string;
-    joinVolunteer: string;
+    membership: string;
     watchVideo: string;
   };
   about: {
@@ -73,5 +73,14 @@ export interface Translations {
   footer: {
     rights: string;
     description: string;
+  };
+  homePage: {
+    platform: string;
+    welcome: string;
+    welcomeDesc: string;
+    totalMembers: string;
+    member: string;
+    contribute: string;
+    totalDonations: string;
   };
 }

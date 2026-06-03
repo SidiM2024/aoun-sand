@@ -116,7 +116,7 @@ export const usePushNotifications = () => {
         silent: false,
         requireInteraction: false,
         tag: `aoun-notif-${Date.now()}`,
-      });
+      } as any);
       // Update badge
       if ('setAppBadge' in navigator) {
         (navigator as any).setAppBadge(1).catch(() => {});
