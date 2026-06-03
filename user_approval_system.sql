@@ -3,6 +3,21 @@
 -- Run this in your Supabase SQL Editor (https://supabase.com/dashboard)
 -- ══════════════════════════════════════════════════════════════════════════
 
+-- 0. CREATE ADMINS TABLE IF NOT EXISTS (to avoid relation missing errors)
+CREATE TABLE IF NOT EXISTS public.admins (
+  id          uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at  timestamptz DEFAULT now()
+);
+
+-- Enable RLS for admins table
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read the admins table (prevents user enumeration)
+DROP POLICY IF EXISTS "admins_self_read" ON public.admins;
+CREATE POLICY "admins_self_read"
+  ON public.admins FOR SELECT
+  USING (auth.uid() = id);
+
 -- 1. ADD COLUMN FOR APPROVAL STATUS (defaults to 'Pending Approval')
 ALTER TABLE public.users 
 ADD COLUMN IF NOT EXISTS approval_status TEXT NOT NULL DEFAULT 'Pending Approval';
