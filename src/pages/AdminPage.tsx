@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, Loader2 } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -19,7 +19,7 @@ export const AdminPage = () => {
   const { isAdmin, logout } = useAuth();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
   const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
@@ -52,10 +52,18 @@ export const AdminPage = () => {
   };
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setUsers(data);
-      setUsersCount(data.length);
+    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
+    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
+    if (usersData && !usersError) {
+      setUsers(usersData);
+      setUsersCount(usersData.length);
+    } else {
+      // Fallback if rpc fails or doesn't exist
+      const { data } = await supabase.from('users').select('*');
+      if (data) {
+        setUsers(data);
+        setUsersCount(data.length);
+      }
     }
   };
 
@@ -102,41 +110,19 @@ export const AdminPage = () => {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+    const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
+    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
 
-      if (error) throw error;
-
-      if (data.user) {
-        // Check if user is in admins table
-        const { data: adminData, error: adminError } = await supabase
-          .from('admins')
-          .select('id')
-          .eq('id', data.user.id)
-          .single();
-
-        if (adminData && !adminError) {
-          sessionStorage.setItem('admin_auth', 'true');
-          setIsAuthenticated(true);
-          fetchDashboardData();
-          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
-        } else {
-          // Not an admin
-          await supabase.auth.signOut();
-          toast.error(isRTL ? 'غير مصرح لك بالدخول كمسؤول' : 'Unauthorized admin access');
-        }
-      }
-    } catch (error: any) {
-      toast.error(isRTL ? 'بيانات الدخول خاطئة' : error.message);
-    } finally {
-      setIsLoading(false);
+    if (username === envUsername && password === envPassword) {
+      // Use sessionStorage for better security (expires when tab closes)
+      sessionStorage.setItem('admin_auth', 'true');
+      setIsAuthenticated(true);
+      fetchDashboardData();
+      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+    } else {
+      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
     }
   };
 
@@ -177,13 +163,13 @@ export const AdminPage = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'البريد الإلكتروني' : 'Email'}
+                {isRTL ? 'اسم المستخدم' : 'Username'}
               </label>
               <input 
-                type="email" 
+                type="text" 
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
                 dir="ltr"
               />
@@ -203,14 +189,9 @@ export const AdminPage = () => {
             </div>
             <button 
               type="submit" 
-              disabled={isLoading}
-              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> {isRTL ? 'جاري التحقق...' : 'Verifying...'}</>
-              ) : (
-                isRTL ? 'تسجيل الدخول' : 'Sign In'
-              )}
+              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
             </button>
           </form>
         </motion.div>
@@ -218,15 +199,13 @@ export const AdminPage = () => {
     );
   }
 
-  const pendingUsersCount = users.filter(u => (u.approval_status || 'Pending Approval') === 'Pending Approval').length;
-
   const tabs = [
-    { id: 'users',         icon: Users,       label: isRTL ? 'المستخدمين' : 'Users',          color: 'text-indigo-500',  bg: 'bg-indigo-50 dark:bg-indigo-900/20',   badge: null },
-    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', badge: pendingUsersCount > 0 ? pendingUsersCount : null },
-    { id: 'notifications', icon: Bell,        label: isRTL ? 'الإشعارات' : 'Notifications',  color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',     badge: null },
-    { id: 'voting',        icon: Vote,        label: isRTL ? 'التصويت' : 'Voting',          color: 'text-teal-500',    bg: 'bg-teal-50 dark:bg-teal-900/20',       badge: null },
-    { id: 'donations',     icon: HandHeart,   label: isRTL ? 'التبرعات' : 'Donations',       color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-900/20',   badge: null },
-    { id: 'media',         icon: Upload,      label: isRTL ? 'الوسائط' : 'Media',           color: 'text-pink-500',    bg: 'bg-pink-50 dark:bg-pink-900/20',       badge: null },
+    { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
+    { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
+    { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
+    { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
   ];
 
   return (
@@ -284,12 +263,7 @@ export const AdminPage = () => {
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? tab.bg : 'bg-transparent'} transition-colors`}>
                         <tab.icon className={`w-5 h-5 ${isActive ? tab.color : 'text-slate-400'}`} />
                       </div>
-                      <span className="flex-1">{tab.label}</span>
-                      {tab.badge && (
-                        <span className="ml-auto bg-amber-400 text-white text-[11px] font-black rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                          {tab.badge}
-                        </span>
-                      )}
+                      {tab.label}
                     </span>
                   </button>
                 );

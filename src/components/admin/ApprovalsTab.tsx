@@ -43,9 +43,11 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
     // Optimistic Update
     setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, approval_status: newStatus } : u));
     try {
+      const adminSecret = import.meta.env.VITE_ADMIN_PASSWORD || '';
       const { error } = await supabase.rpc('admin_update_user_status', {
         target_user_id: userId,
-        new_status: newStatus
+        new_status: newStatus,
+        admin_secret: adminSecret
       });
 
       if (error) {
@@ -83,7 +85,11 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
   const handleDeleteUser = async (userId: string) => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId });
+      const adminSecret = import.meta.env.VITE_ADMIN_PASSWORD || '';
+      const { error } = await supabase.rpc('admin_delete_user', { 
+        target_user_id: userId,
+        admin_secret: adminSecret 
+      });
       if (error) throw error;
       
       // Optimistic UI Update
