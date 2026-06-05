@@ -37,19 +37,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('users').select('*').eq('id', userId).single();
-    if (data) {
-      setUserProfile(data);
-      // Query database admins table
-      const { data: adminData } = await supabase.from('admins').select('id').eq('id', userId).single();
-      if (adminData) {
-        setIsAdmin(true);
-        localStorage.setItem('admin_session', 'true');
+    try {
+      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (error) {
+        console.error("Error fetching user profile:", error);
+      }
+      if (data) {
+        setUserProfile(data);
+        // Query database admins table
+        const { data: adminData, error: adminError } = await supabase.from('admins').select('id').eq('id', userId).single();
+        if (adminError && adminError.code !== 'PGRST116') {
+          console.error("Error checking admin status:", adminError);
+        }
+        if (adminData) {
+          setIsAdmin(true);
+          localStorage.setItem('admin_session', 'true');
+        } else {
+          setIsAdmin(false);
+          localStorage.removeItem('admin_session');
+        }
       } else {
+        setUserProfile(null);
         setIsAdmin(false);
         localStorage.removeItem('admin_session');
       }
-    } else {
+    } catch (e) {
+      console.error("Exception during fetchProfile:", e);
       setUserProfile(null);
       setIsAdmin(false);
       localStorage.removeItem('admin_session');
@@ -57,40 +70,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Safety fallback: if loading doesn't resolve in 4 seconds, force resolve it.
+    const timer = setTimeout(() => {
+      setLoading(currentLoading => {
+        if (currentLoading) {
+          console.warn("Auth initialization timed out. Forcing loading state to false.");
+          return false;
+        }
+        return currentLoading;
+      });
+    }, 4000);
+
     const initializeAuth = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setUserProfile(null);
-        setIsAdmin(false);
-        localStorage.removeItem('admin_session');
+      try {
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setUserProfile(null);
+          setIsAdmin(false);
+          localStorage.removeItem('admin_session');
+        }
+      } catch (err) {
+        console.error("Error in initializeAuth:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setLoading(true);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setUserProfile(null);
-        setIsAdmin(false);
-        localStorage.removeItem('admin_session');
+      try {
+        setLoading(true);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setUserProfile(null);
+          setIsAdmin(false);
+          localStorage.removeItem('admin_session');
+        }
+      } catch (err) {
+        console.error("Error in onAuthStateChange callback:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
     localStorage.removeItem('admin_session');
     setUser(null);
     setUserProfile(null);
