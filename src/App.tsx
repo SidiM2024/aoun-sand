@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { useLanguage } from './contexts/LanguageContext';
 import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
+import { AvatarPromptModal } from './components/AvatarPromptModal';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, userProfile, loading, isAdmin, logout } = useAuth();
@@ -47,6 +48,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user && !isAdmin) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Intercept users without an avatar
+  if (user && !isAdmin && userProfile && !userProfile.avatar_url) {
+    return <AvatarPromptModal />;
   }
 
   // Intercept normal users who are not approved

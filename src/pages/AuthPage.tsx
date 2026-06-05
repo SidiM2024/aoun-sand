@@ -125,6 +125,11 @@ export const AuthPage = () => {
     e.preventDefault();
     setErrorMsg('');
 
+    if (!avatarFile) {
+      setErrorMsg(isRTL ? 'الرجاء اختيار صورة شخصية لإكمال التسجيل' : 'Please select a profile picture to complete registration');
+      return;
+    }
+
     if (!validatePhone(phone)) {
       setErrorMsg(isRTL ? 'رقم الهاتف غير صالح' : 'Invalid phone');
       return;
