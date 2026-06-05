@@ -92,7 +92,8 @@ export const AuthPage = () => {
             membership_type: 'عضو',
             current_status: 'لا شيء',
             location: '',
-            national_id: ''
+            national_id: '',
+            approval_status: 'Pending Approval'
           }]);
           toast.success(isRTL ? 'مرحباً بك يا مستخدم جديد!' : 'Welcome, new user!');
         } else {
@@ -145,7 +146,8 @@ export const AuthPage = () => {
           membership_type: membershipType,
           current_status: currentStatus,
           location: location,
-          national_id: nationalId
+          national_id: nationalId,
+          approval_status: 'Pending Approval'
         }], { onConflict: 'id' });
         
         if (!data.session) {

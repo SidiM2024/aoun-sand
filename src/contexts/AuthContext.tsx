@@ -38,14 +38,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+      const fetchPromise = supabase.from('users').select('*').eq('id', userId).single();
+      const timeoutPromise = new Promise<any>((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout fetching profile')), 5000)
+      );
+      
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      
       if (error) {
         console.error("Error fetching user profile:", error);
       }
       if (data) {
         setUserProfile(data);
         // Query database admins table
-        const { data: adminData, error: adminError } = await supabase.from('admins').select('id').eq('id', userId).single();
+        const adminFetch = supabase.from('admins').select('id').eq('id', userId).single();
+        const { data: adminData, error: adminError } = await Promise.race([adminFetch, timeoutPromise]);
+        
         if (adminError && adminError.code !== 'PGRST116') {
           console.error("Error checking admin status:", adminError);
         }

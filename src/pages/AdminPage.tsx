@@ -93,12 +93,16 @@ export const AdminPage = () => {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([
+      const fetchPromise = Promise.all([
         fetchUsers().catch(err => console.error("Error fetching users:", err)),
         fetchPolls().catch(err => console.error("Error fetching polls:", err)),
         fetchNotifications().catch(err => console.error("Error fetching notifications:", err)),
         fetchMedia().catch(err => console.error("Error fetching media:", err))
       ]);
+      
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
+      
+      await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
       console.error("Error in fetchDashboardData:", err);
     } finally {
