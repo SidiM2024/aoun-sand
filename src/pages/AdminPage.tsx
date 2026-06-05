@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, Loader2 } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -203,9 +203,14 @@ export const AdminPage = () => {
             </div>
             <button 
               type="submit" 
-              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              disabled={isLoading}
+              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> {isRTL ? 'جاري التحقق...' : 'Verifying...'}</>
+              ) : (
+                isRTL ? 'تسجيل الدخول' : 'Sign In'
+              )}
             </button>
           </form>
         </motion.div>
@@ -213,13 +218,15 @@ export const AdminPage = () => {
     );
   }
 
+  const pendingUsersCount = users.filter(u => (u.approval_status || 'Pending Approval') === 'Pending Approval').length;
+
   const tabs = [
-    { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
-    { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
-    { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
-    { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
+    { id: 'users',         icon: Users,       label: isRTL ? 'المستخدمين' : 'Users',          color: 'text-indigo-500',  bg: 'bg-indigo-50 dark:bg-indigo-900/20',   badge: null },
+    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', badge: pendingUsersCount > 0 ? pendingUsersCount : null },
+    { id: 'notifications', icon: Bell,        label: isRTL ? 'الإشعارات' : 'Notifications',  color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',     badge: null },
+    { id: 'voting',        icon: Vote,        label: isRTL ? 'التصويت' : 'Voting',          color: 'text-teal-500',    bg: 'bg-teal-50 dark:bg-teal-900/20',       badge: null },
+    { id: 'donations',     icon: HandHeart,   label: isRTL ? 'التبرعات' : 'Donations',       color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-900/20',   badge: null },
+    { id: 'media',         icon: Upload,      label: isRTL ? 'الوسائط' : 'Media',           color: 'text-pink-500',    bg: 'bg-pink-50 dark:bg-pink-900/20',       badge: null },
   ];
 
   return (
@@ -277,7 +284,12 @@ export const AdminPage = () => {
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? tab.bg : 'bg-transparent'} transition-colors`}>
                         <tab.icon className={`w-5 h-5 ${isActive ? tab.color : 'text-slate-400'}`} />
                       </div>
-                      {tab.label}
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.badge && (
+                        <span className="ml-auto bg-amber-400 text-white text-[11px] font-black rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                          {tab.badge}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
