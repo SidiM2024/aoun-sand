@@ -41,10 +41,10 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
     // Optimistic Update
     setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, approval_status: newStatus } : u));
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ approval_status: newStatus })
-        .eq('id', userId);
+      const { error } = await supabase.rpc('admin_update_user_status', {
+        target_user_id: userId,
+        new_status: newStatus
+      });
 
       if (error) {
         throw error;

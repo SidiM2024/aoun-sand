@@ -121,3 +121,26 @@ BEGIN
   DELETE FROM auth.users WHERE id = target_user_id;
 END;
 $$;
+
+-- 6. RPC Function to reliably update a user's approval status (bypasses RLS silent failures)
+CREATE OR REPLACE FUNCTION admin_update_user_status(target_user_id uuid, new_status text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Verify the caller is an admin
+  IF NOT EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()) THEN
+    RAISE EXCEPTION 'Unauthorized: Only admins can update user status';
+  END IF;
+
+  UPDATE public.users 
+  SET approval_status = new_status 
+  WHERE id = target_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User not found or update failed';
+  END IF;
+END;
+$$;
