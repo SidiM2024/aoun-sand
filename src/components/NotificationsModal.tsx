@@ -212,8 +212,12 @@ export const NotificationsModal = () => {
     if (!isOpen) return;
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
-      if (e.key === 'ArrowRight') isRTL ? goPrev() : goNext();
-      if (e.key === 'ArrowLeft')  isRTL ? goNext() : goPrev();
+      if (e.key === 'ArrowRight') {
+        if (isRTL) goPrev(); else goNext();
+      }
+      if (e.key === 'ArrowLeft') {
+        if (isRTL) goNext(); else goPrev();
+      }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
