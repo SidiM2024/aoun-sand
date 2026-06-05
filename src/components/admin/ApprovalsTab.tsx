@@ -38,6 +38,8 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
 
   const handleStatusUpdate = async (userId: string, newStatus: string) => {
     setUpdatingId(userId);
+    // Store old users for rollback
+    const previousUsers = [...localUsers];
     // Optimistic Update
     setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, approval_status: newStatus } : u));
     try {
@@ -57,13 +59,21 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
       );
       // Removed await onRefresh() to avoid slow UI response; realtime subscriptions will eventually fetch
     } catch (err: any) {
-      console.error(err);
+      console.error("RPC Error:", err);
       // Revert optimistic update
-      setLocalUsers(users);
+      setLocalUsers(previousUsers);
+      
+      let errorMsg = err.message;
+      if (errorMsg?.includes('Could not find the function') || errorMsg?.includes('function admin_update_user_status does not exist')) {
+        errorMsg = 'لم يتم العثور على الدالة في قاعدة البيانات. يرجى تشغيل كود SQL المطلوب في Supabase.';
+      } else if (errorMsg?.includes('Unauthorized')) {
+        errorMsg = 'غير مصرح لك بتحديث حالة المستخدمين.';
+      }
+
       toast.error(
         isRTL 
-          ? 'فشل تحديث حالة الحساب. تأكد من الصلاحيات.' 
-          : `Failed to update status: ${err.message}`
+          ? 'فشل تحديث الحالة: ' + errorMsg 
+          : `Failed to update: ${errorMsg}`
       );
     } finally {
       setUpdatingId(null);
