@@ -92,8 +92,18 @@ export const AdminPage = () => {
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    await Promise.all([fetchUsers(), fetchPolls(), fetchNotifications(), fetchMedia()]);
-    setIsLoading(false);
+    try {
+      await Promise.all([
+        fetchUsers().catch(err => console.error("Error fetching users:", err)),
+        fetchPolls().catch(err => console.error("Error fetching polls:", err)),
+        fetchNotifications().catch(err => console.error("Error fetching notifications:", err)),
+        fetchMedia().catch(err => console.error("Error fetching media:", err))
+      ]);
+    } catch (err) {
+      console.error("Error in fetchDashboardData:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -258,7 +268,7 @@ export const AdminPage = () => {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 relative">
             {isLoading && (
               <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-3xl">
                 <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin" />
