@@ -165,7 +165,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
         <div className="relative w-full md:w-80">
           <input 
             type="text" 
-            placeholder={isRTL ? 'بحث بالاسم، البريد أو الهاتف...' : 'Search name, email or phone...'}
+            placeholder={isRTL ? 'بحث بالاسم، البريد، الهاتف أو المعرف...' : 'Search by name, email, phone or ID...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm ${isRTL ? 'pl-4 pr-11' : 'pl-11 pr-4'}`}
@@ -273,34 +273,34 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                           <RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" />
                         ) : (
                           <>
-                            {/* APPROVE ACTION */}
+                            {/* APPROVE / RE-APPROVE */}
                             {status !== 'Approved' && (
                               <button
                                 onClick={() => handleStatusUpdate(u.id, 'Approved')}
-                                title={isRTL ? 'موافقة' : 'Approve'}
-                                className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 shadow-sm transition-all"
+                                title={isRTL ? 'قبول / إعادة تفعيل' : 'Approve / Re-activate'}
+                                className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100 dark:border-emerald-500/20 shadow-sm transition-all hover:scale-110"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
                             )}
 
-                            {/* REJECT ACTION */}
-                            {status === 'Pending Approval' && (
+                            {/* REJECT — available for Pending & Approved */}
+                            {(status === 'Pending Approval' || status === 'Approved' || status === 'Suspended') && (
                               <button
                                 onClick={() => handleStatusUpdate(u.id, 'Rejected')}
                                 title={isRTL ? 'رفض' : 'Reject'}
-                                className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100 dark:border-red-500/20 shadow-sm transition-all"
+                                className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100 dark:border-red-500/20 shadow-sm transition-all hover:scale-110"
                               >
                                 <X className="w-4 h-4" />
                               </button>
                             )}
 
-                            {/* SUSPEND ACTION */}
+                            {/* SUSPEND — only for Approved */}
                             {status === 'Approved' && (
                               <button
                                 onClick={() => handleStatusUpdate(u.id, 'Suspended')}
-                                title={isRTL ? 'تعليق' : 'Suspend'}
-                                className="p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-100 dark:border-rose-500/20 shadow-sm transition-all"
+                                title={isRTL ? 'تعليق مؤقت' : 'Suspend'}
+                                className="p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-100 dark:border-rose-500/20 shadow-sm transition-all hover:scale-110"
                               >
                                 <Ban className="w-4 h-4" />
                               </button>
