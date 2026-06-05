@@ -59,7 +59,9 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
           ? 'تم تحديث حالة الحساب بنجاح' 
           : `Account status updated to ${newStatus}`
       );
-      // Removed await onRefresh() to avoid slow UI response; realtime subscriptions will eventually fetch
+      
+      // Force refresh to guarantee UI matches database exactly
+      await onRefresh();
     } catch (err: any) {
       console.error("RPC Error:", err);
       // Revert optimistic update

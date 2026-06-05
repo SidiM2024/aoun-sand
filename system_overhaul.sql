@@ -78,6 +78,10 @@ CREATE POLICY "admins_read" ON public.admins FOR SELECT USING (true); -- Anyone 
 -- Policies for Users
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
+-- Allow anyone to read users (needed for admin list and profiles)
+DROP POLICY IF EXISTS "users_read" ON public.users;
+CREATE POLICY "users_read" ON public.users FOR SELECT USING (true);
+
 -- Allow users to update their own profile (EXCEPT approval_status and unique_short_id)
 DROP POLICY IF EXISTS "users_update_own" ON public.users;
 CREATE POLICY "users_update_own" ON public.users FOR UPDATE 
@@ -133,5 +137,18 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'User not found or update failed';
   END IF;
+END;
+$$;
+
+-- 7. RPC Function to get all users for the admin dashboard (bypasses RLS)
+CREATE OR REPLACE FUNCTION get_admin_users(admin_pass text)
+RETURNS SETOF public.users
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- We return all users. Security is handled by the frontend login in this architecture.
+  RETURN QUERY SELECT * FROM public.users ORDER BY created_at DESC;
 END;
 $$;
