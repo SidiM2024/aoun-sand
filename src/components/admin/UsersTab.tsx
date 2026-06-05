@@ -11,7 +11,8 @@ export const UsersTab = ({ users, usersCount }: { users: any[], usersCount: numb
   const filteredUsers = users.filter(u => 
     u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.phone?.includes(searchTerm)
+    u.phone?.includes(searchTerm) ||
+    u.unique_short_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -70,13 +71,18 @@ export const UsersTab = ({ users, usersCount }: { users: any[], usersCount: numb
                 >
                   <td className="p-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold uppercase border border-indigo-200 dark:border-indigo-800">
-                        {u.full_name?.charAt(0) || 'U'}
-                      </div>
+                      {u.avatar_url ? (
+                        <img src={u.avatar_url} alt={u.full_name} className="w-10 h-10 rounded-full object-cover border border-indigo-200 dark:border-indigo-800 shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold uppercase border border-indigo-200 dark:border-indigo-800 shrink-0">
+                          {u.full_name?.charAt(0) || 'U'}
+                        </div>
+                      )}
                       <div>
                         <div className="font-bold text-slate-800 dark:text-white">{u.full_name}</div>
-                        <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                          <MapPin className="w-3 h-3" /> {u.location || (isRTL ? 'غير محدد' : 'Not specified')}
+                        <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                          <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">{u.unique_short_id || u.national_id || 'ID'}</span>
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {u.location || (isRTL ? 'غير محدد' : 'Not specified')}</span>
                         </div>
                       </div>
                     </div>

@@ -19,7 +19,7 @@ export const AdminPage = () => {
   const { isAdmin, logout } = useAuth();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
@@ -52,18 +52,10 @@ export const AdminPage = () => {
   };
 
   const fetchUsers = async () => {
-    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
-    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
-    if (usersData && !usersError) {
-      setUsers(usersData);
-      setUsersCount(usersData.length);
-    } else {
-      // Fallback if rpc fails or doesn't exist
-      const { data } = await supabase.from('users').select('*');
-      if (data) {
-        setUsers(data);
-        setUsersCount(data.length);
-      }
+    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setUsers(data);
+      setUsersCount(data.length);
     }
   };
 
@@ -110,19 +102,41 @@ export const AdminPage = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
-    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-    if (username === envUsername && password === envPassword) {
-      // Use sessionStorage for better security (expires when tab closes)
-      sessionStorage.setItem('admin_auth', 'true');
-      setIsAuthenticated(true);
-      fetchDashboardData();
-      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
-    } else {
-      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      if (error) throw error;
+
+      if (data.user) {
+        // Check if user is in admins table
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (adminData && !adminError) {
+          sessionStorage.setItem('admin_auth', 'true');
+          setIsAuthenticated(true);
+          fetchDashboardData();
+          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+        } else {
+          // Not an admin
+          await supabase.auth.signOut();
+          toast.error(isRTL ? 'غير مصرح لك بالدخول كمسؤول' : 'Unauthorized admin access');
+        }
+      }
+    } catch (error: any) {
+      toast.error(isRTL ? 'بيانات الدخول خاطئة' : error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -163,13 +177,13 @@ export const AdminPage = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'اسم المستخدم' : 'Username'}
+                {isRTL ? 'البريد الإلكتروني' : 'Email'}
               </label>
               <input 
-                type="text" 
+                type="email" 
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
                 dir="ltr"
               />

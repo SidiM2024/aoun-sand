@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -20,16 +20,24 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Pending Approval' | 'Approved' | 'Rejected' | 'Suspended'>('All');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [localUsers, setLocalUsers] = useState<any[]>(users);
+
+  // Sync local users when props change
+  useEffect(() => {
+    setLocalUsers(users);
+  }, [users]);
 
   // Status counters
-  const totalCount = users.length;
-  const pendingCount = users.filter(u => (u.approval_status || 'Pending Approval') === 'Pending Approval').length;
-  const approvedCount = users.filter(u => u.approval_status === 'Approved').length;
-  const rejectedCount = users.filter(u => u.approval_status === 'Rejected').length;
-  const suspendedCount = users.filter(u => u.approval_status === 'Suspended').length;
+  const totalCount = localUsers.length;
+  const pendingCount = localUsers.filter(u => (u.approval_status || 'Pending Approval') === 'Pending Approval').length;
+  const approvedCount = localUsers.filter(u => u.approval_status === 'Approved').length;
+  const rejectedCount = localUsers.filter(u => u.approval_status === 'Rejected').length;
+  const suspendedCount = localUsers.filter(u => u.approval_status === 'Suspended').length;
 
   const handleStatusUpdate = async (userId: string, newStatus: string) => {
     setUpdatingId(userId);
+    // Optimistic Update
+    setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, approval_status: newStatus } : u));
     try {
       const { error } = await supabase
         .from('users')
@@ -45,9 +53,11 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
           ? 'تم تحديث حالة الحساب بنجاح' 
           : `Account status updated to ${newStatus}`
       );
-      await onRefresh();
+      // Removed await onRefresh() to avoid slow UI response; realtime subscriptions will eventually fetch
     } catch (err: any) {
       console.error(err);
+      // Revert optimistic update
+      setLocalUsers(users);
       toast.error(
         isRTL 
           ? 'فشل تحديث حالة الحساب. تأكد من الصلاحيات.' 
@@ -58,14 +68,15 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
     }
   };
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = localUsers.filter(u => {
     const status = u.approval_status || 'Pending Approval';
     const matchesStatus = statusFilter === 'All' || status === statusFilter;
     
     const matchesSearch = 
       u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.phone?.includes(searchTerm);
+      u.phone?.includes(searchTerm) ||
+      u.unique_short_id?.toLowerCase().includes(searchTerm.toLowerCase());
       
     return matchesStatus && matchesSearch;
   });
@@ -203,13 +214,17 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                     {/* User Profile */}
                     <td className="p-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950 dark:to-purple-950 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-black text-lg uppercase border border-indigo-200/50 dark:border-indigo-800/40 shadow-sm shrink-0">
-                          {u.full_name?.charAt(0) || 'U'}
-                        </div>
+                        {u.avatar_url ? (
+                          <img src={u.avatar_url} alt={u.full_name} className="w-11 h-11 rounded-2xl object-cover shadow-sm shrink-0" />
+                        ) : (
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950 dark:to-purple-950 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-black text-lg uppercase border border-indigo-200/50 dark:border-indigo-800/40 shadow-sm shrink-0">
+                            {u.full_name?.charAt(0) || 'U'}
+                          </div>
+                        )}
                         <div>
                           <div className="font-bold text-slate-800 dark:text-white text-base">{u.full_name}</div>
                           <div className="text-xs text-slate-400 mt-0.5">
-                            ID: <span className="font-mono">{u.national_id || (isRTL ? 'غير محدد' : 'N/A')}</span>
+                            ID: <span className="font-mono">{u.unique_short_id || u.national_id || (isRTL ? 'غير محدد' : 'N/A')}</span>
                           </div>
                         </div>
                       </div>

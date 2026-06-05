@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText } from 'lucide-react';
+import { LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText, Hash } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const AccountPage = () => {
@@ -10,6 +10,7 @@ export const AccountPage = () => {
   const isRTL = language === 'ar';
 
   const details = userProfile ? [
+    { label: isRTL ? 'المعرف الفريد' : 'Unique ID', value: userProfile.unique_short_id || (isRTL ? 'غير محدد' : 'N/A'), icon: Hash },
     { label: isRTL ? 'الاسم الكامل' : 'Full Name', value: userProfile.full_name, icon: User },
     { label: isRTL ? 'البريد الإلكتروني' : 'Email', value: userProfile.email, icon: Mail },
     { label: isRTL ? 'رقم الهاتف' : 'Phone', value: userProfile.phone, icon: Phone },
@@ -22,18 +23,47 @@ export const AccountPage = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-20 pb-24 px-4 bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen pt-20 pb-24 px-4 bg-slate-50 dark:bg-slate-900" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-md mx-auto space-y-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 text-center"
         >
-          <div className="w-20 h-20 bg-teal-100 dark:bg-teal-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-10 h-10 text-teal-600 dark:text-teal-400" />
+          {/* Avatar */}
+          <div className="relative inline-block mb-4">
+            {userProfile?.avatar_url ? (
+              <img 
+                src={userProfile.avatar_url} 
+                alt={userProfile.full_name} 
+                className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-lg mx-auto"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg border-4 border-white dark:border-slate-700">
+                <span className="text-white text-3xl font-black uppercase">
+                  {userProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                </span>
+              </div>
+            )}
+            {/* Status indicator */}
+            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 ${
+              userProfile?.approval_status === 'Approved' ? 'bg-emerald-500' :
+              userProfile?.approval_status === 'Rejected' ? 'bg-red-500' :
+              userProfile?.approval_status === 'Suspended' ? 'bg-rose-500' :
+              'bg-amber-400'
+            }`} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">{userProfile?.full_name || (isRTL ? 'مستخدم' : 'User')}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{userProfile?.email || user?.email}</p>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+            {userProfile?.full_name || (isRTL ? 'مستخدم' : 'User')}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            {userProfile?.email || user?.email}
+          </p>
+          {userProfile?.unique_short_id && (
+            <span className="inline-block mt-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-mono font-bold border border-indigo-100 dark:border-indigo-800">
+              {userProfile.unique_short_id}
+            </span>
+          )}
         </motion.div>
 
         <motion.div 
@@ -43,12 +73,14 @@ export const AccountPage = () => {
           className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
         >
           <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-            <h3 className="font-semibold text-slate-800 dark:text-white">{isRTL ? 'المعلومات الشخصية' : 'Personal Information'}</h3>
+            <h3 className="font-semibold text-slate-800 dark:text-white">
+              {isRTL ? 'المعلومات الشخصية' : 'Personal Information'}
+            </h3>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {details.map((detail, idx) => (
               <div key={idx} className="p-4 flex items-center gap-4">
-                <div className="p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600 dark:text-teal-400">
+                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 shrink-0">
                   <detail.icon className="w-5 h-5" />
                 </div>
                 <div>

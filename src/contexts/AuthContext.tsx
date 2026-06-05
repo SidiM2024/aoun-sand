@@ -12,6 +12,8 @@ export interface UserProfile {
   location: string;
   national_id: string;
   approval_status: string;
+  avatar_url?: string;
+  unique_short_id?: string;
 }
 
 interface AuthContextType {

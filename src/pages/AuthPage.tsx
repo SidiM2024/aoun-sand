@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera } from 'lucide-react';
 
 // Modern input field component
 const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
@@ -46,6 +46,20 @@ export const AuthPage = () => {
   const [currentStatus, setCurrentStatus] = useState('أدرس');
   const [location, setLocation] = useState('');
   const [nationalId, setNationalId] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const validatePhone = (p: string) => {
     return /^[234]\d{7}$/.test(p);
@@ -138,6 +152,20 @@ export const AuthPage = () => {
       setErrorMsg(error.message);
     } else {
       if (data.user) {
+        let avatar_url = null;
+        if (avatarFile) {
+          const fileExt = avatarFile.name.split('.').pop();
+          const fileName = `${data.user.id}-${Math.random()}.${fileExt}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, avatarFile);
+            
+          if (uploadData) {
+            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+            avatar_url = publicUrlData.publicUrl;
+          }
+        }
+
         await supabase.from('users').upsert([{
           id: data.user.id,
           full_name: fullName,
@@ -147,6 +175,7 @@ export const AuthPage = () => {
           current_status: currentStatus,
           location: location,
           national_id: nationalId,
+          avatar_url: avatar_url,
           approval_status: 'Pending Approval'
         }], { onConflict: 'id' });
         
@@ -321,6 +350,31 @@ export const AuthPage = () => {
                   </div>
 
                   <form onSubmit={handleSignup} className="space-y-4">
+                    
+                    <div className="flex justify-center mb-6">
+                      <div className="relative group cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                          id="avatar-upload"
+                        />
+                        <label htmlFor="avatar-upload" className="cursor-pointer block">
+                          <div className={`w-24 h-24 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 transition-all ${avatarPreview ? '' : 'group-hover:border-indigo-500'}`}>
+                            {avatarPreview ? (
+                              <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <Camera className="w-8 h-8 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            )}
+                          </div>
+                          <div className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-110">
+                            <Upload className="w-4 h-4" />
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
                     <PremiumInput 
                       icon={User}
                       type="text" 
