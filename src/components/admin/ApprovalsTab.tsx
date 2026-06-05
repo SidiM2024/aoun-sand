@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { 
   Users, Search, ShieldCheck, Clock, Check, X, Ban, 
-  AlertTriangle, Calendar, Mail, Phone, RefreshCw
+  AlertTriangle, Calendar, Mail, Phone, RefreshCw, Trash2
 } from 'lucide-react';
 
 interface ApprovalsTabProps {
@@ -20,6 +20,8 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Pending Approval' | 'Approved' | 'Rejected' | 'Suspended'>('All');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [localUsers, setLocalUsers] = useState<any[]>(users);
 
   // Sync local users when props change
@@ -65,6 +67,26 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
       );
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId });
+      if (error) throw error;
+      
+      // Optimistic UI Update
+      setLocalUsers(prev => prev.filter(u => u.id !== userId));
+      
+      toast.success(isRTL ? 'تم حذف المستخدم نهائياً' : 'User completely deleted');
+      // No need to call onRefresh, optimistic update + realtime takes care of it
+    } catch (err: any) {
+      console.error("Delete Error:", err);
+      toast.error(isRTL ? 'فشل حذف المستخدم: ' + err.message : `Failed to delete: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
     }
   };
 
@@ -305,6 +327,15 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                                 <Ban className="w-4 h-4" />
                               </button>
                             )}
+
+                            {/* DELETE ACTION */}
+                            <button
+                              onClick={() => setDeleteConfirmId(u.id)}
+                              title={isRTL ? 'حذف نهائي' : 'Delete'}
+                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-500/30 shadow-sm transition-all hover:scale-110 ml-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -327,6 +358,71 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 w-full max-w-md overflow-hidden relative"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-rose-600"></div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                    {isRTL ? 'تأكيد الحذف' : 'Confirm Deletion'}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {isRTL ? 'هذا الإجراء لا يمكن التراجع عنه.' : 'This action cannot be undone.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-100 dark:border-slate-700">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {isRTL 
+                    ? 'سيتم حذف حساب المستخدم وجميع بياناته المرتبطة من قاعدة البيانات بشكل نهائي.' 
+                    : 'The user account and all associated data will be permanently deleted from the database.'}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(deleteConfirmId)}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30 transition-all active:scale-[0.98] disabled:opacity-70 flex justify-center items-center"
+                >
+                  {isDeleting ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    isRTL ? 'حذف نهائي' : 'Delete Permanently'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 };

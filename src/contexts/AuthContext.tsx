@@ -112,13 +112,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
+    let profileChannel: any = null;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
         setLoading(true);
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
+
+          // Subscribe to real-time profile changes (e.g. approval_status updated by admin)
+          if (profileChannel) supabase.removeChannel(profileChannel);
+          profileChannel = supabase
+            .channel(`profile-${session.user.id}`)
+            .on(
+              'postgres_changes',
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'users',
+                filter: `id=eq.${session.user.id}`,
+              },
+              (payload) => {
+                setUserProfile(payload.new as UserProfile);
+              }
+            )
+            .subscribe();
         } else {
+          if (profileChannel) {
+            supabase.removeChannel(profileChannel);
+            profileChannel = null;
+          }
           setUserProfile(null);
           setIsAdmin(false);
           localStorage.removeItem('admin_session');
@@ -133,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       clearTimeout(timer);
       subscription.unsubscribe();
+      if (profileChannel) supabase.removeChannel(profileChannel);
     };
   }, []);
 
