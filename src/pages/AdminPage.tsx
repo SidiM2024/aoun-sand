@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -11,7 +11,6 @@ import { PollsTab } from '../components/admin/PollsTab';
 import { MediaTab } from '../components/admin/MediaTab';
 import { DonationsTab } from '../components/admin/DonationsTab';
 import { ApprovalsTab } from '../components/admin/ApprovalsTab';
-import { FinanceTab } from '../components/admin/FinanceTab';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
@@ -23,7 +22,7 @@ export const AdminPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -53,18 +52,10 @@ export const AdminPage = () => {
   };
 
   const fetchUsers = async () => {
-    const adminPass = import.meta.env.VITE_ADMIN_PASSWORD;
-    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', { admin_pass: adminPass });
-    if (usersData && !usersError) {
-      setUsers(usersData);
-      setUsersCount(usersData.length);
-    } else {
-      // Fallback if rpc fails or doesn't exist
-      const { data } = await supabase.from('users').select('*');
-      if (data) {
-        setUsers(data);
-        setUsersCount(data.length);
-      }
+    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setUsers(data);
+      setUsersCount(data.length);
     }
   };
 
@@ -207,7 +198,6 @@ export const AdminPage = () => {
     { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
     { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
     { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
-    { id: 'finance',       icon: DollarSign, label: isRTL ? 'المالية'    : 'Finance',        color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
   ];
 
   return (
@@ -288,7 +278,6 @@ export const AdminPage = () => {
               {activeTab === 'voting'        && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'donations'     && <DonationsTab fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
-              {activeTab === 'finance'       && <FinanceTab />}
             </AnimatePresence>
           </div>
         </div>
