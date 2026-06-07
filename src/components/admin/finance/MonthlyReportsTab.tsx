@@ -209,7 +209,7 @@ export const MonthlyReportsTab = () => {
                     <tr>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'العضو' : 'Member'}</th>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'المبلغ' : 'Amount'}</th>
-                      <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'طريقة الدفع' : 'Method'}</th>
+                      <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'البنك المحوِّل منه' : 'Bank'}</th>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'التاريخ' : 'Date'}</th>
                     </tr>
                   </thead>
@@ -248,7 +248,7 @@ export const MonthlyReportsTab = () => {
                     <tr>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'المتبرع' : 'Donor'}</th>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'المبلغ' : 'Amount'}</th>
-                      <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'طريقة الدفع' : 'Method'}</th>
+                      <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'البنك المحوِّل منه' : 'Bank'}</th>
                       <th className="px-4 py-3 text-start text-xs font-bold text-slate-400 uppercase">{isRTL ? 'التاريخ' : 'Date'}</th>
                     </tr>
                   </thead>

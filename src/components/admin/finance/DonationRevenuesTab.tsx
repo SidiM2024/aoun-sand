@@ -20,13 +20,13 @@ interface DonationRevenue {
 }
 
 const PAGE_SIZE = 10;
-const PAYMENT_METHODS_AR = ['نقداً', 'تحويل بنكي', 'شيك', 'بطاقة ائتمانية', 'أخرى'];
-const PAYMENT_METHODS_EN = ['Cash', 'Bank Transfer', 'Check', 'Credit Card', 'Other'];
+const PAYMENT_METHODS_AR = ['بنكيلي', 'مصرفي', 'سداد', 'بيم بنك', 'أكليك', 'غزة أبي'];
+const PAYMENT_METHODS_EN = ['Bankily', 'Masrvi', 'Sedad', 'BIM Bank', 'Click', 'Ghaza Abi'];
 
 const emptyForm: Partial<DonationRevenue> = {
   donor_name: '',
   amount: 0,
-  payment_method: 'نقداً',
+  payment_method: 'بنكيلي',
   donation_date: new Date().toISOString().split('T')[0],
   receipt_url: null,
   notes: '',
@@ -83,7 +83,7 @@ export const DonationRevenuesTab = () => {
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `receipts/${Date.now()}.${ext}`;
+      const fileName = `receipts/donation_incomes/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('financial-docs').upload(fileName, file);
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('financial-docs').getPublicUrl(fileName);
@@ -140,7 +140,7 @@ export const DonationRevenuesTab = () => {
   };
 
   const openAdd = () => {
-    setEditRecord({ ...emptyForm, payment_method: isRTL ? 'نقداً' : 'Cash' });
+    setEditRecord({ ...emptyForm, payment_method: isRTL ? 'بنكيلي' : 'Bankily' });
     setIsEditing(false);
     setShowModal(true);
   };
@@ -200,7 +200,7 @@ export const DonationRevenuesTab = () => {
             onChange={e => { setFilterMethod(e.target.value); setPage(0); }}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500"
           >
-            <option value="">{isRTL ? 'كل طرق الدفع' : 'All Methods'}</option>
+            <option value="">{isRTL ? 'كل البنوك' : 'All Banks'}</option>
             {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(0); }}
@@ -235,7 +235,7 @@ export const DonationRevenuesTab = () => {
                 <tr>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'اسم المتبرع' : 'Donor'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'المبلغ' : 'Amount'}</th>
-                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'طريقة الدفع' : 'Method'}</th>
+                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'البنك المحوِّل منه' : 'Bank'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'التاريخ' : 'Date'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'إيصال' : 'Receipt'}</th>
                   <th className="px-5 py-3.5 text-end text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'إجراءات' : 'Actions'}</th>
@@ -272,7 +272,7 @@ export const DonationRevenuesTab = () => {
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg text-xs font-bold hover:bg-teal-100 transition-colors">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
-                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد' : 'None'}</span>}
+                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد إيصال مرفق' : 'No attached receipt'}</span>}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">
@@ -347,7 +347,7 @@ export const DonationRevenuesTab = () => {
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500" dir="ltr" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'طريقة الدفع' : 'Payment Method'}</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'البنك المحوِّل منه' : 'Transferring Bank'}</label>
                     <select value={editRecord.payment_method || ''} onChange={e => setEditRecord(p => ({ ...p, payment_method: e.target.value }))}
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500">
                       {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}

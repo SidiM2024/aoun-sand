@@ -99,7 +99,7 @@ export const DonationExpensesTab = () => {
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `invoices/donations/${Date.now()}.${ext}`;
+      const fileName = `donation_expenses/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('financial-docs').upload(fileName, file);
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('financial-docs').getPublicUrl(fileName);
@@ -296,7 +296,7 @@ export const DonationExpensesTab = () => {
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 rounded-lg text-xs font-bold">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
-                      ) : <span className="text-xs text-slate-300">—</span>}
+                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد إيصال مرفق' : 'No attached receipt'}</span>}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">

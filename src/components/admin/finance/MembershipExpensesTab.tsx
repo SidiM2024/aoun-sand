@@ -79,7 +79,7 @@ export const MembershipExpensesTab = () => {
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `invoices/membership/${Date.now()}.${ext}`;
+      const fileName = `membership_expenses/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('financial-docs').upload(fileName, file);
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('financial-docs').getPublicUrl(fileName);
@@ -243,7 +243,7 @@ export const MembershipExpensesTab = () => {
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg text-xs font-bold hover:bg-teal-100 transition-colors">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
-                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">—</span>}
+                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد إيصال مرفق' : 'No attached receipt'}</span>}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">
@@ -325,9 +325,8 @@ export const MembershipExpensesTab = () => {
                   <input type="date" value={editRecord.expense_date || ''} onChange={e => setEditRecord(p => ({ ...p, expense_date: e.target.value }))}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-500" dir="ltr" />
                 </div>
-                {/* Invoice upload */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'الفاتورة' : 'Invoice'}</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'الفاتورة / الإيصال' : 'Invoice / Receipt'}</label>
                   {editRecord.invoice_url ? (
                     <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
                       <a href={editRecord.invoice_url} target="_blank" rel="noreferrer"

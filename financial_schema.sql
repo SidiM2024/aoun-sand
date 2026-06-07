@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS membership_revenues (
   amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
   payment_method TEXT NOT NULL DEFAULT 'cash',
   payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  receipt_url TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -16,6 +16,7 @@ interface MembershipRevenue {
   amount: number;
   payment_method: string;
   payment_date: string;
+  receipt_url: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -28,15 +29,16 @@ interface UserOption {
 
 const PAGE_SIZE = 10;
 
-const PAYMENT_METHODS_AR = ['نقداً', 'تحويل بنكي', 'شيك', 'بطاقة ائتمانية', 'أخرى'];
-const PAYMENT_METHODS_EN = ['Cash', 'Bank Transfer', 'Check', 'Credit Card', 'Other'];
+const PAYMENT_METHODS_AR = ['بنكيلي', 'مصرفي', 'سداد', 'بيم بنك', 'أكليك', 'غزة أبي'];
+const PAYMENT_METHODS_EN = ['Bankily', 'Masrvi', 'Sedad', 'BIM Bank', 'Click', 'Ghaza Abi'];
 
 const emptyForm: Partial<MembershipRevenue> = {
   member_name: '',
   user_id: null,
   amount: 0,
-  payment_method: 'نقداً',
+  payment_method: 'بنكيلي',
   payment_date: new Date().toISOString().split('T')[0],
+  receipt_url: null,
   notes: '',
 };
 
@@ -48,6 +50,7 @@ export const MembershipRevenuesTab = () => {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
 
@@ -100,6 +103,23 @@ export const MembershipRevenuesTab = () => {
     }
   }, [page, searchName, filterMethod, filterDateFrom, filterDateTo, isRTL]);
 
+  const handleUploadReceipt = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `receipts/membership_incomes/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('financial-docs').upload(fileName, file);
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('financial-docs').getPublicUrl(fileName);
+      setEditRecord(p => ({ ...p, receipt_url: data.publicUrl }));
+      toast.success(isRTL ? 'تم رفع الإيصال' : 'Receipt uploaded');
+    } catch (err: any) {
+      toast.error(isRTL ? 'خطأ في رفع الإيصال' : 'Upload error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!editRecord.member_name?.trim()) return toast.error(isRTL ? 'اسم العضو مطلوب' : 'Member name required');
     if (!editRecord.amount || editRecord.amount <= 0) return toast.error(isRTL ? 'المبلغ يجب أن يكون أكبر من صفر' : 'Amount must be > 0');
@@ -113,6 +133,7 @@ export const MembershipRevenuesTab = () => {
         amount: editRecord.amount,
         payment_method: editRecord.payment_method,
         payment_date: editRecord.payment_date,
+        receipt_url: editRecord.receipt_url || null,
         notes: editRecord.notes || null,
       };
 
@@ -149,7 +170,7 @@ export const MembershipRevenuesTab = () => {
   };
 
   const openAdd = () => {
-    setEditRecord({ ...emptyForm, payment_method: isRTL ? 'نقداً' : 'Cash' });
+    setEditRecord({ ...emptyForm, payment_method: isRTL ? 'بنكيلي' : 'Bankily' });
     setIsEditing(false);
     setShowModal(true);
   };
@@ -215,7 +236,7 @@ export const MembershipRevenuesTab = () => {
             onChange={e => { setFilterMethod(e.target.value); setPage(0); }}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="">{isRTL ? 'كل طرق الدفع' : 'All Methods'}</option>
+            <option value="">{isRTL ? 'كل البنوك' : 'All Banks'}</option>
             {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <input
@@ -258,8 +279,9 @@ export const MembershipRevenuesTab = () => {
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">#</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'اسم العضو' : 'Member'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'المبلغ' : 'Amount'}</th>
-                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'طريقة الدفع' : 'Method'}</th>
+                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'البنك المحوِّل منه' : 'Bank'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'التاريخ' : 'Date'}</th>
+                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'إيصال' : 'Receipt'}</th>
                   <th className="px-5 py-3.5 text-end text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'إجراءات' : 'Actions'}</th>
                 </tr>
               </thead>
@@ -291,6 +313,14 @@ export const MembershipRevenuesTab = () => {
                     </td>
                     <td className="px-5 py-4 text-sm text-slate-500">
                       {new Date(rec.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US')}
+                    </td>
+                    <td className="px-5 py-4">
+                      {rec.receipt_url ? (
+                        <a href={rec.receipt_url} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg text-xs font-bold hover:bg-teal-100 transition-colors">
+                          {/* <ExternalLink className="w-3 h-3" /> */}{isRTL ? 'عرض' : 'View'}
+                        </a>
+                      ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد إيصال مرفق' : 'No attached receipt'}</span>}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">
@@ -428,7 +458,7 @@ export const MembershipRevenuesTab = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                      {isRTL ? 'طريقة الدفع *' : 'Payment Method *'}
+                      {isRTL ? 'البنك المحوِّل منه *' : 'Transferring Bank *'}
                     </label>
                     <select
                       value={editRecord.payment_method || ''}
@@ -450,6 +480,30 @@ export const MembershipRevenuesTab = () => {
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                     dir="ltr"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'إيصال الانتساب (اختياري)' : 'Membership Receipt (Optional)'}</label>
+                  {editRecord.receipt_url ? (
+                    <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
+                      <a href={editRecord.receipt_url} target="_blank" rel="noreferrer"
+                        className="flex-1 text-teal-600 dark:text-teal-400 text-sm font-bold flex items-center gap-2">
+                        {isRTL ? 'عرض الإيصال' : 'View Receipt'}
+                      </a>
+                      <button onClick={() => setEditRecord(p => ({ ...p, receipt_url: null }))}
+                        className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors">
+                      {uploading ? (
+                        <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                      ) : <span className="w-6 h-6 text-slate-400 flex items-center justify-center">+</span>}
+                      <span className="text-sm text-slate-500 font-medium">{uploading ? (isRTL ? 'جاري الرفع...' : 'Uploading...') : (isRTL ? 'رفع إيصال (PDF, صورة)' : 'Upload receipt (PDF, image)')}</span>
+                      <input type="file" accept=".pdf,image/*" className="hidden"
+                        onChange={e => e.target.files?.[0] && handleUploadReceipt(e.target.files[0])} />
+                    </label>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -509,7 +563,7 @@ export const MembershipRevenuesTab = () => {
                   { label: isRTL ? 'رقم العملية' : 'Operation #', value: `#${detailRecord.operation_number}`, icon: Hash },
                   { label: isRTL ? 'اسم العضو' : 'Member Name', value: detailRecord.member_name, icon: Users },
                   { label: isRTL ? 'المبلغ' : 'Amount', value: `${Number(detailRecord.amount).toLocaleString()} MRU`, icon: CreditCard },
-                  { label: isRTL ? 'طريقة الدفع' : 'Method', value: detailRecord.payment_method, icon: CreditCard },
+                  { label: isRTL ? 'البنك المحوِّل منه' : 'Bank', value: detailRecord.payment_method, icon: CreditCard },
                   { label: isRTL ? 'تاريخ الدفع' : 'Date', value: new Date(detailRecord.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'), icon: Calendar },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
