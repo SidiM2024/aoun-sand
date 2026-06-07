@@ -74,15 +74,19 @@ ALTER TABLE membership_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE donation_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Allow admin full access (using service role / anon for admin panel)
+DROP POLICY IF EXISTS "Allow all for authenticated" ON membership_revenues;
 CREATE POLICY "Allow all for authenticated" ON membership_revenues
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all for authenticated" ON donation_revenues;
 CREATE POLICY "Allow all for authenticated" ON donation_revenues
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all for authenticated" ON membership_expenses;
 CREATE POLICY "Allow all for authenticated" ON membership_expenses
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all for authenticated" ON donation_expenses;
 CREATE POLICY "Allow all for authenticated" ON donation_expenses
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -94,9 +98,16 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('financial-docs', 'financ
 ON CONFLICT (id) DO NOTHING;
 
 -- RLS for storage bucket
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'financial-docs');
+
+DROP POLICY IF EXISTS "Allow Uploads" ON storage.objects;
 CREATE POLICY "Allow Uploads" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'financial-docs');
+
+DROP POLICY IF EXISTS "Allow Updates" ON storage.objects;
 CREATE POLICY "Allow Updates" ON storage.objects FOR UPDATE USING (bucket_id = 'financial-docs');
+
+DROP POLICY IF EXISTS "Allow Deletes" ON storage.objects;
 CREATE POLICY "Allow Deletes" ON storage.objects FOR DELETE USING (bucket_id = 'financial-docs');
 
 -- =====================================================
