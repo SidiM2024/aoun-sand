@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
 import {
-  LayoutDashboard, Users, Heart, Receipt, HandHeart, FileText
+  LayoutDashboard, Users, Heart, Receipt, HandHeart, FileText, BarChart3
 } from 'lucide-react';
 
 import { FinancialDashboard } from './finance/FinancialDashboard';
@@ -11,6 +11,7 @@ import { DonationRevenuesTab } from './finance/DonationRevenuesTab';
 import { MembershipExpensesTab } from './finance/MembershipExpensesTab';
 import { DonationExpensesTab } from './finance/DonationExpensesTab';
 import { MonthlyReportsTab } from './finance/MonthlyReportsTab';
+import { DailyStatsTab } from './finance/DailyStatsTab';
 
 type FinanceSubTab =
   | 'dashboard'
@@ -18,7 +19,8 @@ type FinanceSubTab =
   | 'donation-revenues'
   | 'membership-expenses'
   | 'donation-expenses'
-  | 'monthly-reports';
+  | 'monthly-reports'
+  | 'daily-stats';
 
 export const FinanceTab = () => {
   const { language } = useLanguage();
@@ -82,6 +84,14 @@ export const FinanceTab = () => {
       bg: 'bg-teal-50 dark:bg-teal-900/20',
       gradient: 'from-teal-500 to-cyan-500',
     },
+    {
+      id: 'daily-stats',
+      icon: BarChart3,
+      label: isRTL ? 'الإحصائيات اليومية' : 'Daily Stats',
+      color: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-50 dark:bg-blue-900/20',
+      gradient: 'from-blue-500 to-indigo-500',
+    },
   ];
 
   const activeTab = subTabs.find(t => t.id === activeSubTab)!;
@@ -143,6 +153,7 @@ export const FinanceTab = () => {
         {activeSubTab === 'membership-expenses' && <MembershipExpensesTab key="mem-exp" />}
         {activeSubTab === 'donation-expenses' && <DonationExpensesTab key="don-exp" />}
         {activeSubTab === 'monthly-reports' && <MonthlyReportsTab key="monthly" />}
+        {activeSubTab === 'daily-stats' && <DailyStatsTab key="daily-stats" />}
       </AnimatePresence>
     </motion.div>
   );
