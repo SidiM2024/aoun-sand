@@ -55,6 +55,14 @@ CREATE TABLE IF NOT EXISTS donation_expenses (
 );
 
 -- =====================================================
+-- Update existing tables with new columns
+-- =====================================================
+ALTER TABLE membership_revenues ADD COLUMN IF NOT EXISTS receipt_url TEXT;
+ALTER TABLE donation_revenues ADD COLUMN IF NOT EXISTS receipt_url TEXT;
+ALTER TABLE membership_expenses ADD COLUMN IF NOT EXISTS invoice_url TEXT;
+ALTER TABLE donation_expenses ADD COLUMN IF NOT EXISTS invoice_url TEXT;
+
+-- =====================================================
 -- Indexes for performance
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_membership_revenues_date ON membership_revenues(payment_date DESC);
