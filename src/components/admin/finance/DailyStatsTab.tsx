@@ -203,11 +203,6 @@ export const DailyStatsTab = () => {
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{isRTL ? 'إجمالي بنكيلي' : 'Bankily Total'}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
-          <TrendingUp className="w-6 h-6 text-purple-500 mx-auto mb-1.5" />
-          <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">{Number(totalOtherBanks).toLocaleString()}</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{isRTL ? 'البنوك الأخرى' : 'Other Banks'}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
           <ArrowDownCircle className="w-6 h-6 text-orange-500 mx-auto mb-1.5" />
           <p className="text-lg font-black text-slate-800 dark:text-white leading-tight">{Number(totalMembershipExp).toLocaleString()}</p>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{isRTL ? 'مصاريف الانتساب' : 'Membership Exp.'}</p>
@@ -282,7 +277,6 @@ export const DailyStatsTab = () => {
                     <th className="px-4 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{isRTL ? 'بيم بنك' : 'BIM Bank'}</th>
                     <th className="px-4 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{isRTL ? 'أكليك' : 'Click'}</th>
                     <th className="px-4 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{isRTL ? 'غزة أبي' : 'Ghaza Abi'}</th>
-                    <th className="px-4 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap bg-slate-100 dark:bg-slate-800">{isRTL ? 'البنوك الأخرى' : 'Other Banks'}</th>
                     <th className="px-4 py-3.5 text-start text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider whitespace-nowrap bg-indigo-50 dark:bg-indigo-900/20">{isRTL ? 'إجمالي التبرعات' : 'Total'}</th>
                   </tr>
                 </thead>
@@ -307,9 +301,6 @@ export const DailyStatsTab = () => {
                       <td className="px-4 py-3.5 text-sm text-slate-500">{Number(stat.bim_bank_total).toLocaleString()}</td>
                       <td className="px-4 py-3.5 text-sm text-slate-500">{Number(stat.click_total).toLocaleString()}</td>
                       <td className="px-4 py-3.5 text-sm text-slate-500">{Number(stat.ghaza_abi_total).toLocaleString()}</td>
-                      <td className="px-4 py-3.5 text-sm font-bold text-purple-600 dark:text-purple-400 bg-slate-50 dark:bg-slate-800/30">
-                        {Number(stat.other_banks_total).toLocaleString()}
-                      </td>
                       <td className="px-4 py-3.5 text-sm font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10">
                         {Number(stat.total_donations).toLocaleString()}
                       </td>

@@ -16,6 +16,7 @@ interface DonationExpense {
   beneficiary: string | null;
   expense_date: string;
   invoice_url: string | null;
+  link_url: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -29,6 +30,7 @@ const emptyForm: Partial<DonationExpense> = {
   beneficiary: '',
   expense_date: new Date().toISOString().split('T')[0],
   invoice_url: null,
+  link_url: null,
   notes: '',
 };
 
@@ -125,6 +127,7 @@ export const DonationExpensesTab = () => {
         beneficiary: editRecord.beneficiary || null,
         expense_date: editRecord.expense_date,
         invoice_url: editRecord.invoice_url || null,
+        link_url: editRecord.link_url?.trim() || null,
         notes: editRecord.notes || null,
       };
 
@@ -265,6 +268,7 @@ export const DonationExpensesTab = () => {
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'المستفيد' : 'Beneficiary'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'التاريخ' : 'Date'}</th>
                   <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'فاتورة' : 'Invoice'}</th>
+                  <th className="px-5 py-3.5 text-start text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'رابط' : 'Link'}</th>
                   <th className="px-5 py-3.5 text-end text-xs font-bold text-slate-400 uppercase tracking-wider">{isRTL ? 'إجراءات' : 'Actions'}</th>
                 </tr>
               </thead>
@@ -297,6 +301,14 @@ export const DonationExpensesTab = () => {
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
                       ) : <span className="text-xs text-slate-300 dark:text-slate-600">{isRTL ? 'لا يوجد إيصال مرفق' : 'No attached receipt'}</span>}
+                    </td>
+                    <td className="px-5 py-4">
+                      {rec.link_url ? (
+                        <a href={rec.link_url} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg text-xs font-bold">
+                          <ExternalLink className="w-3 h-3" />{isRTL ? 'رابط' : 'Link'}
+                        </a>
+                      ) : <span className="text-xs text-slate-200 dark:text-slate-700">—</span>}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">
@@ -408,6 +420,19 @@ export const DonationExpensesTab = () => {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'ملاحظات' : 'Notes'}</label>
                   <textarea rows={2} value={editRecord.notes || ''} onChange={e => setEditRecord(p => ({ ...p, notes: e.target.value }))}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-rose-500 resize-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    {isRTL ? 'الرابط (اختياري)' : 'Link URL (optional)'}
+                  </label>
+                  <input
+                    type="url"
+                    value={editRecord.link_url || ''}
+                    onChange={e => setEditRecord(p => ({ ...p, link_url: e.target.value }))}
+                    placeholder={isRTL ? 'أدخل رابط URL اختياري...' : 'Enter optional URL...'}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-rose-500"
+                    dir="ltr"
+                  />
                 </div>
               </div>
               {/* Sticky footer - always visible */}
