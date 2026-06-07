@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -11,6 +11,7 @@ import { PollsTab } from '../components/admin/PollsTab';
 import { MediaTab } from '../components/admin/MediaTab';
 import { DonationsTab } from '../components/admin/DonationsTab';
 import { ApprovalsTab } from '../components/admin/ApprovalsTab';
+import { FinanceTab } from '../components/admin/FinanceTab';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
@@ -22,7 +23,7 @@ export const AdminPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -112,9 +113,9 @@ export const AdminPage = () => {
       sessionStorage.setItem('admin_auth', 'true');
       setIsAuthenticated(true);
       fetchDashboardData();
-      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+      toast.success(isRTL ? '╪ز┘à ╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘ ╪ذ┘╪ش╪د╪ص' : 'Logged in successfully');
     } else {
-      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      toast.error(isRTL ? '╪ذ┘è╪د┘╪د╪ز ╪د┘╪»╪«┘ê┘ ╪«╪د╪╖╪خ╪ر' : 'Invalid credentials');
     }
   };
 
@@ -123,7 +124,7 @@ export const AdminPage = () => {
     localStorage.removeItem('admin_auth');
     await logout();
     setIsAuthenticated(false);
-    toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
+    toast.success(isRTL ? '╪ز┘à ╪ز╪│╪ش┘è┘ ╪د┘╪«╪▒┘ê╪ش' : 'Logged out');
   };
 
   if (!isAuthenticated) {
@@ -145,17 +146,17 @@ export const AdminPage = () => {
               <ShieldAlert className="w-10 h-10" />
             </motion.div>
             <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">
-              {isRTL ? 'بوابة الإدارة' : 'Admin Portal'}
+              {isRTL ? '╪ذ┘ê╪د╪ذ╪ر ╪د┘╪ح╪»╪د╪▒╪ر' : 'Admin Portal'}
             </h2>
             <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
-              {isRTL ? 'الوصول مصرح للمسؤولين فقط' : 'Authorized personnel only'}
+              {isRTL ? '╪د┘┘ê╪╡┘ê┘ ┘à╪╡╪▒╪ص ┘┘┘à╪│╪ج┘ê┘┘è┘ ┘┘é╪╖' : 'Authorized personnel only'}
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'اسم المستخدم' : 'Username'}
+                {isRTL ? '╪د╪│┘à ╪د┘┘à╪│╪ز╪«╪»┘à' : 'Username'}
               </label>
               <input 
                 type="text" 
@@ -168,7 +169,7 @@ export const AdminPage = () => {
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'كلمة المرور' : 'Password'}
+                {isRTL ? '┘â┘┘à╪ر ╪د┘┘à╪▒┘ê╪▒' : 'Password'}
               </label>
               <input 
                 type="password" 
@@ -183,7 +184,7 @@ export const AdminPage = () => {
               type="submit" 
               className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
+              {isRTL ? '╪ز╪│╪ش┘è┘ ╪د┘╪»╪«┘ê┘' : 'Sign In'}
             </button>
           </form>
         </motion.div>
@@ -192,12 +193,13 @@ export const AdminPage = () => {
   }
 
   const tabs = [
-    { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
-    { id: 'voting',        icon: Vote,      label: isRTL ? 'التصويت'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
-    { id: 'donations',     icon: HandHeart, label: isRTL ? 'التبرعات'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
-    { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
+    { id: 'users',         icon: Users,     label: isRTL ? '╪د┘┘à╪│╪ز╪«╪»┘à┘è┘' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { id: 'approvals',     icon: ShieldCheck, label: isRTL ? '╪╖┘╪ذ╪د╪ز ╪د┘┘à┘ê╪د┘┘é╪ر' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { id: 'notifications', icon: Bell,      label: isRTL ? '╪د┘╪ح╪┤╪╣╪د╪▒╪د╪ز'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
+    { id: 'voting',        icon: Vote,      label: isRTL ? '╪د┘╪ز╪╡┘ê┘è╪ز'    : 'Voting',         color: 'text-teal-500',   bg: 'bg-teal-50 dark:bg-teal-900/20'   },
+    { id: 'donations',     icon: HandHeart, label: isRTL ? '╪د┘╪ز╪ذ╪▒╪╣╪د╪ز'   : 'Donations',      color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20'},
+    { id: 'media',         icon: Upload,    label: isRTL ? '╪د┘┘ê╪│╪د╪خ╪╖'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
+    { id: 'finance',       icon: DollarSign, label: isRTL ? '╪د┘┘à╪د┘┘è╪ر'    : 'Finance',        color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
   ];
 
   return (
@@ -212,10 +214,10 @@ export const AdminPage = () => {
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-800 dark:text-white">
-                {isRTL ? 'لوحة تحكم النظام' : 'System Dashboard'}
+                {isRTL ? '┘┘ê╪ص╪ر ╪ز╪ص┘â┘à ╪د┘┘╪╕╪د┘à' : 'System Dashboard'}
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium">
-                {isRTL ? 'إدارة شاملة للمحتوى والمستخدمين' : 'Comprehensive content and user management'}
+                {isRTL ? '╪ح╪»╪د╪▒╪ر ╪┤╪د┘à┘╪ر ┘┘┘à╪ص╪ز┘ê┘ë ┘ê╪د┘┘à╪│╪ز╪«╪»┘à┘è┘' : 'Comprehensive content and user management'}
               </p>
             </div>
           </div>
@@ -224,7 +226,7 @@ export const AdminPage = () => {
             className="flex items-center gap-2 px-5 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl font-bold transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span>{isRTL ? 'تسجيل الخروج' : 'Logout'}</span>
+            <span>{isRTL ? '╪ز╪│╪ش┘è┘ ╪د┘╪«╪▒┘ê╪ش' : 'Logout'}</span>
           </button>
         </div>
 
@@ -278,6 +280,7 @@ export const AdminPage = () => {
               {activeTab === 'voting'        && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'donations'     && <DonationsTab fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
+              {activeTab === 'finance'       && <FinanceTab />}
             </AnimatePresence>
           </div>
         </div>
