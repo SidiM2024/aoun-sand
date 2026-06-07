@@ -391,10 +391,10 @@ export const MembershipRevenuesTab = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               dir={isRTL ? 'rtl' : 'ltr'}
             >
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white shrink-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black">
                     {isEditing ? (isRTL ? 'تعديل السجل' : 'Edit Record') : (isRTL ? 'إضافة مداخيل انتساب' : 'Add Membership Revenue')}
@@ -404,7 +404,7 @@ export const MembershipRevenuesTab = () => {
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto">
                 {/* Member select */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -505,6 +505,7 @@ export const MembershipRevenuesTab = () => {
                     </label>
                   )}
                 </div>
+                {/* Notes field - no bottom padding needed, footer handles spacing */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     {isRTL ? 'ملاحظات' : 'Notes'}
@@ -517,22 +518,23 @@ export const MembershipRevenuesTab = () => {
                     placeholder={isRTL ? 'ملاحظات إضافية...' : 'Additional notes...'}
                   />
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    {isRTL ? 'إلغاء' : 'Cancel'}
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-                  >
-                    {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                    {isRTL ? 'حفظ' : 'Save'}
-                  </button>
-                </div>
+              </div>
+              {/* Sticky footer with action buttons - always visible */}
+              <div className="shrink-0 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-3">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                >
+                  {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isRTL ? 'حفظ' : 'Save'}
+                </button>
               </div>
             </motion.div>
           </div>
@@ -547,10 +549,10 @@ export const MembershipRevenuesTab = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden"
+              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               dir={isRTL ? 'rtl' : 'ltr'}
             >
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white shrink-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-black text-lg">{isRTL ? 'تفاصيل العملية' : 'Operation Details'}</h3>
                   <button onClick={() => setDetailRecord(null)} className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg">
@@ -558,7 +560,7 @@ export const MembershipRevenuesTab = () => {
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto">
                 {[
                   { label: isRTL ? 'رقم العملية' : 'Operation #', value: `#${detailRecord.operation_number}`, icon: Hash },
                   { label: isRTL ? 'اسم العضو' : 'Member Name', value: detailRecord.member_name, icon: Users },

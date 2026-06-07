@@ -320,10 +320,10 @@ export const DonationRevenuesTab = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               dir={isRTL ? 'rtl' : 'ltr'}
             >
-              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white shrink-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-black">
                     {isEditing ? (isRTL ? 'تعديل تبرع' : 'Edit Donation') : (isRTL ? 'إضافة تبرع جديد' : 'Add New Donation')}
@@ -333,7 +333,7 @@ export const DonationRevenuesTab = () => {
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'اسم المتبرع *' : 'Donor Name *'}</label>
                   <input type="text" value={editRecord.donor_name || ''} onChange={e => setEditRecord(p => ({ ...p, donor_name: e.target.value }))}
@@ -389,17 +389,18 @@ export const DonationRevenuesTab = () => {
                   <textarea rows={2} value={editRecord.notes || ''} onChange={e => setEditRecord(p => ({ ...p, notes: e.target.value }))}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <button onClick={() => setShowModal(false)}
-                    className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                    {isRTL ? 'إلغاء' : 'Cancel'}
-                  </button>
-                  <button onClick={handleSave} disabled={saving}
-                    className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
-                    {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                    {isRTL ? 'حفظ' : 'Save'}
-                  </button>
-                </div>
+              </div>
+              {/* Sticky footer - always visible */}
+              <div className="shrink-0 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-3">
+                <button onClick={() => setShowModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
+                  {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isRTL ? 'حفظ' : 'Save'}
+                </button>
               </div>
             </motion.div>
           </div>
