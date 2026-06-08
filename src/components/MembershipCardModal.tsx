@@ -19,7 +19,7 @@ const LIGHT_BG = '#f4f2f8';
 export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen, onClose }) => {
   // All hooks at top level — NEVER after a conditional return
   const { userProfile } = useAuth();
-  const { card, isLoading, isGenerating, generateCard } = useMembershipCard();
+  const { card, isLoading, isGenerating, generateCard, generateError } = useMembershipCard();
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -433,7 +433,19 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
           {/* ── Body ── */}
           <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-8" style={{ background: '#f8fafc' }}>
 
-            {isLoading || isGenerating || !card ? (
+            {generateError ? (
+              // ── Error state: no unique_short_id assigned yet ──
+              <div className="py-12 flex flex-col items-center gap-4 text-center">
+                <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <p className="text-rose-600 dark:text-rose-400 font-bold text-sm leading-relaxed max-w-xs" style={{ fontFamily: '"Cairo", sans-serif' }}>
+                  {(generateError as Error)?.message || 'لم يتم تعيين رقم عضوية لهذا الحساب بعد. يرجى التواصل مع الإدارة.'}
+                </p>
+              </div>
+            ) : isLoading || isGenerating || !card ? (
               <div className="py-16 flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-full border-4 animate-spin" style={{ borderColor: `${ACCENT}33`, borderTopColor: ACCENT }} />
                 <p className="text-slate-500 font-bold text-sm" style={{ fontFamily: '"Cairo", sans-serif' }}>
