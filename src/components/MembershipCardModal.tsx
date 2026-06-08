@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Printer, CreditCard, RotateCcw } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import jsPDF from 'jspdf';
-import { toPng } from 'html-to-image';
 import { useAuth } from '../contexts/AuthContext';
 import { useMembershipCard } from '../hooks/useMembershipCard';
 
@@ -43,112 +42,358 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     ? new Date(card.issue_date).toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' })
     : '---';
 
-  // Helper: load an image URL and return a base64 data URL (bypasses CORS issues)
-  const toDataUrl = useCallback((url: string): Promise<string> => {
-    return new Promise((resolve) => {
-      if (!url) { resolve(''); return; }
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || img.width;
-          canvas.height = img.naturalHeight || img.height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } catch { resolve(''); }
-      };
-      img.onerror = () => resolve('');
-      // Add cache-bust to avoid CORS-cached opaque responses
-      img.src = url.startsWith('http') ? `${url}${url.includes('?') ? '&' : '?'}cb=${Date.now()}` : url;
-    });
-  }, []);
-
-  // Export: capture the actual visible React card using html-to-image
+  // ── Canvas-based card export (100% reliable, no CORS issues) ──────────────
   const exportCard = useCallback(async (format: 'png' | 'pdf') => {
-    const frontEl = frontCardRef.current;
-    if (!frontEl || !userProfile) return;
+    if (!userProfile) return;
     setIsExporting(true);
     setExportError(null);
 
     try {
-      // 1. Wait for all fonts to be ready
       await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 200));
 
-      // 2. Ensure front is visible for capture (flip back if needed)
-      const wasFlipped = isFlipped;
-      if (wasFlipped) setIsFlipped(false);
-      await new Promise(r => setTimeout(r, 500)); // Wait for flip animation
+      // ── Canvas setup (3× for high resolution) ──
+      const SCALE = 3;
+      const W = 540, H = 320;
+      const canvas = document.createElement('canvas');
+      canvas.width = W * SCALE;
+      canvas.height = H * SCALE;
+      const ctx = canvas.getContext('2d')!;
+      ctx.scale(SCALE, SCALE);
 
-      // 3. Pre-load all images in the card as base64 to avoid CORS issues
-      const imgEls = frontEl.querySelectorAll<HTMLImageElement>('img');
-      await Promise.all(Array.from(imgEls).map(async (imgEl) => {
-        const originalSrc = imgEl.getAttribute('src') || '';
-        if (!originalSrc) return;
-        // Skip if already a data URL
-        if (originalSrc.startsWith('data:')) return;
-        const dataUrl = await toDataUrl(originalSrc);
-        if (dataUrl) imgEl.src = dataUrl;
-      }));
+      // ── Helper: load image ──
+      const loadImg = (src: string): Promise<HTMLImageElement | null> =>
+        new Promise(resolve => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => {
+            // retry without crossOrigin
+            const img2 = new Image();
+            img2.onload = () => resolve(img2);
+            img2.onerror = () => resolve(null);
+            img2.src = src;
+          };
+          img.src = src.startsWith('http')
+            ? `${src}${src.includes('?') ? '&' : '?'}cb=${Date.now()}`
+            : src;
+        });
 
-      // Small wait after replacing image srcs
-      await new Promise(r => setTimeout(r, 150));
+      // ── Helper: rounded rect path ──
+      const rRect = (x: number, y: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
 
-      // 4. Attempt capture with retries
-      let frontDataUrl = '';
-      let lastError: unknown;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          frontDataUrl = await toPng(frontEl, {
-            pixelRatio: 3,
-            cacheBust: true,
-            skipFonts: false,
-            style: { transform: 'none', position: 'relative' },
-            filter: (node) => {
-              // Skip script/style tags that can cause issues
-              if (node instanceof HTMLElement) {
-                const tag = node.tagName?.toLowerCase();
-                if (tag === 'script') return false;
-              }
-              return true;
-            },
-          });
-          break; // success
-        } catch (err) {
-          lastError = err;
-          await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
-        }
+      // ── Load images in parallel ──
+      const [logoImg, avatarImg] = await Promise.all([
+        loadImg('/ABC.jpg'),
+        userProfile.avatar_url ? loadImg(userProfile.avatar_url) : Promise.resolve(null),
+      ]);
+
+      // ── Get QR code from existing canvas element ──
+      let qrImg: HTMLImageElement | null = null;
+      if (qrRef.current) {
+        const qrDataUrl = qrRef.current.toDataURL('image/png');
+        qrImg = await loadImg(qrDataUrl);
       }
 
-      if (!frontDataUrl) throw lastError;
+      // ── Colors ──
+      const CLR_DARK  = '#26233f';
+      const CLR_ACCENT = '#f7b2b0';
+      const CLR_LIGHT  = '#f4f2f8';
 
-      // 5. Restore flip state
-      if (wasFlipped) setIsFlipped(true);
+      // ════════════════════════════════════════════
+      // 1. DARK BACKGROUND
+      // ════════════════════════════════════════════
+      ctx.fillStyle = CLR_DARK;
+      ctx.fillRect(0, 0, W, H);
 
+      // ════════════════════════════════════════════
+      // 2. LIGHT LEFT PANEL (44% width, wavy right edge)
+      //    CSS: borderRadius '0 40% 40% 0 / 0 50% 50% 0'
+      //    The right edge is the right half of an ellipse:
+      //      center = (W*0.44 - W*0.44*0.40 , H/2) = (142.6, 160)
+      //      rx=95.04, ry=160
+      // ════════════════════════════════════════════
+      const panelW = W * 0.44;           // 237.6
+      const ellipseCX = panelW * (1 - 0.40); // 142.56
+      const ellipseRX = panelW * 0.40;   // 95.04
+      const ellipseRY = H * 0.50;        // 160
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(ellipseCX, 0);
+      ctx.ellipse(ellipseCX, H / 2, ellipseRX, ellipseRY, 0, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fillStyle = CLR_LIGHT;
+      ctx.globalAlpha = 0.97;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      // ════════════════════════════════════════════
+      // 3. BADGE top-left (on light panel)
+      // ════════════════════════════════════════════
+      const badgeX = 8, badgeY = 14, badgeH2 = 24, badgeW2 = 155;
+      rRect(badgeX, badgeY, badgeW2, badgeH2, 12);
+      ctx.fillStyle = CLR_ACCENT;
+      ctx.fill();
+
+      // Shield in badge
+      ctx.save();
+      ctx.translate(badgeX + 16, badgeY + badgeH2 / 2);
+      ctx.fillStyle = CLR_DARK;
+      ctx.beginPath();
+      ctx.moveTo(0, -8); ctx.lineTo(-6, -5); ctx.lineTo(-6, 0);
+      ctx.quadraticCurveTo(-6, 7, 0, 8);
+      ctx.quadraticCurveTo(6, 7, 6, 0); ctx.lineTo(6, -5);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-2.5, 0.5); ctx.lineTo(0, 3); ctx.lineTo(3.5, -2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Badge text
+      ctx.fillStyle = CLR_DARK;
+      ctx.font = '800 11px "Cairo", sans-serif';
+      ctx.direction = 'rtl';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('بطاقة عضوية رسمية', badgeX + badgeW2 - 8, badgeY + badgeH2 / 2);
+
+      // ════════════════════════════════════════════
+      // 4. LOGO + ORG NAME (top-right, dark area)
+      // ════════════════════════════════════════════
+      const logoR = 22;
+      const logoX = W - 16 - logoR;
+      const logoY2 = 16 + logoR;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(logoX, logoY2, logoR, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      if (logoImg) { ctx.clip(); ctx.drawImage(logoImg, logoX - logoR, logoY2 - logoR, logoR * 2, logoR * 2); }
+      ctx.restore();
+
+      ctx.strokeStyle = CLR_ACCENT; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(logoX, logoY2, logoR, 0, Math.PI * 2); ctx.stroke();
+
+      const orgRightX = logoX - logoR - 10;
+      ctx.fillStyle = CLR_ACCENT;
+      ctx.font = '900 13px "Cairo", sans-serif';
+      ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('جمعية عون وسند الخيرية', orgRightX, 14);
+      ctx.fillStyle = 'rgba(244,242,248,0.75)';
+      ctx.font = '400 10px "Cairo", sans-serif';
+      ctx.fillText('الخيرية التطوعية', orgRightX, 31);
+
+      // ════════════════════════════════════════════
+      // 5. PROFILE PHOTO (in light panel, left side)
+      //    Left column is 180px wide, starts at x=0 with 16px padding
+      //    Photo: 110×130, centered → photoX = 16 + (180-110)/2 = 51
+      // ════════════════════════════════════════════
+      const photoW2 = 110, photoH2 = 130;
+      const photoX = 35, photoY2 = 55;
+
+      rRect(photoX, photoY2, photoW2, photoH2, 12);
+      ctx.fillStyle = '#ddd8ea'; ctx.fill();
+
+      if (avatarImg) {
+        ctx.save();
+        rRect(photoX, photoY2, photoW2, photoH2, 12);
+        ctx.clip();
+        ctx.drawImage(avatarImg, photoX, photoY2, photoW2, photoH2);
+        ctx.restore();
+      } else {
+        // Default person silhouette
+        ctx.save();
+        rRect(photoX, photoY2, photoW2, photoH2, 12);
+        ctx.clip();
+        ctx.strokeStyle = CLR_DARK; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(photoX + photoW2 / 2, photoY2 + 45, 20, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(photoX + photoW2 / 2, photoY2 + 105, 30, 20, 0, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.strokeStyle = CLR_ACCENT; ctx.lineWidth = 3;
+      rRect(photoX, photoY2, photoW2, photoH2, 12); ctx.stroke();
+
+      // ════════════════════════════════════════════
+      // 6. QR CODE (below photo, in light panel)
+      // ════════════════════════════════════════════
+      const qrContX = photoX - 4;
+      const qrContY = photoY2 + photoH2 + 8;
+      const qrContW = photoW2 + 48;
+      const qrContH = 66;
+
+      rRect(qrContX, qrContY, qrContW, qrContH, 10);
+      ctx.fillStyle = 'rgba(244,242,248,0.9)'; ctx.fill();
+
+      // QR white bg
+      const qrInnerSize = 56;
+      const qrInnerX = qrContX + 5, qrInnerY = qrContY + 5;
+      rRect(qrInnerX, qrInnerY, qrInnerSize + 6, qrInnerSize + 6, 4);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      if (qrImg) ctx.drawImage(qrImg, qrInnerX + 3, qrInnerY + 3, qrInnerSize, qrInnerSize);
+
+      // Shield next to QR
+      const shCX = qrInnerX + qrInnerSize + 6 + 20;
+      const shCY = qrContY + qrContH / 2 - 4;
+      ctx.fillStyle = `${CLR_ACCENT}30`;
+      ctx.beginPath(); ctx.arc(shCX, shCY, 14, 0, Math.PI * 2); ctx.fill();
+
+      ctx.save(); ctx.translate(shCX, shCY - 2);
+      ctx.fillStyle = CLR_ACCENT;
+      ctx.beginPath();
+      ctx.moveTo(0, -9); ctx.lineTo(-7, -5.5); ctx.lineTo(-7, 0);
+      ctx.quadraticCurveTo(-7, 7, 0, 9);
+      ctx.quadraticCurveTo(7, 7, 7, 0); ctx.lineTo(7, -5.5);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'white'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(0, 3); ctx.lineTo(4, -2.5); ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = CLR_DARK;
+      ctx.font = '700 7.5px "Cairo", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'rtl';
+      ctx.fillText('تحقق من', shCX, shCY + 13);
+      ctx.fillText('العضوية', shCX, shCY + 23);
+
+      // ════════════════════════════════════════════
+      // 7. MEMBER NAME (right/dark area)
+      // ════════════════════════════════════════════
+      const nameRightX = W - 16;
+      ctx.fillStyle = 'rgba(244,242,248,0.6)';
+      ctx.font = '400 9px "Cairo", sans-serif';
+      ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('الاسم الكامل', nameRightX, 58);
+
+      const nameFontSize = (userProfile.full_name || '').length > 14 ? 18 : 22;
+      ctx.fillStyle = '#fff';
+      ctx.font = `900 ${nameFontSize}px "Cairo", sans-serif`;
+      ctx.fillText(userProfile.full_name || '', nameRightX, 71);
+
+      // Divider with diamond
+      const divY = 105;
+      const infoLeft = panelW + 16;
+      ctx.strokeStyle = 'rgba(247,178,176,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(infoLeft, divY); ctx.lineTo(W - 16, divY); ctx.stroke();
+      ctx.save();
+      ctx.translate((infoLeft + W - 16) / 2, divY);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = CLR_ACCENT; ctx.fillRect(-3, -3, 6, 6);
+      ctx.restore();
+
+      // ════════════════════════════════════════════
+      // 8. INFO GRID 2×2
+      // ════════════════════════════════════════════
+      const gridTop = 114;
+      const totalInfoW = W - 16 - infoLeft;
+      const colW2 = totalInfoW / 2;
+      const rowH2 = 46;
+
+      const infoItems = [
+        { label: 'الصفة',         value: userProfile.membership_type || 'عضو' },
+        { label: 'رقم العضوية',  value: membershipId },
+        { label: 'المدينة',       value: (userProfile as any).location || 'نواكشوط' },
+        { label: 'تاريخ الإصدار', value: issueDate },
+      ];
+
+      infoItems.forEach((item, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        // RTL: col0 on the right, col1 on the left
+        const cellRight = W - 16 - col * colW2;
+        const cellY = gridTop + row * rowH2;
+
+        // Icon box
+        const ibSize = 28, ibX = cellRight - ibSize, ibY = cellY;
+        rRect(ibX, ibY, ibSize, ibSize, 7);
+        ctx.fillStyle = 'rgba(247,178,176,0.3)'; ctx.fill();
+
+        // Label
+        ctx.fillStyle = 'rgba(244,242,248,0.55)';
+        ctx.font = '400 8px "Cairo", sans-serif';
+        ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText(item.label, ibX - 5, ibY + 1);
+
+        // Value
+        ctx.fillStyle = '#fff';
+        ctx.font = '800 11px "Cairo", sans-serif';
+        ctx.fillText(item.value, ibX - 5, ibY + 14);
+      });
+
+      // ════════════════════════════════════════════
+      // 9. BOTTOM STRIP
+      // ════════════════════════════════════════════
+      const footH = 24, stripH2 = 34;
+      const stripY2 = H - footH - stripH2;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, stripY2, W, stripH2);
+      ctx.strokeStyle = 'rgba(247,178,176,0.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, stripY2); ctx.lineTo(W, stripY2); ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = '600 9px "Cairo", sans-serif';
+      ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('هذه البطاقة ملك لجمعية عون وسند الخيرية', W - 46, stripY2 + 6);
+      ctx.fillText('وتُستخدم لإثبات العضوية.', W - 46, stripY2 + 19);
+
+      // ════════════════════════════════════════════
+      // 10. FOOTER
+      // ════════════════════════════════════════════
+      const fY2 = H - footH;
+      ctx.fillStyle = CLR_LIGHT; ctx.fillRect(0, fY2, W, footH);
+      ctx.strokeStyle = 'rgba(38,35,63,0.08)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, fY2); ctx.lineTo(W, fY2); ctx.stroke();
+
+      ctx.fillStyle = CLR_DARK;
+      ctx.font = '700 9px sans-serif';
+      ctx.direction = 'ltr'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('www.awnwasand.site', 14, fY2 + footH / 2);
+      ctx.textAlign = 'right';
+      ctx.fillText('Awn & Sanad Charity – Mauritania', W - 14, fY2 + footH / 2);
+
+      // ════════════════════════════════════════════
+      // EXPORT
+      // ════════════════════════════════════════════
+      const dataUrl = canvas.toDataURL('image/png');
       const safeName = (userProfile.full_name || 'member').replace(/\s+/g, '_');
 
       if (format === 'png') {
         const a = document.createElement('a');
-        a.href = frontDataUrl;
+        a.href = dataUrl;
         a.download = `Awn_Sanad_Card_${safeName}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       } else {
-        // Create PDF with exact card dimensions (90mm × 56mm)
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [90, 56] });
-        pdf.addImage(frontDataUrl, 'PNG', 0, 0, 90, 56);
+        pdf.addImage(dataUrl, 'PNG', 0, 0, 90, 56);
         pdf.save(`Awn_Sanad_Card_${safeName}.pdf`);
       }
+
     } catch (err) {
       console.error('Export error:', err);
       setExportError('حدث خطأ أثناء التصدير، يرجى المحاولة مجدداً.');
     } finally {
       setIsExporting(false);
     }
-  }, [userProfile, isFlipped, toDataUrl]);
+  }, [userProfile, membershipId, issueDate, qrRef]);
 
   // Guard — nothing rendered if modal is closed
   if (!isOpen || !userProfile) return null;
