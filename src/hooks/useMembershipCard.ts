@@ -12,10 +12,7 @@ export interface MembershipCard {
   qr_code_url: string;
 }
 
-// Generate a random unique alphanumeric ID for the card
-const generateCardId = () => {
-  return 'AWN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-};
+
 
 export const useMembershipCard = () => {
   const { userProfile } = useAuth();
@@ -45,9 +42,14 @@ export const useMembershipCard = () => {
     const expiryDate = new Date();
     expiryDate.setFullYear(issueDate.getFullYear() + 1); // Valid for 1 year by default
 
+    const cardId = userProfile.unique_short_id;
+    if (!cardId) {
+      throw new Error('User does not have a membership ID');
+    }
+
     const newCard = {
       user_id: userProfile.id,
-      card_id: generateCardId(),
+      card_id: cardId,
       issue_date: issueDate.toISOString(),
       expiry_date: expiryDate.toISOString(),
       status: 'نشطة',

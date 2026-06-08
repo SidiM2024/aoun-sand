@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Printer, ShieldCheck, CreditCard } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { useAuth } from '../contexts/AuthContext';
 import { useMembershipCard } from '../hooks/useMembershipCard';
@@ -147,14 +147,6 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
            <li>في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الإلكتروني.</li>
            <li>استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.</li>
          </ul>
-
-         {/* Official Stamp / Signature Area */}
-         <div className="absolute bottom-4 left-6 text-center">
-            <p className="text-[10px] font-black text-[#26233f] mb-1">الختم الرسمي</p>
-            <div className="w-16 h-16 rounded-full border-4 border-dashed border-[#f7b2b0]/40 flex items-center justify-center rotate-12 opacity-80">
-              <span className="text-[8px] font-black text-[#26233f] -rotate-12">عون وسند</span>
-            </div>
-         </div>
       </div>
 
       {/* Footer Bar */}
@@ -170,22 +162,18 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     setIsExporting(true);
     
     try {
-      // The export container has front and back rendered normally, top-to-bottom.
-      // We will capture it.
-      const canvas = await html2canvas(exportRef.current, { 
-        scale: 3, // High quality
-        useCORS: true,
-        backgroundColor: null, // Transparent
+      // We will capture it using html-to-image
+      const dataUrl = await toPng(exportRef.current, { 
+        pixelRatio: 3, // High quality
+        style: { transform: 'none', position: 'static' },
       });
       
       if (format === 'png') {
         const link = document.createElement('a');
         link.download = `Awn_Sanad_Membership_${userProfile.full_name}.png`;
-        link.href = canvas.toDataURL('image/png', 1.0);
+        link.href = dataUrl;
         link.click();
       } else if (format === 'pdf') {
-        const imgData = canvas.toDataURL('image/png', 1.0);
-        
         // Single PDF page containing both faces
         const pdf = new jsPDF({
           orientation: 'portrait',
@@ -193,7 +181,7 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
           format: [85.6, 107.96] // 53.98 * 2 height
         });
         
-        pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 107.96);
+        pdf.addImage(dataUrl, 'PNG', 0, 0, 85.6, 107.96);
         pdf.save(`Awn_Sanad_Membership_${userProfile.full_name}.pdf`);
       }
     } catch (error) {
@@ -249,7 +237,7 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
                     {/* Front Face (Preview) */}
                     <div 
                       className="absolute inset-0 backface-hidden w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 flex flex-col group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-shadow"
-                      style={{ backfaceVisibility: 'hidden' }}
+                      style={{ backfaceVisibility: 'hidden', transform: 'translateZ(2px)' }}
                     >
                       <div className="transform scale-[1.01] origin-top-left w-[85.6mm] h-[53.98mm]">
                          <CardFront />
@@ -258,8 +246,8 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
 
                     {/* Back Face (Preview) */}
                     <div 
-                      className="absolute inset-0 backface-hidden w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 flex flex-col rotate-y-180 group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-shadow"
-                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                      className="absolute inset-0 backface-hidden w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 flex flex-col group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-shadow"
+                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg) translateZ(2px)' }}
                     >
                       <div className="transform scale-[1.01] origin-top-left w-[85.6mm] h-[53.98mm]">
                         <CardBack />
@@ -304,10 +292,10 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
         </motion.div>
 
         {/* --- HIDDEN EXPORT CONTAINER --- */}
-        {/* Rendered strictly for html2canvas to capture both faces cleanly without 3D CSS interfering with RTL */}
+        {/* Rendered strictly for html-to-image to capture both faces cleanly without 3D CSS interfering with RTL */}
         {card && userProfile && (
           <div className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none" style={{ position: 'fixed', left: '-9999px' }}>
-            <div ref={exportRef} className="flex flex-col gap-0 bg-transparent">
+            <div ref={exportRef} className="flex flex-col gap-0 bg-transparent p-4">
                <CardFront />
                {/* Add a tiny gap or line between them if needed, but PDF format works best flush or split */}
                <CardBack />
