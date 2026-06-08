@@ -4,8 +4,8 @@ import { X, Download, Printer, ShieldCheck, CreditCard } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMembershipCard } from '../../hooks/useMembershipCard';
+import { useAuth } from '../contexts/AuthContext';
+import { useMembershipCard } from '../hooks/useMembershipCard';
 
 interface MembershipCardModalProps {
   isOpen: boolean;
