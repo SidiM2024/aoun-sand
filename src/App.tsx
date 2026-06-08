@@ -23,7 +23,6 @@ import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 import { AvatarPromptModal } from './components/AvatarPromptModal';
 import { VerifyCardPage } from './pages/VerifyCardPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
