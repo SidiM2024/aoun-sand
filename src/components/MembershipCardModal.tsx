@@ -34,10 +34,12 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
   }, [isOpen, isLoading, card, isGenerating, generateCard]);
 
   // Computed values (safe with fallbacks)
-  const membershipId = userProfile?.unique_short_id || card?.card_id || '---';
-  const verifyUrl = membershipId !== '---'
-    ? `https://www.awnwasand.site/verify-card/${membershipId}`
+  const membershipId = card?.card_id || userProfile?.unique_short_id || '---';
+  // QR must encode card.card_id — this is exactly what verify_membership_card() searches for in the DB
+  const verifyUrl = card?.card_id
+    ? `https://www.awnwasand.site/verify-card/${card.card_id}`
     : `https://www.awnwasand.site/verify-card/`;
+
   const issueDate = card
     ? new Date(card.issue_date).toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' })
     : '---';
