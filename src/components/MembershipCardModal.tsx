@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Printer, ShieldCheck, CreditCard } from 'lucide-react';
+import { X, Download, Printer, CreditCard, RotateCcw } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { useAuth } from '../contexts/AuthContext';
 import { useMembershipCard } from '../hooks/useMembershipCard';
@@ -17,7 +16,13 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
   const { card, isLoading, isGenerating, generateCard } = useMembershipCard();
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Refs for visible card faces (used directly for canvas capture)
+  const frontRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
+  const qrFrontRef = useRef<HTMLCanvasElement>(null);
+  const exportCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (isOpen && !isLoading && !card && !isGenerating) {
@@ -27,263 +32,536 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
 
   if (!isOpen || !userProfile) return null;
 
-  const verifyUrl = card ? `${window.location.origin}/verify-card/${card.card_id}` : '';
+  // Use the existing unique_short_id from user profile as membership number
+  const membershipId = userProfile.unique_short_id || card?.card_id || '---';
+  const verifyUrl = `${window.location.origin}/verify-card/${membershipId}`;
+  const issueDate = card ? new Date(card.issue_date).toLocaleDateString('ar-SA') : '---';
 
-  // The content of the Front Face (used in both Preview and Export)
-  const CardFront = () => (
-    <div 
-      className="w-[85.6mm] h-[53.98mm] rounded-2xl overflow-hidden shadow-2xl relative flex"
-      style={{ 
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #26233f 100%)',
-        fontFamily: '"Cairo", sans-serif',
-        direction: 'rtl'
-      }}
-    >
-      {/* Decorative Elements */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#f7b2b0] rounded-full blur-[80px] opacity-20 pointer-events-none -translate-y-1/2 translate-x-1/4"></div>
-      <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500 rounded-full blur-[80px] opacity-20 pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
+  // ─── Canvas-based export (reliable Arabic rendering) ─────────────────────
+  const drawCardOnCanvas = useCallback(async (
+    ctx: CanvasRenderingContext2D,
+    face: 'front' | 'back',
+    offsetY: number,
+    W: number,
+    H: number,
+    scale: number
+  ) => {
+    const mm = (v: number) => v * scale;
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-4 relative z-10 text-white w-full">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-white rounded-full p-0.5 shadow-md flex items-center justify-center">
-               <img src="/ABC.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" crossOrigin="anonymous" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black tracking-wide text-[#f7b2b0] leading-tight">جمعية عون وسند</h2>
-              <p className="text-[9px] text-indigo-200 font-medium tracking-wider">الخيرية التطوعية</p>
-            </div>
-          </div>
-          <div className="text-left bg-white/10 px-3 py-1 rounded-full border border-white/20 backdrop-blur-md">
-            <p className="text-[9px] font-bold text-white tracking-widest">بطاقة عضوية</p>
-          </div>
-        </div>
+    if (face === 'front') {
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, offsetY, mm(W), offsetY + mm(H));
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(1, '#26233f');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(0, offsetY, mm(W), mm(H), mm(3));
+      ctx.fill();
 
-        {/* Body Container */}
-        <div className="flex justify-between items-start flex-1 mt-1">
-          
-          {/* User Details */}
-          <div className="space-y-2.5 flex-1 pl-2">
-            <div>
-              <p className="text-[8px] text-indigo-300 mb-0.5">الاسم الكامل</p>
-              <p className="text-sm font-black text-white leading-tight">{userProfile.full_name}</p>
-            </div>
-            
-            <div className="flex gap-4">
-              <div>
-                <p className="text-[8px] text-indigo-300 mb-0.5">رقم العضوية</p>
-                <p className="text-xs font-bold text-[#f7b2b0] tracking-wider">{card?.card_id}</p>
-              </div>
-              <div>
-                <p className="text-[8px] text-indigo-300 mb-0.5">الصفة</p>
-                <p className="text-xs font-bold text-white">{userProfile.membership_type}</p>
-              </div>
-            </div>
+      // Subtle glow top-right
+      const glowR = ctx.createRadialGradient(mm(W), offsetY, 0, mm(W), offsetY, mm(20));
+      glowR.addColorStop(0, 'rgba(247,178,176,0.25)');
+      glowR.addColorStop(1, 'rgba(247,178,176,0)');
+      ctx.fillStyle = glowR;
+      ctx.beginPath();
+      ctx.roundRect(0, offsetY, mm(W), mm(H), mm(3));
+      ctx.fill();
 
-            <div className="flex gap-4">
-              <div>
-                <p className="text-[8px] text-indigo-300 mb-0.5">تاريخ الإصدار</p>
-                <p className="text-[10px] font-bold text-white">
-                  {card ? new Date(card.issue_date).toLocaleDateString('ar-SA') : '---'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[8px] text-indigo-300 mb-0.5">المدينة</p>
-                <p className="text-[10px] font-bold text-white">{userProfile.location || 'نواكشوط'}</p>
-              </div>
-            </div>
-          </div>
+      // Header strip
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(0, offsetY, mm(W), mm(10));
 
-          {/* Profile Pic & QR Code Area */}
-          <div className="flex flex-col items-center gap-2">
-            {/* Profile Picture */}
-            <div className="w-16 h-16 bg-slate-100 rounded-xl overflow-hidden border-2 border-[#f7b2b0] shadow-lg flex items-center justify-center shrink-0">
-              {userProfile.avatar_url ? (
-                <img src={userProfile.avatar_url} alt="Profile" className="w-full h-full object-cover" crossOrigin="anonymous" />
-              ) : (
-                <span className="text-xl font-bold text-slate-800">{userProfile.full_name.charAt(0)}</span>
-              )}
-            </div>
-
-            {/* QR Code */}
-            <div className="bg-white p-1 rounded-lg shadow-md shrink-0">
-               <QRCodeCanvas value={verifyUrl} size={48} level="H" />
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-  );
-
-  // The content of the Back Face (used in both Preview and Export)
-  const CardBack = () => (
-    <div 
-      className="w-[85.6mm] h-[53.98mm] rounded-2xl overflow-hidden shadow-2xl relative bg-white border border-slate-200 flex flex-col"
-      style={{ 
-        fontFamily: '"Cairo", sans-serif',
-        direction: 'rtl'
-      }}
-    >
-      {/* Header Bar */}
-      <div className="h-10 w-full bg-[#26233f] flex items-center px-4 relative overflow-hidden shrink-0">
-         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-         <span className="text-xs font-bold text-[#f7b2b0] relative z-10">تعليمات هامة / Important Instructions</span>
-      </div>
-      
-      {/* Body */}
-      <div className="flex-1 p-5 flex flex-col justify-center relative">
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
-            <ShieldCheck className="w-40 h-40 text-slate-900" />
-         </div>
-         
-         <ul className="text-[10px] text-slate-700 space-y-2 leading-relaxed font-semibold relative z-10 pr-4 list-disc marker:text-[#f7b2b0]">
-           <li>هذه البطاقة ملك لجمعية عون وسند الخيرية وتستخدم لإثبات عضوية حاملها.</li>
-           <li>يرجى إبراز هذه البطاقة عند حضور الاجتماعات والأنشطة الرسمية.</li>
-           <li>في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الإلكتروني.</li>
-           <li>استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.</li>
-         </ul>
-      </div>
-
-      {/* Footer Bar */}
-      <div className="h-5 w-full bg-slate-100 flex items-center justify-between px-4 shrink-0">
-         <span className="text-[7px] text-slate-500 font-bold">Awn & Sanad Charity - Mauritania</span>
-         <span className="text-[7px] text-slate-400 font-medium">www.awnwasand.site</span>
-      </div>
-    </div>
-  );
-
-  const exportCards = async (format: 'pdf' | 'png') => {
-    if (!exportRef.current || !card || !userProfile) return;
-    setIsExporting(true);
-    
-    try {
-      // We will capture it using html-to-image
-      const dataUrl = await toPng(exportRef.current, { 
-        pixelRatio: 3, // High quality
-        style: { transform: 'none', position: 'static' },
+      // Load logo
+      const logo = new Image();
+      logo.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve) => {
+        logo.onload = () => resolve();
+        logo.onerror = () => resolve();
+        logo.src = `${window.location.origin}/ABC.jpg`;
       });
-      
+
+      // Logo circle
+      const logoX = mm(W) - mm(10);
+      const logoY = offsetY + mm(3.5);
+      const logoR = mm(3.5);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(logoX, logoY, logoR, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.clip();
+      if (logo.complete && logo.naturalWidth > 0) {
+        ctx.drawImage(logo, logoX - logoR, logoY - logoR, logoR * 2, logoR * 2);
+      }
+      ctx.restore();
+
+      // Logo border
+      ctx.beginPath();
+      ctx.arc(logoX, logoY, logoR, 0, Math.PI * 2);
+      ctx.strokeStyle = '#f7b2b0';
+      ctx.lineWidth = mm(0.4);
+      ctx.stroke();
+
+      // Association name (RTL)
+      ctx.textAlign = 'right';
+      ctx.direction = 'rtl';
+      ctx.font = `bold ${mm(2.8)}px Cairo, Arial`;
+      ctx.fillStyle = '#f7b2b0';
+      ctx.fillText('جمعية عون وسند الخيرية', mm(W) - mm(8.5), offsetY + mm(5.5));
+
+      ctx.font = `${mm(2)}px Cairo, Arial`;
+      ctx.fillStyle = 'rgba(199,210,254,0.8)';
+      ctx.fillText('الخيرية التطوعية', mm(W) - mm(8.5), offsetY + mm(8.2));
+
+      // "بطاقة عضوية" pill on left
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      const pillW = mm(18);
+      const pillH = mm(4.5);
+      const pillX = mm(3);
+      const pillY = offsetY + mm(3.8);
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = mm(0.2);
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.font = `bold ${mm(2)}px Cairo, Arial`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('بطاقة عضوية رسمية', pillX + pillW / 2, pillY + pillH * 0.68);
+
+      // Separator line
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = mm(0.2);
+      ctx.beginPath();
+      ctx.moveTo(mm(3), offsetY + mm(12));
+      ctx.lineTo(mm(W) - mm(3), offsetY + mm(12));
+      ctx.stroke();
+
+      // Profile photo area (right side)
+      const photoX = mm(W) - mm(21);
+      const photoY = offsetY + mm(14);
+      const photoW = mm(14);
+      const photoH = mm(17);
+      const photoR = mm(1.5);
+
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.roundRect(photoX, photoY, photoW, photoH, photoR);
+      ctx.fill();
+
+      // Load profile picture
+      if (userProfile.avatar_url) {
+        const avatar = new Image();
+        avatar.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve) => {
+          avatar.onload = () => resolve();
+          avatar.onerror = () => resolve();
+          avatar.src = userProfile.avatar_url!;
+        });
+        if (avatar.complete && avatar.naturalWidth > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(photoX, photoY, photoW, photoH, photoR);
+          ctx.clip();
+          ctx.drawImage(avatar, photoX, photoY, photoW, photoH);
+          ctx.restore();
+        }
+      } else {
+        // Initials fallback
+        ctx.font = `bold ${mm(6)}px Cairo, Arial`;
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.fillText(userProfile.full_name.charAt(0), photoX + photoW / 2, photoY + photoH * 0.6);
+      }
+
+      // Photo border
+      ctx.strokeStyle = '#f7b2b0';
+      ctx.lineWidth = mm(0.5);
+      ctx.beginPath();
+      ctx.roundRect(photoX, photoY, photoW, photoH, photoR);
+      ctx.stroke();
+
+      // QR Code (below photo)
+      const qrCanvas = qrFrontRef.current;
+      if (qrCanvas) {
+        const qrSize = mm(12);
+        const qrX = mm(W) - mm(21) + (mm(14) - qrSize) / 2;
+        const qrY = offsetY + mm(33);
+        // White background for QR
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.roundRect(qrX - mm(1), qrY - mm(1), qrSize + mm(2), qrSize + mm(2), mm(1));
+        ctx.fill();
+        ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+        ctx.font = `${mm(1.5)}px Cairo, Arial`;
+        ctx.fillStyle = 'rgba(199,210,254,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('تحقق من العضوية', qrX + qrSize / 2, qrY + qrSize + mm(2.5));
+      }
+
+      // User details (left side, RTL)
+      const detailX = mm(W) - mm(22);
+      let detailY = offsetY + mm(15);
+      const lineGap = mm(7.5);
+
+      const drawField = (label: string, value: string, y: number) => {
+        ctx.textAlign = 'right';
+        ctx.font = `${mm(1.8)}px Cairo, Arial`;
+        ctx.fillStyle = 'rgba(165,180,252,0.85)';
+        ctx.fillText(label, detailX, y);
+        ctx.font = `bold ${mm(2.6)}px Cairo, Arial`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(value, detailX, y + mm(3.5));
+      };
+
+      drawField('الاسم الكامل', userProfile.full_name || '---', detailY);
+      detailY += lineGap + mm(1);
+
+      // Two-column row
+      ctx.textAlign = 'right';
+      ctx.font = `${mm(1.8)}px Cairo, Arial`;
+      ctx.fillStyle = 'rgba(165,180,252,0.85)';
+      ctx.fillText('رقم العضوية', detailX, detailY);
+      ctx.fillText('الصفة', detailX - mm(18), detailY);
+
+      ctx.font = `bold ${mm(2.3)}px Cairo, Arial`;
+      ctx.fillStyle = '#f7b2b0';
+      ctx.fillText(membershipId, detailX, detailY + mm(3.5));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(userProfile.membership_type || '---', detailX - mm(18), detailY + mm(3.5));
+      detailY += lineGap;
+
+      ctx.textAlign = 'right';
+      ctx.font = `${mm(1.8)}px Cairo, Arial`;
+      ctx.fillStyle = 'rgba(165,180,252,0.85)';
+      ctx.fillText('تاريخ الإصدار', detailX, detailY);
+      ctx.fillText('المدينة', detailX - mm(18), detailY);
+      ctx.font = `bold ${mm(2.3)}px Cairo, Arial`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(issueDate, detailX, detailY + mm(3.5));
+      ctx.fillText(userProfile.location || 'نواكشوط', detailX - mm(18), detailY + mm(3.5));
+
+    } else {
+      // ── BACK FACE ──────────────────────────────────────────────────────────
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(0, offsetY, mm(W), mm(H), mm(3));
+      ctx.fill();
+
+      // Dark header bar
+      ctx.fillStyle = '#26233f';
+      ctx.fillRect(0, offsetY, mm(W), mm(10));
+
+      ctx.font = `bold ${mm(2.5)}px Cairo, Arial`;
+      ctx.fillStyle = '#f7b2b0';
+      ctx.textAlign = 'right';
+      ctx.fillText('تعليمات هامة للاستخدام', mm(W) - mm(4), offsetY + mm(6.5));
+
+      // Instructions
+      const instructions = [
+        'هذه البطاقة ملك لجمعية عون وسند الخيرية وتستخدم لإثبات العضوية.',
+        'يرجى إبراز هذه البطاقة عند حضور الاجتماعات والأنشطة الرسمية.',
+        'في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الرسمي.',
+        'استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.',
+      ];
+
+      let iy = offsetY + mm(15);
+      instructions.forEach((line) => {
+        // Bullet
+        ctx.fillStyle = '#f7b2b0';
+        ctx.beginPath();
+        ctx.arc(mm(W) - mm(4.5), iy - mm(0.7), mm(0.8), 0, Math.PI * 2);
+        ctx.fill();
+        // Text
+        ctx.font = `${mm(2)}px Cairo, Arial`;
+        ctx.fillStyle = '#334155';
+        ctx.textAlign = 'right';
+        ctx.fillText(line, mm(W) - mm(6), iy);
+        iy += mm(7.5);
+      });
+
+      // Footer bar
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(0, offsetY + mm(H) - mm(6), mm(W), mm(6));
+
+      ctx.font = `${mm(1.8)}px Cairo, Arial`;
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'left';
+      ctx.fillText('Awn & Sanad Charity – Mauritania', mm(3), offsetY + mm(H) - mm(2));
+      ctx.textAlign = 'right';
+      ctx.fillText('www.awnwasand.site', mm(W) - mm(3), offsetY + mm(H) - mm(2));
+    }
+  }, [userProfile, membershipId, issueDate]);
+
+  const exportCard = useCallback(async (format: 'png' | 'pdf') => {
+    if (!userProfile) return;
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      // Wait for fonts to be ready
+      await document.fonts.ready;
+
+      const CARD_W = 85.6; // mm
+      const CARD_H = 53.98; // mm
+      const DPI = 300;
+      const PX_PER_MM = DPI / 25.4;
+      const canvasW = Math.round(CARD_W * PX_PER_MM);
+      const canvasH = Math.round(CARD_H * PX_PER_MM * 2) + Math.round(4 * PX_PER_MM); // both faces + 4mm gap
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      // Clear with white
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvasW, canvasH);
+
+      // Draw front face
+      await drawCardOnCanvas(ctx, 'front', 0, CARD_W, CARD_H, PX_PER_MM);
+
+      // Gap between faces
+      const gapY = Math.round(CARD_H * PX_PER_MM) + Math.round(4 * PX_PER_MM);
+
+      // Draw back face
+      await drawCardOnCanvas(ctx, 'back', gapY, CARD_W, CARD_H, PX_PER_MM);
+
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      const safeName = (userProfile.full_name || 'member').replace(/\s+/g, '_');
+
       if (format === 'png') {
         const link = document.createElement('a');
-        link.download = `Awn_Sanad_Membership_${userProfile.full_name}.png`;
+        link.download = `Awn_Sanad_Membership_${safeName}.png`;
         link.href = dataUrl;
+        document.body.appendChild(link);
         link.click();
-      } else if (format === 'pdf') {
-        // Single PDF page containing both faces
+        document.body.removeChild(link);
+      } else {
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: [85.6, 107.96] // 53.98 * 2 height
+          format: [CARD_W, CARD_H * 2 + 4],
         });
-        
-        pdf.addImage(dataUrl, 'PNG', 0, 0, 85.6, 107.96);
-        pdf.save(`Awn_Sanad_Membership_${userProfile.full_name}.pdf`);
+        pdf.addImage(dataUrl, 'PNG', 0, 0, CARD_W, CARD_H * 2 + 4);
+        pdf.save(`Awn_Sanad_Membership_${safeName}.pdf`);
       }
-    } catch (error) {
-      console.error(`Error generating ${format}:`, error);
+    } catch (err: any) {
+      console.error('Export error:', err);
+      setExportError('حدث خطأ أثناء التصدير، يرجى المحاولة مجدداً.');
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [userProfile, drawCardOnCanvas]);
+
+  // ─── Card Face Components (for visual preview only) ───────────────────────
+  const CardFrontPreview = () => (
+    <div
+      style={{
+        width: '324px', height: '204px',
+        borderRadius: '16px', overflow: 'hidden', position: 'relative',
+        background: 'linear-gradient(135deg, #1e1b4b 0%, #26233f 100%)',
+        fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif',
+        direction: 'rtl', display: 'flex', flexDirection: 'column',
+      }}
+    >
+      {/* Glow */}
+      <div style={{ position: 'absolute', top: '-40px', right: '-20px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(247,178,176,0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '20px', padding: '4px 10px' }}>
+          <span style={{ fontSize: '9px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.05em' }}>بطاقة عضوية رسمية</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 900, color: '#f7b2b0', lineHeight: 1.2 }}>جمعية عون وسند</div>
+            <div style={{ fontSize: '8px', color: 'rgba(199,210,254,0.8)' }}>الخيرية التطوعية</div>
+          </div>
+          <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #f7b2b0', background: '#fff', flexShrink: 0 }}>
+            <img src="/ABC.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, display: 'flex', padding: '10px 14px 10px', gap: '10px', alignItems: 'flex-start' }}>
+        {/* Details */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px' }}>
+          <div>
+            <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>الاسم الكامل</div>
+            <div style={{ fontSize: '13px', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{userProfile.full_name}</div>
+          </div>
+          <div style={{ display: 'flex', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>رقم العضوية</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#f7b2b0', fontFamily: 'monospace' }}>{membershipId}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>الصفة</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#ffffff' }}>{userProfile.membership_type}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>تاريخ الإصدار</div>
+              <div style={{ fontSize: '9px', fontWeight: 700, color: '#ffffff' }}>{issueDate}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>المدينة</div>
+              <div style={{ fontSize: '9px', fontWeight: 700, color: '#ffffff' }}>{userProfile.location || 'نواكشوط'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Photo + QR */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div style={{ width: '54px', height: '62px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #f7b2b0', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {userProfile.avatar_url
+              ? <img src={userProfile.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: '22px', fontWeight: 900, color: '#94a3b8' }}>{userProfile.full_name.charAt(0)}</span>
+            }
+          </div>
+          <div style={{ background: '#ffffff', padding: '3px', borderRadius: '5px' }}>
+            <QRCodeCanvas ref={qrFrontRef} value={verifyUrl} size={44} level="H" />
+          </div>
+          <div style={{ fontSize: '6px', color: 'rgba(199,210,254,0.7)', textAlign: 'center' }}>تحقق من العضوية</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CardBackPreview = () => (
+    <div
+      style={{
+        width: '324px', height: '204px',
+        borderRadius: '16px', overflow: 'hidden', position: 'relative',
+        background: '#ffffff', border: '1px solid #e2e8f0',
+        fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif',
+        direction: 'rtl', display: 'flex', flexDirection: 'column',
+      }}
+    >
+      {/* Header */}
+      <div style={{ background: '#26233f', padding: '0 16px', height: '38px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#f7b2b0' }}>تعليمات هامة للاستخدام</span>
+      </div>
+
+      {/* Instructions */}
+      <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '7px' }}>
+        {[
+          'هذه البطاقة ملك لجمعية عون وسند الخيرية وتستخدم لإثبات العضوية.',
+          'يرجى إبراز هذه البطاقة عند حضور الاجتماعات والأنشطة الرسمية.',
+          'في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الرسمي.',
+          'استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.',
+        ].map((text, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
+            <span style={{ color: '#f7b2b0', fontSize: '10px', marginTop: '1px', flexShrink: 0 }}>●</span>
+            <span style={{ fontSize: '9px', color: '#334155', lineHeight: 1.5, fontWeight: 600 }}>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ background: '#f1f5f9', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', flexShrink: 0 }}>
+        <span style={{ fontSize: '7px', color: '#64748b', fontWeight: 600 }}>www.awnwasand.site</span>
+        <span style={{ fontSize: '7px', color: '#94a3b8' }}>Awn &amp; Sanad Charity – Mauritania</span>
+      </div>
+    </div>
+  );
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" dir="rtl">
+      <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(12px)' }} dir="rtl">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
+          style={{ background: 'var(--modal-bg, #ffffff)', borderRadius: '28px', boxShadow: '0 25px 60px -15px rgba(0,0,0,0.5)', width: '100%', maxWidth: '520px', overflow: 'hidden', border: '1px solid rgba(226,232,240,0.5)', display: 'flex', flexDirection: 'column', maxHeight: '92vh' }}
+          className="dark:[--modal-bg:#0f172a]"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
-            <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3 font-[Cairo]">
-              <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <CreditCard className="w-5 h-5" />
+          {/* Modal Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(226,232,240,0.7)' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: '"Cairo", sans-serif', margin: 0 }}
+                className="dark:text-white">
+              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e1b4b, #26233f)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CreditCard style={{ width: '18px', height: '18px', color: '#f7b2b0' }} />
               </div>
               معاينة البطاقة الرسمية
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-            >
-              <X className="w-6 h-6" />
+            <button onClick={onClose} style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'rgba(148,163,184,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
+              <X style={{ width: '20px', height: '20px', color: '#64748b' }} />
             </button>
           </div>
 
-          <div className="p-6 md:p-8 flex-1 overflow-y-auto flex flex-col items-center bg-slate-50 dark:bg-slate-950/50">
+          {/* Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: '#f8fafc' }} className="dark:bg-slate-950/40">
             {isLoading || isGenerating || !card ? (
-              <div className="py-20 flex flex-col items-center">
-                <div className="w-14 h-14 border-4 border-[#f7b2b0] border-t-[#26233f] rounded-full animate-spin mb-4 shadow-lg" />
-                <p className="text-slate-500 font-bold font-[Cairo]">جاري إنشاء بطاقتك الرسمية...</p>
+              <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', border: '4px solid rgba(247,178,176,0.3)', borderTopColor: '#f7b2b0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#64748b', fontFamily: '"Cairo", sans-serif' }}>جاري تحضير بطاقتك الرسمية...</p>
               </div>
             ) : (
               <>
-                {/* 3D Preview Card Container */}
-                <div 
-                  className="relative w-[340px] aspect-[1.58/1] perspective-1000 mb-10 cursor-pointer group shrink-0"
+                {/* 3D Flip Container */}
+                <div
+                  style={{ position: 'relative', width: '324px', height: '204px', cursor: 'pointer', perspective: '1000px' }}
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
                   <motion.div
-                    className="w-full h-full relative preserve-3d transition-transform duration-700 ease-out"
                     animate={{ rotateY: isFlipped ? 180 : 0 }}
-                    style={{ transformStyle: 'preserve-3d' }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                    style={{ width: '100%', height: '100%', position: 'relative', transformStyle: 'preserve-3d' }}
                   >
-                    {/* Front Face (Preview) */}
-                    <div 
-                      className="absolute inset-0 backface-hidden w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 flex flex-col group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-shadow"
-                      style={{ backfaceVisibility: 'hidden', transform: 'translateZ(2px)' }}
-                    >
-                      <div className="transform scale-[1.01] origin-top-left w-[85.6mm] h-[53.98mm]">
-                         <CardFront />
-                      </div>
+                    {/* Front */}
+                    <div ref={frontRef} style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: '16px', boxShadow: '0 20px 50px -10px rgba(30,27,75,0.6)', transform: 'translateZ(1px)' }}>
+                      <CardFrontPreview />
                     </div>
-
-                    {/* Back Face (Preview) */}
-                    <div 
-                      className="absolute inset-0 backface-hidden w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 flex flex-col group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] transition-shadow"
-                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg) translateZ(2px)' }}
-                    >
-                      <div className="transform scale-[1.01] origin-top-left w-[85.6mm] h-[53.98mm]">
-                        <CardBack />
-                      </div>
+                    {/* Back */}
+                    <div ref={backRef} style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: '16px', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.25)', transform: 'rotateY(180deg) translateZ(1px)' }}>
+                      <CardBackPreview />
                     </div>
                   </motion.div>
-                  
-                  {/* Flip Hint */}
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 text-sm text-slate-500 font-bold font-[Cairo] bg-white dark:bg-slate-800 px-4 py-1.5 rounded-full shadow-sm border border-slate-200 dark:border-slate-700">
-                    <svg className="w-4 h-4 text-[#f7b2b0]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+
+                  {/* Flip hint */}
+                  <div style={{ position: 'absolute', bottom: '-30px', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94a3b8', fontWeight: 600, fontFamily: '"Cairo", sans-serif', background: 'white', padding: '4px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', whiteSpace: 'nowrap' }}
+                       className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                    <RotateCcw style={{ width: '12px', height: '12px' }} />
                     انقر للقلب
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="w-full max-w-[340px] flex flex-col gap-3 font-[Cairo]">
-                  <button 
-                    onClick={() => exportCards('png')} 
+                {/* Error message */}
+                {exportError && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', color: '#dc2626', fontFamily: '"Cairo", sans-serif' }}>
+                    {exportError}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div style={{ width: '100%', maxWidth: '324px', display: 'flex', flexDirection: 'column', gap: '10px', fontFamily: '"Cairo", sans-serif' }}>
+                  <button
+                    onClick={() => exportCard('png')}
                     disabled={isExporting}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-[#1e1b4b] to-[#26233f] hover:from-[#26233f] hover:to-[#3b3659] text-white font-bold text-base transition-all shadow-lg hover:shadow-xl disabled:opacity-70"
+                    style={{ width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #1e1b4b 0%, #26233f 100%)', color: '#ffffff', fontSize: '15px', fontWeight: 700, cursor: isExporting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isExporting ? 0.7 : 1, transition: 'opacity 0.2s', fontFamily: '"Cairo", sans-serif', boxShadow: '0 6px 20px -4px rgba(30,27,75,0.4)' }}
                   >
-                    {isExporting ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Download className="w-5 h-5 text-[#f7b2b0]" />
-                    )}
-                    <span>تنزيل البطاقة كصورة (PNG)</span>
+                    {isExporting
+                      ? <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      : <Download style={{ width: '18px', height: '18px', color: '#f7b2b0' }} />
+                    }
+                    تنزيل البطاقة كصورة (PNG)
                   </button>
-                  
-                  <button 
-                    onClick={() => exportCards('pdf')} 
+
+                  <button
+                    onClick={() => exportCard('pdf')}
                     disabled={isExporting}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-base transition-all border-2 border-slate-200 dark:border-slate-700 shadow-sm disabled:opacity-70"
+                    style={{ width: '100%', padding: '14px', borderRadius: '14px', border: '2px solid #e2e8f0', background: '#ffffff', color: '#1e293b', fontSize: '15px', fontWeight: 700, cursor: isExporting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isExporting ? 0.7 : 1, transition: 'opacity 0.2s', fontFamily: '"Cairo", sans-serif' }}
+                    className="dark:bg-slate-800 dark:text-white dark:border-slate-700"
                   >
-                    <Printer className="w-5 h-5" />
-                    <span>حفظ للطباعة (PDF)</span>
+                    <Printer style={{ width: '18px', height: '18px' }} />
+                    حفظ للطباعة (PDF)
                   </button>
                 </div>
               </>
@@ -291,17 +569,8 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
           </div>
         </motion.div>
 
-        {/* --- HIDDEN EXPORT CONTAINER --- */}
-        {/* Rendered strictly for html-to-image to capture both faces cleanly without 3D CSS interfering with RTL */}
-        {card && userProfile && (
-          <div className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none" style={{ position: 'fixed', left: '-9999px' }}>
-            <div ref={exportRef} className="flex flex-col gap-0 bg-transparent p-4">
-               <CardFront />
-               {/* Add a tiny gap or line between them if needed, but PDF format works best flush or split */}
-               <CardBack />
-            </div>
-          </div>
-        )}
+        {/* Spin animation */}
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </AnimatePresence>
   );

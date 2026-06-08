@@ -165,7 +165,8 @@ export const FinancialDashboard = () => {
       }
 
       [...mrData, ...drData].forEach(r => {
-        const d = new Date(r.payment_date || r.donation_date || r.created_at);
+        const row = r as any;
+        const d = new Date(row.payment_date || row.donation_date || row.created_at);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         if (monthsMap[key]) monthsMap[key].revenues += Number(r.amount);
       });

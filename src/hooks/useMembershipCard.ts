@@ -12,8 +12,6 @@ export interface MembershipCard {
   qr_code_url: string;
 }
 
-
-
 export const useMembershipCard = () => {
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
@@ -38,14 +36,16 @@ export const useMembershipCard = () => {
   const createCard = async (): Promise<MembershipCard> => {
     if (!userProfile) throw new Error('User not found');
 
+    // Use unique_short_id from user profile as the card ID.
+    // Fallback to national_id, then to a segment of the user UUID.
+    const cardId =
+      userProfile.unique_short_id ||
+      userProfile.national_id ||
+      userProfile.id.split('-')[0].toUpperCase();
+
     const issueDate = new Date();
     const expiryDate = new Date();
-    expiryDate.setFullYear(issueDate.getFullYear() + 1); // Valid for 1 year by default
-
-    const cardId = userProfile.unique_short_id;
-    if (!cardId) {
-      throw new Error('User does not have a membership ID');
-    }
+    expiryDate.setFullYear(issueDate.getFullYear() + 1);
 
     const newCard = {
       user_id: userProfile.id,
@@ -62,6 +62,16 @@ export const useMembershipCard = () => {
       .single();
 
     if (error) {
+      // If card already exists (unique constraint), fetch the existing one
+      if (error.code === '23505') {
+        const { data: existingCard, error: fetchError } = await supabase
+          .from('membership_cards')
+          .select('*')
+          .eq('user_id', userProfile.id)
+          .single();
+        if (fetchError) throw fetchError;
+        return existingCard;
+      }
       console.error('Error creating membership card:', error);
       throw error;
     }
