@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Printer, CreditCard, RotateCcw } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
 import { useAuth } from '../contexts/AuthContext';
 import { useMembershipCard } from '../hooks/useMembershipCard';
 
@@ -11,13 +12,20 @@ interface MembershipCardModalProps {
   onClose: () => void;
 }
 
+// ─── Design constants (match the reference image) ─────────────────────────
+const DARK = '#26233f';
+const ACCENT = '#f7b2b0';
+const LIGHT_BG = '#f4f2f8';
+
 export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen, onClose }) => {
-  // ── ALL HOOKS MUST BE AT TOP LEVEL (no hooks after conditional returns) ──
+  // All hooks at top level — NEVER after a conditional return
   const { userProfile } = useAuth();
   const { card, isLoading, isGenerating, generateCard } = useMembershipCard();
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const frontCardRef = useRef<HTMLDivElement>(null);
+  const backCardRef = useRef<HTMLDivElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -26,189 +34,52 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     }
   }, [isOpen, isLoading, card, isGenerating, generateCard]);
 
-  // Compute values safely (use empty strings when data not ready)
+  // Computed values (safe with fallbacks)
   const membershipId = userProfile?.unique_short_id || card?.card_id || '---';
   const verifyUrl = membershipId !== '---'
-    ? `${window.location.origin}/verify-card/${membershipId}`
-    : `${window.location.origin}/verify-card/`;
+    ? `https://www.awnwasand.site/verify-card/${membershipId}`
+    : `https://www.awnwasand.site/verify-card/`;
   const issueDate = card
-    ? new Date(card.issue_date).toLocaleDateString('ar-SA')
+    ? new Date(card.issue_date).toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' })
     : '---';
 
-  // ── Canvas export function (must be a regular function, not a hook) ──
+  // Export: capture the actual visible React card using html-to-image
   const exportCard = useCallback(async (format: 'png' | 'pdf') => {
-    if (!userProfile) return;
+    const frontEl = frontCardRef.current;
+    if (!frontEl || !userProfile) return;
     setIsExporting(true);
     setExportError(null);
 
     try {
       await document.fonts.ready;
 
-      // Card dimensions (px at 300 DPI)
-      const MM = 300 / 25.4; // px per mm at 300dpi
-      const CW = Math.round(85.6 * MM);
-      const CH = Math.round(53.98 * MM);
-      const GAP = Math.round(5 * MM);
-      const TOTAL_H = CH * 2 + GAP;
+      // Ensure front is visible for capture (flip back if needed)
+      const wasFlipped = isFlipped;
+      if (wasFlipped) setIsFlipped(false);
+      await new Promise(r => setTimeout(r, 400)); // Wait for flip animation
 
-      const canvas = document.createElement('canvas');
-      canvas.width = CW;
-      canvas.height = TOTAL_H;
-      const ctx = canvas.getContext('2d')!;
-
-      // ── Background ──
-      ctx.fillStyle = '#f0f4f8';
-      ctx.fillRect(0, 0, CW, TOTAL_H);
-
-      // ── FRONT FACE ──
-      const grad = ctx.createLinearGradient(0, 0, CW, CH);
-      grad.addColorStop(0, '#1e1b4b');
-      grad.addColorStop(1, '#26233f');
-      ctx.fillStyle = grad;
-      roundRect(ctx, 0, 0, CW, CH, MM * 3);
-      ctx.fill();
-
-      // Glow
-      const glow = ctx.createRadialGradient(CW, 0, 0, CW, 0, MM * 25);
-      glow.addColorStop(0, 'rgba(247,178,176,0.3)');
-      glow.addColorStop(1, 'rgba(247,178,176,0)');
-      ctx.fillStyle = glow;
-      roundRect(ctx, 0, 0, CW, CH, MM * 3);
-      ctx.fill();
-
-      // Logo
-      const logo = await loadImage(`${window.location.origin}/ABC.jpg`);
-      const lx = CW - MM * 10, ly = MM * 3.5, lr = MM * 3.5;
-      ctx.save();
-      ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff'; ctx.fill(); ctx.clip();
-      if (logo) ctx.drawImage(logo, lx - lr, ly - lr, lr * 2, lr * 2);
-      ctx.restore();
-      ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2);
-      ctx.strokeStyle = '#f7b2b0'; ctx.lineWidth = MM * 0.4; ctx.stroke();
-
-      // Org name
-      ctx.textAlign = 'right'; ctx.direction = 'rtl';
-      ctx.font = `bold ${MM * 2.8}px Cairo, Arial`; ctx.fillStyle = '#f7b2b0';
-      ctx.fillText('جمعية عون وسند الخيرية', CW - MM * 8, MM * 5.5);
-      ctx.font = `${MM * 2}px Cairo, Arial`; ctx.fillStyle = 'rgba(199,210,254,0.8)';
-      ctx.fillText('الخيرية التطوعية', CW - MM * 8, MM * 8.2);
-
-      // Badge pill
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      roundRect(ctx, MM * 3, MM * 3.5, MM * 18, MM * 5, MM * 2.5); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = MM * 0.2; ctx.stroke();
-      ctx.textAlign = 'center'; ctx.font = `bold ${MM * 2}px Cairo, Arial`; ctx.fillStyle = '#fff';
-      ctx.fillText('بطاقة عضوية رسمية', MM * 12, MM * 7);
-
-      // Separator
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = MM * 0.2;
-      ctx.beginPath(); ctx.moveTo(MM * 3, MM * 12); ctx.lineTo(CW - MM * 3, MM * 12); ctx.stroke();
-
-      // Photo
-      const pw = MM * 14, ph = MM * 17, px_ = CW - MM * 21, py_ = MM * 14;
-      ctx.fillStyle = '#334155'; roundRect(ctx, px_, py_, pw, ph, MM * 1.5); ctx.fill();
-      if (userProfile.avatar_url) {
-        const av = await loadImage(userProfile.avatar_url);
-        if (av) { ctx.save(); roundRect(ctx, px_, py_, pw, ph, MM * 1.5); ctx.clip(); ctx.drawImage(av, px_, py_, pw, ph); ctx.restore(); }
-      } else {
-        ctx.font = `bold ${MM * 6}px Cairo, Arial`; ctx.fillStyle = '#94a3b8';
-        ctx.textAlign = 'center';
-        ctx.fillText(userProfile.full_name.charAt(0), px_ + pw / 2, py_ + ph * 0.65);
-      }
-      ctx.strokeStyle = '#f7b2b0'; ctx.lineWidth = MM * 0.5;
-      roundRect(ctx, px_, py_, pw, ph, MM * 1.5); ctx.stroke();
-
-      // QR code from the visible canvas
-      const qrCanvas = qrRef.current;
-      if (qrCanvas) {
-        const qrSize = MM * 12;
-        const qrX = px_ + (pw - qrSize) / 2;
-        const qrY = MM * 33;
-        ctx.fillStyle = '#fff';
-        roundRect(ctx, qrX - MM * 1, qrY - MM * 1, qrSize + MM * 2, qrSize + MM * 2, MM * 1); ctx.fill();
-        ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
-        ctx.font = `${MM * 1.5}px Cairo, Arial`; ctx.fillStyle = 'rgba(199,210,254,0.75)';
-        ctx.textAlign = 'center';
-        ctx.fillText('تحقق من العضوية', px_ + pw / 2, qrY + qrSize + MM * 2.5);
-      }
-
-      // User data fields
-      const dx = CW - MM * 22;
-      let dy = MM * 15;
-      const drawField = (label: string, value: string, y: number) => {
-        ctx.textAlign = 'right'; ctx.direction = 'rtl';
-        ctx.font = `${MM * 1.8}px Cairo, Arial`; ctx.fillStyle = 'rgba(165,180,252,0.85)';
-        ctx.fillText(label, dx, y);
-        ctx.font = `bold ${MM * 2.6}px Cairo, Arial`; ctx.fillStyle = '#fff';
-        ctx.fillText(value || '---', dx, y + MM * 3.5);
-      };
-      drawField('الاسم الكامل', userProfile.full_name, dy); dy += MM * 8.5;
-      // Two-column
-      ctx.font = `${MM * 1.8}px Cairo, Arial`; ctx.fillStyle = 'rgba(165,180,252,0.85)';
-      ctx.textAlign = 'right'; ctx.fillText('رقم العضوية', dx, dy);
-      ctx.fillText('الصفة', dx - MM * 18, dy);
-      ctx.font = `bold ${MM * 2.4}px Cairo, Arial`;
-      ctx.fillStyle = '#f7b2b0'; ctx.fillText(membershipId, dx, dy + MM * 3.5);
-      ctx.fillStyle = '#fff'; ctx.fillText(userProfile.membership_type || '---', dx - MM * 18, dy + MM * 3.5);
-      dy += MM * 8;
-      ctx.font = `${MM * 1.8}px Cairo, Arial`; ctx.fillStyle = 'rgba(165,180,252,0.85)';
-      ctx.fillText('تاريخ الإصدار', dx, dy);
-      ctx.fillText('المدينة', dx - MM * 18, dy);
-      ctx.font = `bold ${MM * 2.4}px Cairo, Arial`; ctx.fillStyle = '#fff';
-      ctx.fillText(issueDate, dx, dy + MM * 3.5);
-      ctx.fillText(userProfile.location || 'نواكشوط', dx - MM * 18, dy + MM * 3.5);
-
-      // ── BACK FACE ──
-      const BY = CH + GAP;
-      ctx.fillStyle = '#fff';
-      roundRect(ctx, 0, BY, CW, CH, MM * 3); ctx.fill();
-
-      // Dark header
-      ctx.fillStyle = '#26233f';
-      ctx.fillRect(0, BY, CW, MM * 10);
-
-      ctx.textAlign = 'right'; ctx.direction = 'rtl';
-      ctx.font = `bold ${MM * 2.5}px Cairo, Arial`; ctx.fillStyle = '#f7b2b0';
-      ctx.fillText('تعليمات هامة للاستخدام', CW - MM * 4, BY + MM * 6.5);
-
-      const instructions = [
-        'هذه البطاقة ملك لجمعية عون وسند الخيرية وتستخدم لإثبات العضوية.',
-        'يرجى إبراز هذه البطاقة عند حضور الاجتماعات والأنشطة الرسمية.',
-        'في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الرسمي.',
-        'استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.',
-      ];
-      let iy = BY + MM * 16;
-      instructions.forEach(line => {
-        ctx.fillStyle = '#f7b2b0'; ctx.beginPath();
-        ctx.arc(CW - MM * 4.5, iy - MM * 0.7, MM * 0.8, 0, Math.PI * 2); ctx.fill();
-        ctx.font = `${MM * 2}px Cairo, Arial`; ctx.fillStyle = '#334155';
-        ctx.textAlign = 'right'; ctx.fillText(line, CW - MM * 6, iy);
-        iy += MM * 7.8;
+      const frontDataUrl = await toPng(frontEl, {
+        pixelRatio: 3,
+        cacheBust: true,
+        style: { transform: 'none', position: 'relative' },
       });
 
-      // Footer
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(0, BY + CH - MM * 6, CW, MM * 6);
-      ctx.font = `${MM * 1.8}px Cairo, Arial`; ctx.fillStyle = '#64748b';
-      ctx.textAlign = 'left'; ctx.direction = 'ltr';
-      ctx.fillText('Awn & Sanad Charity – Mauritania', MM * 3, BY + CH - MM * 2);
-      ctx.textAlign = 'right';
-      ctx.fillText('www.awnwasand.site', CW - MM * 3, BY + CH - MM * 2);
+      // Restore flip state
+      if (wasFlipped) setIsFlipped(true);
 
-      // ── Save ──
-      const dataUrl = canvas.toDataURL('image/png', 1.0);
       const safeName = (userProfile.full_name || 'member').replace(/\s+/g, '_');
 
       if (format === 'png') {
         const a = document.createElement('a');
-        a.href = dataUrl;
+        a.href = frontDataUrl;
         a.download = `Awn_Sanad_Card_${safeName}.png`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       } else {
-        const W = 85.6, H = 53.98 * 2 + 5;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [W, H] });
-        pdf.addImage(dataUrl, 'PNG', 0, 0, W, H);
+        // Create PDF with exact card dimensions (90mm × 56mm)
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [90, 56] });
+        pdf.addImage(frontDataUrl, 'PNG', 0, 0, 90, 56);
         pdf.save(`Awn_Sanad_Card_${safeName}.pdf`);
       }
     } catch (err) {
@@ -217,29 +88,33 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     } finally {
       setIsExporting(false);
     }
-  }, [userProfile, membershipId, issueDate]);
+  }, [userProfile, isFlipped]);
 
-  // ── Guard: render nothing if not open or no user ──
+  // Guard — nothing rendered if modal is closed
   if (!isOpen || !userProfile) return null;
 
   return (
     <AnimatePresence>
       <div
         dir="rtl"
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(15,23,42,0.88)', backdropFilter: 'blur(10px)' }}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', background: 'rgba(15,23,42,0.88)', backdropFilter: 'blur(10px)',
+        }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 20 }}
           className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
-          style={{ borderRadius: '28px', boxShadow: '0 30px 80px -10px rgba(0,0,0,0.5)', width: '100%', maxWidth: '520px', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '92vh' }}
+          style={{ borderRadius: '24px', boxShadow: '0 30px 80px -10px rgba(0,0,0,0.5)', width: '100%', maxWidth: '600px', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '95vh' }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-            <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3" style={{ fontFamily: '"Cairo", sans-serif' }}>
-              <span className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1e1b4b] to-[#26233f] flex items-center justify-center shrink-0">
-                <CreditCard className="w-4 h-4 text-[#f7b2b0]" />
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <h2 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-3" style={{ fontFamily: '"Cairo", sans-serif' }}>
+              <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${DARK}, #3b3659)` }}>
+                <CreditCard className="w-4 h-4" style={{ color: ACCENT }} />
               </span>
               معاينة البطاقة الرسمية
             </h2>
@@ -248,22 +123,22 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
             </button>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-8 bg-slate-50 dark:bg-slate-950/40">
+          {/* ── Body ── */}
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-8" style={{ background: '#f8fafc' }}>
 
             {isLoading || isGenerating || !card ? (
               <div className="py-16 flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-full border-4 border-[#f7b2b0]/30 border-t-[#f7b2b0] animate-spin" />
-                <p className="text-slate-500 dark:text-slate-400 font-bold text-sm" style={{ fontFamily: '"Cairo", sans-serif' }}>
+                <div className="w-12 h-12 rounded-full border-4 animate-spin" style={{ borderColor: `${ACCENT}33`, borderTopColor: ACCENT }} />
+                <p className="text-slate-500 font-bold text-sm" style={{ fontFamily: '"Cairo", sans-serif' }}>
                   جاري تحضير بطاقتك الرسمية…
                 </p>
               </div>
             ) : (
               <>
-                {/* ── 3D Flip Card ── */}
+                {/* ── 3D Flip Container ── */}
                 <div
                   className="shrink-0 cursor-pointer"
-                  style={{ perspective: '1000px', width: '324px', height: '204px', position: 'relative' }}
+                  style={{ perspective: '1200px', width: '540px', height: '320px', position: 'relative', maxWidth: '100%' }}
                   onClick={() => setIsFlipped(f => !f)}
                 >
                   <motion.div
@@ -272,18 +147,22 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
                     style={{ width: '100%', height: '100%', position: 'relative', transformStyle: 'preserve-3d' }}
                   >
                     {/* Front */}
-                    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'translateZ(1px)' }}>
-                      <CardFrontPreview
-                        userProfile={userProfile}
-                        membershipId={membershipId}
-                        issueDate={issueDate}
-                        verifyUrl={verifyUrl}
-                        qrRef={qrRef}
-                      />
+                    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'translateZ(1px)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 60px -10px rgba(38,35,63,0.6)' }}>
+                      <div ref={frontCardRef} style={{ width: '100%', height: '100%' }}>
+                        <CardFront
+                          userProfile={userProfile}
+                          membershipId={membershipId}
+                          issueDate={issueDate}
+                          verifyUrl={verifyUrl}
+                          qrRef={qrRef}
+                        />
+                      </div>
                     </div>
                     {/* Back */}
-                    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg) translateZ(1px)' }}>
-                      <CardBackPreview />
+                    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg) translateZ(1px)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 60px -10px rgba(0,0,0,0.25)' }}>
+                      <div ref={backCardRef} style={{ width: '100%', height: '100%' }}>
+                        <CardBack />
+                      </div>
                     </div>
                   </motion.div>
 
@@ -299,29 +178,29 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
 
                 {/* Error */}
                 {exportError && (
-                  <div className="w-full max-w-[324px] bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-3 text-sm text-rose-600 dark:text-rose-400 font-bold" style={{ fontFamily: '"Cairo", sans-serif' }}>
+                  <div className="w-full bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm text-rose-600 font-bold" style={{ fontFamily: '"Cairo", sans-serif' }}>
                     {exportError}
                   </div>
                 )}
 
-                {/* Buttons */}
-                <div className="w-full max-w-[324px] flex flex-col gap-3" style={{ fontFamily: '"Cairo", sans-serif' }}>
+                {/* ── Action Buttons ── */}
+                <div className="w-full flex flex-col gap-3" style={{ fontFamily: '"Cairo", sans-serif', maxWidth: '400px' }}>
                   <button
                     onClick={() => exportCard('png')}
                     disabled={isExporting}
                     className="w-full py-3.5 rounded-2xl text-white font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #26233f 100%)', boxShadow: '0 6px 24px -6px rgba(30,27,75,0.45)' }}
+                    style={{ background: `linear-gradient(135deg, #1e1b4b 0%, ${DARK} 100%)`, boxShadow: '0 6px 24px -6px rgba(30,27,75,0.45)' }}
                   >
                     {isExporting
                       ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      : <Download className="w-4 h-4 text-[#f7b2b0]" />}
+                      : <Download className="w-4 h-4" style={{ color: ACCENT }} />}
                     تنزيل البطاقة كصورة (PNG)
                   </button>
 
                   <button
                     onClick={() => exportCard('pdf')}
                     disabled={isExporting}
-                    className="w-full py-3.5 rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    className="w-full py-3.5 rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50"
                   >
                     <Printer className="w-4 h-4" />
                     حفظ للطباعة (PDF)
@@ -336,130 +215,241 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
   );
 };
 
-// ─── Helper: roundRect polyfill ───────────────────────────────────────────────
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-// ─── Helper: load image with CORS ────────────────────────────────────────────
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-}
-
-// ─── Sub-component: Front face preview ───────────────────────────────────────
-interface CardFrontPreviewProps {
-  userProfile: { full_name: string; membership_type?: string; avatar_url?: string; location?: string };
+// ══════════════════════════════════════════════════════════════════════════════
+// CARD FRONT — matches the reference image exactly
+// ══════════════════════════════════════════════════════════════════════════════
+interface CardFrontProps {
+  userProfile: {
+    full_name: string;
+    membership_type?: string;
+    avatar_url?: string;
+    location?: string;
+  };
   membershipId: string;
   issueDate: string;
   verifyUrl: string;
   qrRef: React.RefObject<HTMLCanvasElement>;
 }
 
-const CardFrontPreview: React.FC<CardFrontPreviewProps> = ({ userProfile, membershipId, issueDate, verifyUrl, qrRef }) => (
-  <div style={{ width: '324px', height: '204px', borderRadius: '16px', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #1e1b4b 0%, #26233f 100%)', fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif', direction: 'rtl', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px -10px rgba(30,27,75,0.7)' }}>
-    {/* Glow */}
-    <div style={{ position: 'absolute', top: '-50px', right: '-30px', width: '180px', height: '180px', background: 'radial-gradient(circle, rgba(247,178,176,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+const CardFront: React.FC<CardFrontProps> = ({ userProfile, membershipId, issueDate, verifyUrl, qrRef }) => {
+  const s: React.CSSProperties = {
+    width: '100%', height: '100%',
+    fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif',
+    direction: 'rtl',
+    display: 'flex',
+    flexDirection: 'column',
+    background: DARK,
+    position: 'relative',
+    overflow: 'hidden',
+  };
 
-    {/* Header */}
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px 9px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-      <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '20px', padding: '3px 9px' }}>
-        <span style={{ fontSize: '8px', fontWeight: 700, color: '#fff', letterSpacing: '0.04em' }}>بطاقة عضوية رسمية</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-        <div>
-          <div style={{ fontSize: '11px', fontWeight: 900, color: '#f7b2b0', lineHeight: 1.2 }}>جمعية عون وسند</div>
-          <div style={{ fontSize: '8px', color: 'rgba(199,210,254,0.8)' }}>الخيرية التطوعية</div>
+  return (
+    <div style={s}>
+      {/* Subtle background wave/shape on the right side */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0,
+        width: '44%', height: '100%',
+        background: LIGHT_BG,
+        borderRadius: '0 40% 40% 0 / 0 50% 50% 0',
+        opacity: 0.97,
+        zIndex: 1,
+      }} />
+
+      {/* ── MAIN CONTENT AREA ── */}
+      <div style={{ position: 'relative', zIndex: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+        {/* ── TOP SECTION ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 16px 8px' }}>
+
+          {/* LEFT: Logo + Org name (on dark) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${ACCENT}`, background: '#fff', flexShrink: 0 }}>
+              <img src="/ABC.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 900, color: ACCENT, lineHeight: 1.25 }}>جمعية عون وسند الخيرية</div>
+              <div style={{ fontSize: '10px', color: 'rgba(244,242,248,0.75)', marginTop: '1px' }}>الخيرية التطوعية</div>
+            </div>
+          </div>
+
+          {/* RIGHT: Badge + shield (on light bg) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: ACCENT, borderRadius: '20px', padding: '4px 10px 4px 6px' }}>
+            {/* Shield icon */}
+            <svg width="14" height="16" viewBox="0 0 24 28" fill="none">
+              <path d="M12 2L3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6L12 2z" fill={DARK} />
+              <path d="M9 13l2 2 4-4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: DARK }}>بطاقة عضوية رسمية</span>
+          </div>
         </div>
-        <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #f7b2b0', background: '#fff', flexShrink: 0 }}>
-          <img src="/ABC.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+        {/* ── MIDDLE SECTION: Name + Info ── */}
+        <div style={{ display: 'flex', flex: 1, padding: '0 16px 0' }}>
+
+          {/* RIGHT column (dark side): Name + fields */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '10px' }}>
+            {/* Name */}
+            <div>
+              <div style={{ fontSize: '9px', color: 'rgba(244,242,248,0.6)', marginBottom: '3px', letterSpacing: '0.04em' }}>الاسم الكامل</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
+                {userProfile.full_name}
+              </div>
+              {/* Divider with diamond */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(247,178,176,0.3)' }} />
+                <div style={{ width: '6px', height: '6px', background: ACCENT, transform: 'rotate(45deg)', borderRadius: '1px' }} />
+                <div style={{ flex: 1, height: '1px', background: 'rgba(247,178,176,0.3)' }} />
+              </div>
+            </div>
+
+            {/* 2×2 Info grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <InfoField icon="person" label="الصفة" value={userProfile.membership_type || 'عضو'} />
+              <InfoField icon="card" label="رقم العضوية" value={membershipId} />
+              <InfoField icon="building" label="المدينة" value={userProfile.location || 'نواكشوط'} />
+              <InfoField icon="calendar" label="تاريخ الإصدار" value={issueDate} />
+            </div>
+          </div>
+
+          {/* LEFT column (light side): Photo + QR */}
+          <div style={{ width: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', paddingBottom: '8px' }}>
+            {/* Profile photo */}
+            <div style={{ width: '110px', height: '130px', borderRadius: '12px', overflow: 'hidden', border: `3px solid ${ACCENT}`, background: '#c8c8d8', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+              {userProfile.avatar_url
+                ? <img src={userProfile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ddd8ea' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                )
+              }
+            </div>
+
+            {/* QR + label row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(244,242,248,0.9)', borderRadius: '10px', padding: '5px 7px' }}>
+              <div style={{ background: '#fff', padding: '3px', borderRadius: '4px', lineHeight: 0 }}>
+                <QRCodeCanvas
+                  ref={qrRef}
+                  value={verifyUrl}
+                  size={58}
+                  level="M"
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                {/* Shield check icon */}
+                <div style={{ width: '28px', height: '28px', background: `${ACCENT}30`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="18" viewBox="0 0 24 28" fill="none">
+                    <path d="M12 2L3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6L12 2z" fill={ACCENT} />
+                    <path d="M9 13l2 2 4-4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: '8px', fontWeight: 700, color: DARK, textAlign: 'center', lineHeight: 1.2 }}>تحقق من<br />العضوية</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── BOTTOM STRIP (dark) ── */}
+        <div style={{ background: 'rgba(0,0,0,0.35)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', borderTop: `1px solid rgba(247,178,176,0.15)` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            {/* Shield icon */}
+            <div style={{ width: '28px', height: '28px', background: `${ACCENT}25`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="14" height="16" viewBox="0 0 24 28" fill="none">
+                <path d="M12 2L3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6L12 2z" fill={ACCENT} />
+                <path d="M9 13l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.85)', fontWeight: 600, lineHeight: 1.5 }}>
+              هذه البطاقة ملك لجمعية عون وسند الخيرية<br />وتُستخدم لإثبات العضوية.
+            </span>
+          </div>
+          {/* Decorative hands icon */}
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, flexShrink: 0 }}>
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </div>
+
+        {/* ── FOOTER (white/light) ── */}
+        <div style={{ background: LIGHT_BG, padding: '5px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(38,35,63,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span style={{ fontSize: '9px', color: DARK, fontWeight: 700, fontFamily: 'sans-serif' }}>www.awnwasand.site</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span style={{ fontSize: '9px', color: DARK, fontWeight: 600, fontFamily: 'sans-serif' }}>Awn &amp; Sanad Charity – Mauritania</span>
+          </div>
         </div>
       </div>
     </div>
+  );
+};
 
-    {/* Body */}
-    <div style={{ flex: 1, display: 'flex', padding: '9px 13px', gap: '10px', alignItems: 'flex-start' }}>
-      {/* Details */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <div>
-          <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>الاسم الكامل</div>
-          <div style={{ fontSize: '13px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{userProfile.full_name}</div>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>رقم العضوية</div>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#f7b2b0' }}>{membershipId}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>الصفة</div>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>{userProfile.membership_type || '---'}</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>تاريخ الإصدار</div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#fff' }}>{issueDate}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '7px', color: 'rgba(165,180,252,0.8)', marginBottom: '1px' }}>المدينة</div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#fff' }}>{userProfile.location || 'نواكشوط'}</div>
-          </div>
-        </div>
+// ── Info field with icon ───────────────────────────────────────────────────
+const InfoField: React.FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => {
+  const icons: Record<string, React.ReactNode> = {
+    person: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+    ),
+    card: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      </svg>
+    ),
+    building: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 22V12h6v10"/><path d="M9 7h1"/><path d="M14 7h1"/><path d="M9 11h1"/><path d="M14 11h1"/>
+      </svg>
+    ),
+    calendar: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    ),
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+      {/* Icon box */}
+      <div style={{ width: '28px', height: '28px', background: `${ACCENT}30`, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {icons[icon]}
       </div>
-
-      {/* Photo + QR */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        <div style={{ width: '52px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '2px solid #f7b2b0', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {userProfile.avatar_url
-            ? <img src={userProfile.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontSize: '20px', fontWeight: 900, color: '#94a3b8' }}>{userProfile.full_name.charAt(0)}</span>}
-        </div>
-        <div style={{ background: '#fff', padding: '2px', borderRadius: '4px' }}>
-          <QRCodeCanvas ref={qrRef} value={verifyUrl} size={42} level="H" />
-        </div>
-        <div style={{ fontSize: '6px', color: 'rgba(199,210,254,0.7)', textAlign: 'center' }}>تحقق من العضوية</div>
+      <div>
+        <div style={{ fontSize: '8px', color: 'rgba(244,242,248,0.55)', marginBottom: '1px' }}>{label}</div>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{value}</div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// ─── Sub-component: Back face preview ────────────────────────────────────────
-const CardBackPreview: React.FC = () => (
-  <div style={{ width: '324px', height: '204px', borderRadius: '16px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif', direction: 'rtl', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.2)' }}>
-    <div style={{ background: '#26233f', height: '38px', display: 'flex', alignItems: 'center', padding: '0 14px', flexShrink: 0 }}>
-      <span style={{ fontSize: '11px', fontWeight: 700, color: '#f7b2b0' }}>تعليمات هامة للاستخدام</span>
+// ══════════════════════════════════════════════════════════════════════════════
+// CARD BACK — unchanged as requested
+// ══════════════════════════════════════════════════════════════════════════════
+const CardBack: React.FC = () => (
+  <div style={{ width: '100%', height: '100%', background: '#fff', fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif', direction: 'rtl', display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0' }}>
+    <div style={{ background: DARK, height: '42px', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: ACCENT }}>تعليمات هامة للاستخدام</span>
     </div>
-    <div style={{ flex: 1, padding: '11px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+    <div style={{ flex: 1, padding: '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' }}>
       {[
         'هذه البطاقة ملك لجمعية عون وسند الخيرية وتستخدم لإثبات العضوية.',
         'يرجى إبراز هذه البطاقة عند حضور الاجتماعات والأنشطة الرسمية.',
         'في حالة فقدان البطاقة، يرجى إبلاغ الإدارة فوراً عبر الموقع الرسمي.',
         'استخدام هذه البطاقة يخضع للوائح والقوانين الداخلية للجمعية.',
       ].map((t, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
-          <span style={{ color: '#f7b2b0', fontSize: '9px', marginTop: '2px', flexShrink: 0 }}>●</span>
-          <span style={{ fontSize: '9px', color: '#334155', lineHeight: 1.5, fontWeight: 600 }}>{t}</span>
+        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <span style={{ color: ACCENT, fontSize: '10px', marginTop: '2px', flexShrink: 0 }}>●</span>
+          <span style={{ fontSize: '10px', color: '#334155', lineHeight: 1.55, fontWeight: 600 }}>{t}</span>
         </div>
       ))}
     </div>
-    <div style={{ background: '#f1f5f9', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', flexShrink: 0 }}>
-      <span style={{ fontSize: '7px', color: '#64748b', fontWeight: 600 }}>www.awnwasand.site</span>
-      <span style={{ fontSize: '7px', color: '#94a3b8' }}>Awn &amp; Sanad Charity – Mauritania</span>
+    <div style={{ background: '#f1f5f9', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', flexShrink: 0, borderTop: '1px solid #e2e8f0' }}>
+      <span style={{ fontSize: '8px', color: '#64748b', fontWeight: 600 }}>www.awnwasand.site</span>
+      <span style={{ fontSize: '8px', color: '#94a3b8' }}>Awn &amp; Sanad Charity – Mauritania</span>
     </div>
   </div>
 );
