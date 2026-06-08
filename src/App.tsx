@@ -21,6 +21,11 @@ import { usePushNotifications } from './hooks/usePushNotifications';
 import { useLanguage } from './contexts/LanguageContext';
 import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 import { AvatarPromptModal } from './components/AvatarPromptModal';
+import { VerifyCardPage } from './pages/VerifyCardPage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, userProfile, loading, isAdmin, logout } = useAuth();
@@ -140,6 +145,7 @@ const AppContent = () => {
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/verify-card/:id" element={<VerifyCardPage />} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
@@ -161,9 +167,11 @@ function App() {
     <ThemeProvider>
       <LanguageProvider>
         <Router>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </QueryClientProvider>
         </Router>
       </LanguageProvider>
     </ThemeProvider>
