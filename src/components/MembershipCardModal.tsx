@@ -43,6 +43,28 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     ? new Date(card.issue_date).toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' })
     : '---';
 
+  // Helper: load an image URL and return a base64 data URL (bypasses CORS issues)
+  const toDataUrl = useCallback((url: string): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!url) { resolve(''); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch { resolve(''); }
+      };
+      img.onerror = () => resolve('');
+      // Add cache-bust to avoid CORS-cached opaque responses
+      img.src = url.startsWith('http') ? `${url}${url.includes('?') ? '&' : '?'}cb=${Date.now()}` : url;
+    });
+  }, []);
+
   // Export: capture the actual visible React card using html-to-image
   const exportCard = useCallback(async (format: 'png' | 'pdf') => {
     const frontEl = frontCardRef.current;
@@ -51,20 +73,58 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     setExportError(null);
 
     try {
+      // 1. Wait for all fonts to be ready
       await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 200));
 
-      // Ensure front is visible for capture (flip back if needed)
+      // 2. Ensure front is visible for capture (flip back if needed)
       const wasFlipped = isFlipped;
       if (wasFlipped) setIsFlipped(false);
-      await new Promise(r => setTimeout(r, 400)); // Wait for flip animation
+      await new Promise(r => setTimeout(r, 500)); // Wait for flip animation
 
-      const frontDataUrl = await toPng(frontEl, {
-        pixelRatio: 3,
-        cacheBust: true,
-        style: { transform: 'none', position: 'relative' },
-      });
+      // 3. Pre-load all images in the card as base64 to avoid CORS issues
+      const imgEls = frontEl.querySelectorAll<HTMLImageElement>('img');
+      await Promise.all(Array.from(imgEls).map(async (imgEl) => {
+        const originalSrc = imgEl.getAttribute('src') || '';
+        if (!originalSrc) return;
+        // Skip if already a data URL
+        if (originalSrc.startsWith('data:')) return;
+        const dataUrl = await toDataUrl(originalSrc);
+        if (dataUrl) imgEl.src = dataUrl;
+      }));
 
-      // Restore flip state
+      // Small wait after replacing image srcs
+      await new Promise(r => setTimeout(r, 150));
+
+      // 4. Attempt capture with retries
+      let frontDataUrl = '';
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          frontDataUrl = await toPng(frontEl, {
+            pixelRatio: 3,
+            cacheBust: true,
+            skipFonts: false,
+            style: { transform: 'none', position: 'relative' },
+            filter: (node) => {
+              // Skip script/style tags that can cause issues
+              if (node instanceof HTMLElement) {
+                const tag = node.tagName?.toLowerCase();
+                if (tag === 'script') return false;
+              }
+              return true;
+            },
+          });
+          break; // success
+        } catch (err) {
+          lastError = err;
+          await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+        }
+      }
+
+      if (!frontDataUrl) throw lastError;
+
+      // 5. Restore flip state
       if (wasFlipped) setIsFlipped(true);
 
       const safeName = (userProfile.full_name || 'member').replace(/\s+/g, '_');
@@ -88,7 +148,7 @@ export const MembershipCardModal: React.FC<MembershipCardModalProps> = ({ isOpen
     } finally {
       setIsExporting(false);
     }
-  }, [userProfile, isFlipped]);
+  }, [userProfile, isFlipped, toDataUrl]);
 
   // Guard — nothing rendered if modal is closed
   if (!isOpen || !userProfile) return null;
