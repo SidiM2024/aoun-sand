@@ -98,7 +98,7 @@ export const AuthPage = () => {
       if (data.user) {
         const { data: existingUser } = await supabase.from('users').select('id, full_name').eq('id', data.user.id).single();
         if (!existingUser) {
-          await supabase.from('users').insert([{
+          const { error: insertError } = await supabase.from('users').insert([{
             id: data.user.id,
             email: email,
             phone: phone,
@@ -109,6 +109,10 @@ export const AuthPage = () => {
             national_id: '',
             approval_status: 'Pending Approval'
           }]);
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            toast.error(isRTL ? 'خطأ في قاعدة البيانات: ' + insertError.message : 'Database error: ' + insertError.message);
+          }
           toast.success(isRTL ? 'مرحباً بك يا مستخدم جديد!' : 'Welcome, new user!');
         } else {
           toast.success(isRTL ? `مرحباً بك مجدداً، ${existingUser.full_name}!` : `Welcome back, ${existingUser.full_name}!`);
@@ -171,7 +175,7 @@ export const AuthPage = () => {
           }
         }
 
-        await supabase.from('users').upsert([{
+        const { error: upsertError } = await supabase.from('users').upsert([{
           id: data.user.id,
           full_name: fullName,
           email: email,
@@ -183,6 +187,11 @@ export const AuthPage = () => {
           avatar_url: avatar_url,
           approval_status: 'Pending Approval'
         }], { onConflict: 'id' });
+        
+        if (upsertError) {
+          console.error('Upsert error:', upsertError);
+          toast.error(isRTL ? 'حدث خطأ في حفظ بياناتك: ' + upsertError.message : 'Error saving data: ' + upsertError.message);
+        }
         
         if (!data.session) {
           await supabase.auth.signInWithPassword({
