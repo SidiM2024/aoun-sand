@@ -18,7 +18,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
   const isRTL = language === 'ar';
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Pending Approval' | 'Approved' | 'Rejected' | 'Suspended'>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Pending' | 'Approved' | 'Rejected' | 'Suspended'>('All');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -31,7 +31,10 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
 
   // Status counters
   const totalCount = localUsers.length;
-  const pendingCount = localUsers.filter(u => (u.approval_status || 'Pending Approval') === 'Pending Approval').length;
+  const pendingCount = localUsers.filter(u => {
+    const status = u.approval_status || 'Pending Approval';
+    return status === 'Pending Approval' || status === 'Pending';
+  }).length;
   const approvedCount = localUsers.filter(u => u.approval_status === 'Approved').length;
   const rejectedCount = localUsers.filter(u => u.approval_status === 'Rejected').length;
   const suspendedCount = localUsers.filter(u => u.approval_status === 'Suspended').length;
@@ -110,7 +113,12 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
 
   const filteredUsers = localUsers.filter(u => {
     const status = u.approval_status || 'Pending Approval';
-    const matchesStatus = statusFilter === 'All' || status === statusFilter;
+    const isPending = status === 'Pending Approval' || status === 'Pending';
+    
+    let matchesStatus = false;
+    if (statusFilter === 'All') matchesStatus = true;
+    else if (statusFilter === 'Pending') matchesStatus = isPending;
+    else matchesStatus = status === statusFilter;
     
     const matchesSearch = 
       u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -176,11 +184,11 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
         {/* Status Tabs */}
         <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-2xl w-full md:w-auto overflow-x-auto">
-          {(['All', 'Pending Approval', 'Approved', 'Rejected', 'Suspended'] as const).map((filter) => {
+          {(['All', 'Pending', 'Approved', 'Rejected', 'Suspended'] as const).map((filter) => {
             const isActive = statusFilter === filter;
             const label = 
               filter === 'All' ? (isRTL ? 'الكل' : 'All') :
-              filter === 'Pending Approval' ? (isRTL ? 'قيد المراجعة' : 'Pending') :
+              filter === 'Pending' ? (isRTL ? 'قيد المراجعة' : 'Pending') :
               filter === 'Approved' ? (isRTL ? 'مقبول' : 'Approved') :
               filter === 'Rejected' ? (isRTL ? 'مرفوض' : 'Rejected') :
               (isRTL ? 'معلق' : 'Suspended');
@@ -232,8 +240,10 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                 const status = u.approval_status || 'Pending Approval';
                 const isUserUpdating = updatingId === u.id;
 
+                const isPending = status === 'Pending Approval' || status === 'Pending';
+
                 let statusBadge = '';
-                if (status === 'Pending Approval') {
+                if (isPending) {
                   statusBadge = 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
                 } else if (status === 'Approved') {
                   statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
@@ -295,11 +305,11 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                     {/* Status Badge */}
                     <td className="p-5">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${statusBadge}`}>
-                        {status === 'Pending Approval' && <Clock className="w-3.5 h-3.5" />}
+                        {isPending && <Clock className="w-3.5 h-3.5" />}
                         {status === 'Approved' && <ShieldCheck className="w-3.5 h-3.5" />}
                         {status === 'Rejected' && <X className="w-3.5 h-3.5" />}
                         {status === 'Suspended' && <AlertTriangle className="w-3.5 h-3.5" />}
-                        {status === 'Pending Approval' ? (isRTL ? 'في انتظار الموافقة' : 'Pending Approval') :
+                        {isPending ? (isRTL ? 'في انتظار الموافقة' : 'Pending Approval') :
                          status === 'Approved' ? (isRTL ? 'مقبول' : 'Approved') :
                          status === 'Rejected' ? (isRTL ? 'مرفوض' : 'Rejected') :
                          (isRTL ? 'معلق' : 'Suspended')}
@@ -325,7 +335,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                             )}
 
                             {/* REJECT — available for Pending & Approved */}
-                            {(status === 'Pending Approval' || status === 'Approved' || status === 'Suspended') && (
+                            {(isPending || status === 'Approved' || status === 'Suspended') && (
                               <button
                                 onClick={() => handleStatusUpdate(u.id, 'Rejected')}
                                 title={isRTL ? 'رفض' : 'Reject'}

@@ -31,27 +31,71 @@ export const AccountPage = () => {
           className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 text-center"
         >
           {/* Avatar */}
-          <div className="relative inline-block mb-4">
-            {userProfile?.avatar_url ? (
-              <img 
-                src={userProfile.avatar_url} 
-                alt={userProfile.full_name} 
-                className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-lg mx-auto"
-              />
-            ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg border-4 border-white dark:border-slate-700">
-                <span className="text-white text-3xl font-black uppercase">
-                  {userProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                </span>
+          <div className="relative inline-block mb-4 group">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                if (!e.target.files || !e.target.files[0] || !user) return;
+                const file = e.target.files[0];
+                const toastId = toast.loading(isRTL ? 'جاري الرفع...' : 'Uploading...');
+                
+                try {
+                  const fileExt = file.name.split('.').pop();
+                  const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+                  
+                  const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, file);
+                    
+                  if (uploadError) throw uploadError;
+
+                  const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                  const avatar_url = publicUrlData.publicUrl;
+
+                  const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ avatar_url })
+                    .eq('id', user.id);
+
+                  if (updateError) throw updateError;
+
+                  toast.success(isRTL ? 'تم تحديث الصورة بنجاح' : 'Avatar updated successfully', { id: toastId });
+                } catch (error: any) {
+                  console.error(error);
+                  toast.error(isRTL ? 'خطأ في تحديث الصورة' : 'Error updating avatar', { id: toastId });
+                }
+              }}
+              className="hidden"
+              id="account-avatar-upload"
+            />
+            <label htmlFor="account-avatar-upload" className="cursor-pointer block relative">
+              {userProfile?.avatar_url ? (
+                <img 
+                  src={userProfile.avatar_url} 
+                  alt={userProfile.full_name} 
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-lg mx-auto group-hover:opacity-80 transition-opacity"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg border-4 border-white dark:border-slate-700 group-hover:opacity-80 transition-opacity">
+                  <span className="text-white text-3xl font-black uppercase">
+                    {userProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </span>
+                </div>
+              )}
+              
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
               </div>
-            )}
-            {/* Status indicator */}
-            <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 ${
-              userProfile?.approval_status === 'Approved' ? 'bg-emerald-500' :
-              userProfile?.approval_status === 'Rejected' ? 'bg-red-500' :
-              userProfile?.approval_status === 'Suspended' ? 'bg-rose-500' :
-              'bg-amber-400'
-            }`} />
+
+              {/* Status indicator */}
+              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 z-10 ${
+                userProfile?.approval_status === 'Approved' ? 'bg-emerald-500' :
+                userProfile?.approval_status === 'Rejected' ? 'bg-red-500' :
+                userProfile?.approval_status === 'Suspended' ? 'bg-rose-500' :
+                'bg-amber-400'
+              }`} />
+            </label>
           </div>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">
             {userProfile?.full_name || (isRTL ? 'مستخدم' : 'User')}
