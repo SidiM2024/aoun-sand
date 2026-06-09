@@ -32,8 +32,8 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
   // Status counters
   const totalCount = localUsers.length;
   const pendingCount = localUsers.filter(u => {
-    const status = u.approval_status || 'Pending Approval';
-    return status === 'Pending Approval' || status === 'Pending';
+    const status = (u.approval_status || 'Pending Approval').toLowerCase();
+    return status.includes('pending') || status === 'في انتظار المراجعة';
   }).length;
   const approvedCount = localUsers.filter(u => u.approval_status === 'Approved').length;
   const rejectedCount = localUsers.filter(u => u.approval_status === 'Rejected').length;
@@ -113,7 +113,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
 
   const filteredUsers = localUsers.filter(u => {
     const status = u.approval_status || 'Pending Approval';
-    const isPending = status === 'Pending Approval' || status === 'Pending';
+    const isPending = status.toLowerCase().includes('pending') || status === 'في انتظار المراجعة';
     
     let matchesStatus = false;
     if (statusFilter === 'All') matchesStatus = true;
@@ -240,7 +240,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
                 const status = u.approval_status || 'Pending Approval';
                 const isUserUpdating = updatingId === u.id;
 
-                const isPending = status === 'Pending Approval' || status === 'Pending';
+                const isPending = status.toLowerCase().includes('pending') || status === 'في انتظار المراجعة';
 
                 let statusBadge = '';
                 if (isPending) {
