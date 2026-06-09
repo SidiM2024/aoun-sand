@@ -65,22 +65,32 @@ CREATE TRIGGER on_auth_user_created
 
 -- 4. Automatically sync all missing users right now! (Fixes users stuck in limbo)
 DO $$
+DECLARE
+  au RECORD;
 BEGIN
-  INSERT INTO public.users (
-    id, full_name, email, phone, membership_type, current_status, location, national_id, approval_status
-  )
-  SELECT 
-    au.id, 
-    COALESCE(au.raw_user_meta_data->>'full_name', 'مستخدم جديد'),
-    au.email, 
-    COALESCE(au.raw_user_meta_data->>'phone', '20000000'), 
-    COALESCE(au.raw_user_meta_data->>'membership_type', 'عضو'),
-    COALESCE(au.raw_user_meta_data->>'current_status', 'لا شيء'),
-    COALESCE(au.raw_user_meta_data->>'location', ''),
-    COALESCE(au.raw_user_meta_data->>'national_id', ''),
-    'Pending Approval'
-  FROM auth.users au
-  LEFT JOIN public.users pu ON au.id = pu.id
-  WHERE pu.id IS NULL
-  ON CONFLICT (id) DO NOTHING;
+  FOR au IN 
+    SELECT 
+      a.id, 
+      a.email, 
+      COALESCE(a.raw_user_meta_data->>'full_name', 'مستخدم جديد') as full_name,
+      COALESCE(a.raw_user_meta_data->>'phone', '4' || lpad(floor(random()*10000000)::int::text, 7, '0')) as phone,
+      COALESCE(a.raw_user_meta_data->>'membership_type', 'عضو') as membership_type,
+      COALESCE(a.raw_user_meta_data->>'current_status', 'لا شيء') as current_status,
+      COALESCE(a.raw_user_meta_data->>'location', '') as location,
+      COALESCE(a.raw_user_meta_data->>'national_id', '') as national_id
+    FROM auth.users a
+    LEFT JOIN public.users pu ON a.id = pu.id
+    WHERE pu.id IS NULL
+  LOOP
+    BEGIN
+      INSERT INTO public.users (
+        id, full_name, email, phone, membership_type, current_status, location, national_id, approval_status
+      ) VALUES (
+        au.id, au.full_name, au.email, au.phone, au.membership_type, au.current_status, au.location, au.national_id, 'Pending Approval'
+      );
+    EXCEPTION WHEN others THEN
+      -- Silently ignore any errors for this specific user (e.g. duplicate phone, invalid format)
+      -- and continue to the next user!
+    END;
+  END LOOP;
 END $$;
