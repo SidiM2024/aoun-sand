@@ -1,7 +1,9 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText, Hash } from 'lucide-react';
+import { LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText, Hash, Camera } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 export const AccountPage = () => {

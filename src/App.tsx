@@ -60,6 +60,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <AvatarPromptModal />;
   }
 
+  // Intercept Mahaja users to isolate them to /mahaja
+  if (user && !isAdmin && userProfile?.is_mahaja) {
+    if (location.pathname !== '/mahaja') {
+      return <Navigate to="/mahaja" replace />;
+    }
+    return <>{children}</>;
+  }
+
   // Intercept normal users who are not approved
   if (user && !isAdmin) {
     const status = userProfile?.approval_status || 'Pending Approval';
@@ -131,7 +139,9 @@ const AppContent = () => {
   // Admin page also hides all user-facing chrome (Header, Nav, Notifications)
   // to prevent context leakage and unnecessary queries during admin sessions
   const isAdminPage = location.pathname === '/admin';
-  const isShellHidden = isAuthPage || isAdminPage;
+  const { userProfile } = useAuth();
+  const isMahajaUser = userProfile?.is_mahaja === true;
+  const isShellHidden = isAuthPage || isAdminPage || isMahajaUser;
 
   // Register service worker + listen for push notifications via Supabase Realtime
   usePushNotifications();

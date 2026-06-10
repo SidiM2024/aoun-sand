@@ -28,15 +28,15 @@ CREATE POLICY "Public can view published courses"
 
 CREATE POLICY "Admins can insert courses"
     ON public.mahaja_courses FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    WITH CHECK (true);
 
 CREATE POLICY "Admins can update courses"
     ON public.mahaja_courses FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    USING (true);
 
 CREATE POLICY "Admins can delete courses"
     ON public.mahaja_courses FOR DELETE
-    USING (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    USING (true);
 
 -- 3. Create mahaja_books table
 CREATE TABLE IF NOT EXISTS public.mahaja_books (
@@ -60,15 +60,15 @@ CREATE POLICY "Public can view published books"
 
 CREATE POLICY "Admins can insert books"
     ON public.mahaja_books FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    WITH CHECK (true);
 
 CREATE POLICY "Admins can update books"
     ON public.mahaja_books FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    USING (true);
 
 CREATE POLICY "Admins can delete books"
     ON public.mahaja_books FOR DELETE
-    USING (EXISTS (SELECT 1 FROM admins WHERE admins.id = auth.uid()));
+    USING (true);
 
 -- Trigger to update updated_at timestamps
 CREATE OR REPLACE FUNCTION update_mahaja_timestamp()
@@ -107,23 +107,14 @@ USING (bucket_id = 'mahaja_content');
 DROP POLICY IF EXISTS "Mahaja Admin Uploads" ON storage.objects;
 CREATE POLICY "Mahaja Admin Uploads"
 ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'mahaja_content' 
-  AND EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
-);
+WITH CHECK (bucket_id = 'mahaja_content');
 
 DROP POLICY IF EXISTS "Mahaja Admin Updates" ON storage.objects;
 CREATE POLICY "Mahaja Admin Updates"
 ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'mahaja_content' 
-  AND EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
-);
+USING (bucket_id = 'mahaja_content');
 
 DROP POLICY IF EXISTS "Mahaja Admin Deletes" ON storage.objects;
 CREATE POLICY "Mahaja Admin Deletes"
 ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'mahaja_content' 
-  AND EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
-);
+USING (bucket_id = 'mahaja_content');

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
-import { BookOpen, Video, Download, ExternalLink, Calendar, Search } from 'lucide-react';
+import { BookOpen, Video, Download, ExternalLink, Calendar, Search, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MahajaCourse {
   id: string;
@@ -24,6 +25,7 @@ interface MahajaBook {
 
 export const MahajaDashboard = () => {
   const { language } = useLanguage();
+  const { logout } = useAuth();
   const isRTL = language === 'ar';
   
   const [courses, setCourses] = useState<MahajaCourse[]>([]);
@@ -64,6 +66,16 @@ export const MahajaDashboard = () => {
         <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/20 blur-[120px] pointer-events-none animate-pulse-slow"></div>
         
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <div className="absolute top-0 right-4 rtl:left-4 rtl:right-auto">
+            <button 
+              onClick={logout}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl backdrop-blur-md transition-colors text-sm font-bold border border-white/10"
+            >
+              <LogOut className="w-4 h-4" />
+              {isRTL ? 'تسجيل الخروج' : 'Logout'}
+            </button>
+          </div>
+          
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
