@@ -58,7 +58,8 @@ jobs:
       - name: Build Signed AAB
         working-directory: ./android
         run: |
-          ./gradlew bundleRelease \
+          chmod +x ./gradlew
+          bash ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/my-release-key.keystore \
             -Pandroid.injected.signing.store.password=aounsand2024 \
             -Pandroid.injected.signing.key.alias=my-key-alias \
