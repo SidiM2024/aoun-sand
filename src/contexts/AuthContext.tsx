@@ -14,6 +14,8 @@ export interface UserProfile {
   approval_status: string;
   avatar_url?: string;
   unique_short_id?: string;
+  is_mahaja?: boolean;
+  date_of_birth?: string;
 }
 
 interface AuthContextType {

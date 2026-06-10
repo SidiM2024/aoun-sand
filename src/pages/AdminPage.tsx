@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -13,6 +13,7 @@ import { DonationsTab } from '../components/admin/DonationsTab';
 import { ApprovalsTab } from '../components/admin/ApprovalsTab';
 import { FinanceTab } from '../components/admin/FinanceTab';
 import { PatientsTab } from '../components/admin/PatientsTab';
+import { MahajaTab } from '../components/admin/MahajaTab';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
@@ -24,7 +25,7 @@ export const AdminPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -202,6 +203,7 @@ export const AdminPage = () => {
     { id: 'patients',      icon: HeartPulse, label: isRTL ? 'إدارة المرضى' : 'Patients',    color: 'text-rose-500',   bg: 'bg-rose-50 dark:bg-rose-900/20'   },
     { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
     { id: 'finance',       icon: DollarSign, label: isRTL ? 'المالية'    : 'Finance',        color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { id: 'mahaja',        icon: BookOpen,   label: isRTL ? 'المحجة البيضاء' : 'Al-Mahaja',    color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
   ];
 
   return (
@@ -284,6 +286,7 @@ export const AdminPage = () => {
               {activeTab === 'patients'      && <PatientsTab />}
               {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
               {activeTab === 'finance'       && <FinanceTab />}
+              {activeTab === 'mahaja'        && <MahajaTab />}
             </AnimatePresence>
           </div>
         </div>

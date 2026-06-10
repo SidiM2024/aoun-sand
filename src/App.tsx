@@ -15,6 +15,7 @@ import { LessonsPage } from './pages/LessonsPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminPage } from './pages/AdminPage';
 import { AccountPage } from './pages/AccountPage';
+import { MahajaDashboard } from './pages/MahajaDashboard';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
@@ -153,6 +154,7 @@ const AppContent = () => {
           <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
           <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
           <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
+          <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         </Routes>
       </main>
