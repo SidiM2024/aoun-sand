@@ -23,6 +23,7 @@ import { useLanguage } from './contexts/LanguageContext';
 import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 import { AvatarPromptModal } from './components/AvatarPromptModal';
 import { VerifyCardPage } from './pages/VerifyCardPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -157,6 +158,7 @@ const AppContent = () => {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
