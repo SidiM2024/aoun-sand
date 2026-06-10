@@ -63,21 +63,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         if (adminData) {
           setIsAdmin(true);
-          localStorage.setItem('admin_session', 'true');
         } else {
           setIsAdmin(false);
-          localStorage.removeItem('admin_session');
         }
       } else {
         setUserProfile(null);
         setIsAdmin(false);
-        localStorage.removeItem('admin_session');
       }
     } catch (e) {
       console.error("Exception during fetchProfile:", e);
       setUserProfile(null);
       setIsAdmin(false);
-      localStorage.removeItem('admin_session');
     }
   };
 
@@ -103,7 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setUserProfile(null);
           setIsAdmin(false);
-          localStorage.removeItem('admin_session');
         }
       } catch (err) {
         console.error("Error in initializeAuth:", err);
@@ -147,7 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           setUserProfile(null);
           setIsAdmin(false);
-          localStorage.removeItem('admin_session');
         }
       } catch (err) {
         console.error("Error in onAuthStateChange callback:", err);
@@ -169,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error("Error signing out:", err);
     }
-    localStorage.removeItem('admin_session');
+    localStorage.removeItem('supabase.auth.token');
     setUser(null);
     setUserProfile(null);
     setIsAdmin(false);

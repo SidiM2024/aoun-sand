@@ -21,5 +21,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+
 
 .vercel

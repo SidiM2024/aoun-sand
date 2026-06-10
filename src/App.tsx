@@ -27,7 +27,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
+// Protects /admin route — redirects to /auth if not a verified admin
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAdmin, loading } = useAuth();
+  if (loading) return null;
+  if (!user || !isAdmin) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+
   const { user, userProfile, loading, isAdmin, logout } = useAuth();
   const { language } = useLanguage();
   const location = useLocation();
@@ -154,7 +163,7 @@ const AppContent = () => {
       <main className={`flex-1 ${!isShellHidden ? 'pb-16' : ''}`}>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />

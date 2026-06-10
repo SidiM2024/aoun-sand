@@ -16,19 +16,21 @@
 
 | المفتاح (Key) | القيمة (Value) |
 | --- | --- |
-| `VITE_SUPABASE_URL` | `https://your-project-id.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | `sb_publishable_bzMOKDOqC0dR8Ec_DAKZMA_13wY-oVl` |
-
-*(تأكد من استبدال رابط المشروع برابط Supabase الفعلي الخاص بك)*
+| `VITE_SUPABASE_URL` | *(انسخ من Supabase → Project Settings → API → Project URL)* |
+| `VITE_SUPABASE_ANON_KEY` | *(انسخ من Supabase → Project Settings → API → anon public)* |
+| `VITE_ADMIN_USERNAME` | *(اسم المستخدم للمشرف — لا تضعه داخل الكود أبداً)* |
+| `VITE_ADMIN_PASSWORD` | *(كلمة مرور المشرف — لا تضعها داخل الكود أبداً)* |
 
 ---
 
 ### 🔴 المتغيرات الخاصة بالخادم (Server-Only / Backend) - سري جداً ⚠️
-هذا المفتاح يتم استخدامه في الـ Serverless Functions (لوجود مجلد `api`) للقيام بمهام الإدمن لتجاوز الـ RLS. **يجب ألا يتم استخدامه في الواجهة أبداً**.
+هذا المفتاح يتم استخدامه في الـ Serverless Functions (لوجود مجلد `api`) للقيام بمهام الإدمن لتجاوز الـ RLS. **يجب ألا يتم استخدامه في الواجهة أبداً ولا يجب وضعه في الكود**.
 
-| المفتاح (Key) | القيمة (Value) |
+| المفتاح (Key) | مصدر القيمة |
 | --- | --- |
-| `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_8edNv_ECVLdQbNuol2NTtA_8wvucqm5` |
+| `SUPABASE_SERVICE_ROLE_KEY` | *(انسخ من Supabase → Project Settings → API → service_role secret)* |
+
+> ⚠️ **تحذير أمني**: لا تضع مفاتيحك الفعلية داخل ملفات الكود أو GitHub أبداً. استخدم دائماً Environment Variables.
 
 ---
 
