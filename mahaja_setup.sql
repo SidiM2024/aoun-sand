@@ -99,25 +99,29 @@ VALUES ('mahaja_content', 'mahaja_content', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for mahaja_content
-CREATE POLICY "Public Access"
+DROP POLICY IF EXISTS "Mahaja Public Access" ON storage.objects;
+CREATE POLICY "Mahaja Public Access"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'mahaja_content');
 
-CREATE POLICY "Admin Uploads"
+DROP POLICY IF EXISTS "Mahaja Admin Uploads" ON storage.objects;
+CREATE POLICY "Mahaja Admin Uploads"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'mahaja_content' 
   AND EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
 
-CREATE POLICY "Admin Updates"
+DROP POLICY IF EXISTS "Mahaja Admin Updates" ON storage.objects;
+CREATE POLICY "Mahaja Admin Updates"
 ON storage.objects FOR UPDATE
 USING (
   bucket_id = 'mahaja_content' 
   AND EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
 
-CREATE POLICY "Admin Deletes"
+DROP POLICY IF EXISTS "Mahaja Admin Deletes" ON storage.objects;
+CREATE POLICY "Mahaja Admin Deletes"
 ON storage.objects FOR DELETE
 USING (
   bucket_id = 'mahaja_content' 
