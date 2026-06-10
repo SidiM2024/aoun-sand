@@ -47,5 +47,20 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>نحتاج إلى الوصول للكاميرا للسماح لك بالتقاط صور للمستندات أو الملفات الشخصية.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>نحتاج إلى الوصول لمعرض الصور للسماح لك برفع المستندات أو الصور.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.aoun.sand.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aounsand</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
