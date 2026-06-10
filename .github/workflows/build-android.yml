@@ -1,7 +1,7 @@
 name: Build Android App
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -27,24 +27,30 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
 
       - name: Install NPM Dependencies
-        run: npm ci || npm install
+        run: npm install
 
       - name: Build Vite Web App
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run build
 
       - name: Sync Capacitor
         run: npx cap sync android
 
       - name: Generate Release Keystore
-        id: generate-keystore
         run: |
           keytool -genkey -v \
-            -keystore my-release-key.keystore \
+            -keystore android/app/my-release-key.keystore \
             -alias my-key-alias \
             -keyalg RSA \
             -keysize 2048 \
@@ -52,18 +58,20 @@ jobs:
             -dname "CN=Aoun Sand, OU=IT, O=Aoun Sand, L=City, S=State, C=PS" \
             -storepass "aounsand2024" \
             -keypass "aounsand2024"
-          # Move keystore to android/app directory so gradle can find it
-          mv my-release-key.keystore android/app/
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x android/gradlew
 
       - name: Build Signed AAB
         working-directory: ./android
         run: |
-          chmod +x ./gradlew
-          bash ./gradlew bundleRelease \
+          ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/my-release-key.keystore \
             -Pandroid.injected.signing.store.password=aounsand2024 \
             -Pandroid.injected.signing.key.alias=my-key-alias \
-            -Pandroid.injected.signing.key.password=aounsand2024
+            -Pandroid.injected.signing.key.password=aounsand2024 \
+            --no-daemon \
+            --info 2>&1 | tail -100
 
       - name: Upload AAB Artifact
         uses: actions/upload-artifact@v4
