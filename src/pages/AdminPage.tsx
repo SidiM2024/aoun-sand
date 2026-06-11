@@ -55,11 +55,36 @@ export const AdminPage = () => {
   };
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setUsers(data);
-      setUsersCount(data.length);
+    let allUsers: any[] = [];
+    let from = 0;
+    const step = 1000;
+    let fetchMore = true;
+
+    while (fetchMore) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + step - 1);
+
+      if (error) {
+        console.error("Error fetching users:", error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allUsers = [...allUsers, ...data];
+        from += step;
+        if (data.length < step) {
+          fetchMore = false;
+        }
+      } else {
+        fetchMore = false;
+      }
     }
+    
+    setUsers(allUsers);
+    setUsersCount(allUsers.length);
   };
 
   const fetchPolls = async () => {

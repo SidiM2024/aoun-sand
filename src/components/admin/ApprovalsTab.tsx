@@ -5,7 +5,8 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { 
   Users, Search, ShieldCheck, Clock, Check, X, Ban, 
-  AlertTriangle, Calendar, Mail, Phone, RefreshCw, Trash2
+  AlertTriangle, Calendar, Mail, Phone, RefreshCw, Trash2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface ApprovalsTabProps {
@@ -129,6 +130,17 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
     return matchesStatus && matchesSearch;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <motion.div 
       key="approvals" 
@@ -236,7 +248,7 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredUsers.map((u, i) => {
+              {paginatedUsers.map((u, i) => {
                 const status = u.approval_status || 'Pending Approval';
                 const isUserUpdating = updatingId === u.id;
 
@@ -385,6 +397,59 @@ export const ApprovalsTab = ({ users, onRefresh }: ApprovalsTabProps) => {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {isRTL 
+                ? `عرض ${startIndex + 1} إلى ${Math.min(startIndex + itemsPerPage, filteredUsers.length)} من أصل ${filteredUsers.length} مستخدم` 
+                : `Showing ${startIndex + 1} to ${Math.min(startIndex + itemsPerPage, filteredUsers.length)} of ${filteredUsers.length} users`}
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 disabled:opacity-50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-600"
+              >
+                {isRTL ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = currentPage;
+                  if (currentPage <= 3) pageNum = i + 1;
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = currentPage - 2 + i;
+                  
+                  if (pageNum > 0 && pageNum <= totalPages) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-lg text-sm font-bold transition-colors ${
+                          currentPage === pageNum 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 disabled:opacity-50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-600"
+              >
+                {isRTL ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
