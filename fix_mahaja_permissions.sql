@@ -42,6 +42,8 @@ DROP POLICY IF EXISTS "mahaja_courses_delete" ON public.mahaja_courses;
 DROP POLICY IF EXISTS "Public can view published courses" ON public.mahaja_courses;
 DROP POLICY IF EXISTS "mahaja_courses_read" ON public.mahaja_courses;
 
+DROP POLICY IF EXISTS "mahaja_courses_all" ON public.mahaja_courses;
+
 CREATE POLICY "mahaja_courses_all" ON public.mahaja_courses
   FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
@@ -51,6 +53,8 @@ DROP POLICY IF EXISTS "mahaja_books_update" ON public.mahaja_books;
 DROP POLICY IF EXISTS "mahaja_books_delete" ON public.mahaja_books;
 DROP POLICY IF EXISTS "Public can view published books" ON public.mahaja_books;
 DROP POLICY IF EXISTS "mahaja_books_read" ON public.mahaja_books;
+
+DROP POLICY IF EXISTS "mahaja_books_all" ON public.mahaja_books;
 
 CREATE POLICY "mahaja_books_all" ON public.mahaja_books
   FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
@@ -67,6 +71,11 @@ DROP POLICY IF EXISTS "Mahaja Public Access" ON storage.objects;
 DROP POLICY IF EXISTS "Mahaja Admin Uploads" ON storage.objects;
 DROP POLICY IF EXISTS "Mahaja Admin Updates" ON storage.objects;
 DROP POLICY IF EXISTS "Mahaja Admin Deletes" ON storage.objects;
+
+DROP POLICY IF EXISTS "mahaja_storage_select" ON storage.objects;
+DROP POLICY IF EXISTS "mahaja_storage_insert" ON storage.objects;
+DROP POLICY IF EXISTS "mahaja_storage_update" ON storage.objects;
+DROP POLICY IF EXISTS "mahaja_storage_delete" ON storage.objects;
 
 CREATE POLICY "mahaja_storage_select" ON storage.objects FOR SELECT 
   TO anon, authenticated USING (bucket_id = 'mahaja_content');

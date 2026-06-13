@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, FileText, UploadCloud } from 'lucide-react';
+import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
 export const MahajaTab = () => {
   const { language } = useLanguage();
@@ -57,8 +57,14 @@ export const MahajaTab = () => {
     const isNew = id === 'new';
     
     // basic validation
-    if (!editForm.title) {
+    if (!editForm.title?.trim()) {
       toast.error(isRTL ? 'العنوان مطلوب' : 'Title is required');
+      return;
+    }
+
+    const linkField = activeSubTab === 'courses' ? 'content_link' : 'download_link';
+    if (!editForm[linkField]?.trim()) {
+      toast.error(isRTL ? 'الرابط مطلوب' : 'Link is required');
       return;
     }
 
@@ -66,19 +72,25 @@ export const MahajaTab = () => {
 
     try {
       if (isNew) {
-        const { error } = await supabase.from(table).insert([saveData]);
-        if (error) throw error;
+        const { data, error } = await supabase.from(table).insert([saveData]).select();
+        if (error) {
+          console.error("Supabase insert error:", error, "Data attempted:", saveData);
+          throw error;
+        }
         toast.success(isRTL ? 'تمت الإضافة بنجاح' : 'Added successfully');
       } else {
-        const { error } = await supabase.from(table).update(saveData).eq('id', id);
-        if (error) throw error;
+        const { data, error } = await supabase.from(table).update(saveData).eq('id', id).select();
+        if (error) {
+          console.error("Supabase update error:", error, "Data attempted:", saveData);
+          throw error;
+        }
         toast.success(isRTL ? 'تم التحديث بنجاح' : 'Updated successfully');
       }
       setIsEditing(null);
       fetchItems();
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message);
+      console.error("Full save error catch block:", err);
+      toast.error(err.message || (isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving data'));
     }
   };
 
@@ -130,8 +142,8 @@ export const MahajaTab = () => {
       });
       
       if (error) {
-        console.error('Supabase upload error:', error);
-        throw new Error(error.message);
+        console.error('Supabase storage upload error object:', error);
+        throw error;
       }
       
       const { data: urlData } = supabase.storage.from('mahaja_content').getPublicUrl(fileName);
@@ -147,45 +159,6 @@ export const MahajaTab = () => {
     }
   };
 
-  const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    
-    // Validate file size (max 20MB for books/courses)
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error(isRTL ? 'حجم الملف يجب أن لا يتجاوز 20 ميجابايت' : 'File size must be less than 20MB');
-      return;
-    }
-
-    const fileExt = file.name.split('.').pop();
-    const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '');
-    const fileName = `mahaja-file-${Date.now()}-${safeName.substring(0, 10)}.${fileExt}`;
-
-    try {
-      toast.loading(isRTL ? 'جاري الرفع...' : 'Uploading...', { id: 'upload_file' });
-      
-      const { data, error } = await supabase.storage.from('mahaja_content').upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-      
-      if (error) {
-        console.error('Supabase file upload error:', error);
-        throw new Error(error.message);
-      }
-      
-      const { data: urlData } = supabase.storage.from('mahaja_content').getPublicUrl(fileName);
-      const url = urlData.publicUrl;
-      
-      const linkField = activeSubTab === 'courses' ? 'content_link' : 'download_link';
-      setEditForm({ ...editForm, [linkField]: url });
-      
-      toast.success(isRTL ? 'تم رفع الملف' : 'File uploaded', { id: 'upload_file' });
-    } catch (err: any) {
-      console.error('File upload failed:', err);
-      toast.error(err.message || (isRTL ? 'فشل الرفع' : 'Upload failed'), { id: 'upload_file' });
-    }
-  };
 
   return (
     <motion.div 
@@ -260,17 +233,18 @@ export const MahajaTab = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{isRTL ? 'الرابط أو الملف' : 'Link or File'}</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {isRTL ? 'الرابط' : 'Link'} <span className="text-red-500">*</span>
+                      </label>
                       <div className="flex gap-2 items-center">
-                        <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 px-4 py-3 rounded-xl flex items-center justify-center" title={isRTL ? 'رفع ملف' : 'Upload file'}>
-                          {activeSubTab === 'courses' ? <Video className="w-5 h-5 text-slate-600 dark:text-slate-300" /> : <FileText className="w-5 h-5 text-slate-600 dark:text-slate-300" />}
-                          <input type="file" accept={activeSubTab === 'courses' ? 'video/*,audio/*' : '.pdf,.doc,.docx,.zip'} className="hidden" onChange={uploadFile} />
-                        </label>
+                        <div className="bg-slate-200 dark:bg-slate-700 px-4 py-3 rounded-xl flex items-center justify-center">
+                          <LinkIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        </div>
                         <input 
                           type="text" 
                           value={editForm[linkField] || ''} 
                           onChange={e => setEditForm({...editForm, [linkField]: e.target.value})}
-                          placeholder={isRTL ? 'رابط الملف أو ارفع ملفاً' : 'File URL or upload file'}
+                          placeholder={isRTL ? 'مثال: https://youtube.com/...' : 'e.g. https://youtube.com/...'}
                           className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-left" dir="ltr"
                         />
                       </div>
