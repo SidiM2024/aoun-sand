@@ -5,8 +5,9 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import {
   Users, Plus, Edit2, Trash2, Search, X, Save, Eye,
-  ChevronLeft, ChevronRight, Filter, Hash, Calendar, CreditCard
+  ChevronLeft, ChevronRight, Filter, Hash, Calendar, CreditCard, Download
 } from 'lucide-react';
+import { generateFinancialPDF } from '../../../utils/pdfGenerator';
 
 interface MembershipRevenue {
   id: string;
@@ -51,6 +52,7 @@ export const MembershipRevenuesTab = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
 
@@ -117,6 +119,52 @@ export const MembershipRevenuesTab = () => {
       toast.error(isRTL ? 'خطأ في رفع الإيصال' : 'Upload error');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      let query = supabase
+        .from('membership_revenues')
+        .select('*')
+        .order('payment_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (searchName) query = query.ilike('member_name', `%${searchName}%`);
+      if (filterMethod) query = query.eq('payment_method', filterMethod);
+      if (filterDateFrom) query = query.gte('payment_date', filterDateFrom);
+      if (filterDateTo) query = query.lte('payment_date', filterDateTo);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const columns = isRTL 
+        ? ['ملاحظات', 'التاريخ', 'البنك', 'المبلغ', 'اسم العضو', 'رقم العملية'] 
+        : ['Notes', 'Date', 'Bank', 'Amount', 'Member', 'Op #'];
+      
+      const rows = (data || []).map(r => [
+        r.notes || '',
+        new Date(r.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
+        r.payment_method,
+        `${Number(r.amount).toLocaleString()} MRU`,
+        r.member_name,
+        `#${r.operation_number}`
+      ]);
+
+      await generateFinancialPDF({
+        title: isRTL ? 'تقرير مداخيل الانتساب' : 'Membership Revenues Report',
+        columns,
+        data: rows,
+        fileName: 'membership_revenues_report.pdf',
+        logoUrl: '/logo.png',
+      });
+      toast.success(isRTL ? 'تم تحميل التقرير بنجاح' : 'Report downloaded successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error(isRTL ? 'خطأ في تحميل التقرير' : 'Error downloading report');
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -208,13 +256,27 @@ export const MembershipRevenuesTab = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {isRTL ? 'إضافة' : 'Add'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl font-bold text-sm hover:bg-white/30 transition-colors shadow-sm disabled:opacity-60"
+            >
+              {downloadingPDF ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isRTL ? 'تحميل PDF' : 'Download PDF'}
+            </button>
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              {isRTL ? 'إضافة' : 'Add'}
+            </button>
+          </div>
         </div>
       </div>
 

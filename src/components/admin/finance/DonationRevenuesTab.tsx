@@ -5,8 +5,9 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import {
   Heart, Plus, Edit2, Trash2, Search, X, Save,
-  ChevronLeft, ChevronRight, Upload, ExternalLink, CreditCard, Calendar
+  ChevronLeft, ChevronRight, Upload, ExternalLink, CreditCard, Calendar, Download
 } from 'lucide-react';
+import { generateFinancialPDF } from '../../../utils/pdfGenerator';
 
 interface DonationRevenue {
   id: string;
@@ -42,6 +43,7 @@ export const DonationRevenuesTab = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
   const [searchName, setSearchName] = useState('');
   const [filterMethod, setFilterMethod] = useState('');
@@ -93,6 +95,50 @@ export const DonationRevenuesTab = () => {
       toast.error(isRTL ? 'خطأ في رفع الإيصال — تأكد من إنشاء bucket financial-docs' : 'Upload error — ensure financial-docs bucket exists');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      let query = supabase
+        .from('donation_revenues')
+        .select('*')
+        .order('donation_date', { ascending: false });
+
+      if (searchName) query = query.ilike('donor_name', `%${searchName}%`);
+      if (filterMethod) query = query.eq('payment_method', filterMethod);
+      if (filterDateFrom) query = query.gte('donation_date', filterDateFrom);
+      if (filterDateTo) query = query.lte('donation_date', filterDateTo);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const columns = isRTL 
+        ? ['ملاحظات', 'التاريخ', 'البنك', 'المبلغ', 'اسم المتبرع'] 
+        : ['Notes', 'Date', 'Bank', 'Amount', 'Donor'];
+      
+      const rows = (data || []).map(r => [
+        r.notes || '',
+        new Date(r.donation_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
+        r.payment_method,
+        `${Number(r.amount).toLocaleString()} MRU`,
+        r.donor_name
+      ]);
+
+      await generateFinancialPDF({
+        title: isRTL ? 'تقرير مداخيل التبرعات' : 'Donation Revenues Report',
+        columns,
+        data: rows,
+        fileName: 'donation_revenues_report.pdf',
+        logoUrl: '/logo.png',
+      });
+      toast.success(isRTL ? 'تم تحميل التقرير بنجاح' : 'Report downloaded successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error(isRTL ? 'خطأ في تحميل التقرير' : 'Error downloading report');
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -172,13 +218,27 @@ export const DonationRevenuesTab = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-xl font-bold text-sm hover:bg-purple-50 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {isRTL ? 'إضافة' : 'Add'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-xl font-bold text-sm hover:bg-white/30 transition-colors shadow-sm disabled:opacity-60"
+            >
+              {downloadingPDF ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isRTL ? 'تحميل PDF' : 'Download PDF'}
+            </button>
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-xl font-bold text-sm hover:bg-purple-50 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              {isRTL ? 'إضافة' : 'Add'}
+            </button>
+          </div>
         </div>
       </div>
 
