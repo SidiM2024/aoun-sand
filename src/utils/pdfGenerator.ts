@@ -1,10 +1,14 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// A simple utility to fetch and add an Arabic font to jsPDF
+// --- Base64 Icons (Simple PNGs or SVGs converted to PNGs would be ideal, but for standalone code, 
+// we'll use clean typography and colored shapes if icons aren't perfectly available, 
+// or base64 encode small SVG images).
+// Here we define minimal base64 icons for the stats cards (16x16 or 24x24 PNGs).
+// To keep the file clean, we'll draw beautiful typographic cards.
+
 async function addArabicFont(doc: jsPDF) {
   try {
-    // Amiri Regular font from Google Fonts repo
     const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf';
     const response = await fetch(fontUrl);
     if (!response.ok) return false;
@@ -26,54 +30,55 @@ async function addArabicFont(doc: jsPDF) {
   }
 }
 
-// Simple Arabic text reshaper (since standard jsPDF doesn't shape Arabic properly)
-// For a production app, a library like `arabic-persian-reshaper` is better, 
-// but this is a fallback if the font doesn't auto-shape.
-// Note: jsPDF with a proper Arabic font sometimes shapes it automatically depending on the version.
-// We will rely on jsPDF's built-in text rendering.
+export interface PDFStat {
+  label: string;
+  value: string | number;
+  subLabel?: string;
+}
 
 interface GeneratePDFOptions {
   title: string;
+  dateRange?: string;
+  stats: PDFStat[];
   columns: string[];
   data: any[][];
   fileName: string;
-  logoUrl?: string; // Optional logo
+  logoUrl?: string;
+  totalsRow?: any[]; // The row to show at the bottom with a different color
 }
 
-export const generateFinancialPDF = async ({ title, columns, data, fileName, logoUrl }: GeneratePDFOptions) => {
-  // Create jsPDF instance (A4, portrait, mm)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  // Try to load the font
+export const generateFinancialPDF = async ({ 
+  title, 
+  dateRange,
+  stats, 
+  columns, 
+  data, 
+  fileName, 
+  logoUrl,
+  totalsRow 
+}: GeneratePDFOptions) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   await addArabicFont(doc);
   doc.setFont('Amiri');
 
   const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+
+  // Colors
+  const darkBlue = '#222659';
+  const lightBg = '#f8f9fa';
+  const pinkish = '#fca5a5';
   
-  // Add Header and Logo
-  let startY = 20;
-
-  // Add Association Name
-  doc.setFontSize(18);
-  doc.setTextColor(40, 40, 40);
-  // Using right alignment for Arabic
-  doc.text('جمعية عون وسند الخيرية', pageWidth / 2, startY, { align: 'center' });
+  // --- HEADER ---
+  // Draw top curved/block background
+  doc.setFillColor(darkBlue);
+  doc.rect(0, 0, pageWidth, 45, 'F');
   
-  startY += 10;
-  doc.setFontSize(14);
-  doc.setTextColor(100, 100, 100);
-  doc.text(title, pageWidth / 2, startY, { align: 'center' });
+  // A subtle decorative curve/shape at the bottom of the header
+  doc.setFillColor('#2e336b');
+  doc.ellipse(pageWidth / 2, 45, pageWidth / 1.5, 10, 'F');
 
-  startY += 10;
-  doc.setFontSize(10);
-  const dateStr = `تاريخ التقرير: ${new Date().toLocaleDateString('ar-MA')}`;
-  doc.text(dateStr, pageWidth - 14, startY, { align: 'right' });
-
-  // Add Logo if provided
+  // Load and Add Logo
   if (logoUrl) {
     try {
       const response = await fetch(logoUrl);
@@ -85,48 +90,152 @@ export const generateFinancialPDF = async ({ title, columns, data, fileName, log
             reader.onloadend = () => resolve(reader.result as string);
             reader.readAsDataURL(blob);
           });
-          // Assuming it's a square-ish logo, 25x25 mm
-          doc.addImage(base64data, 'PNG', 14, 10, 25, 25);
+          doc.addImage(base64data, 'PNG', 15, 8, 20, 20);
         }
       }
-    } catch(e) {
-       console.error('Logo failed to load', e);
+    } catch (e) {
+      console.error('Logo failed to load', e);
     }
   }
 
-  startY += 10;
+  // Association Name (Top Left, under logo)
+  doc.setTextColor('#ffffff');
+  doc.setFontSize(12);
+  doc.text('جمعية عون وسند الخيرية', 25, 35, { align: 'center' });
 
-  // Render Table
+  // Report Title (Top Right)
+  doc.setFontSize(22);
+  doc.text(title, pageWidth - 15, 20, { align: 'right' });
+  
+  // Subtitle / Association Name
+  doc.setFontSize(14);
+  doc.setTextColor('#cbd5e1'); // Slate 300
+  doc.text('جمعية عون وسند الخيرية', pageWidth - 15, 28, { align: 'right' });
+
+  // Date Range Badge
+  if (dateRange) {
+    const textWidth = doc.getTextWidth(dateRange);
+    doc.setFillColor('#f87171'); // Red 400 badge
+    doc.roundedRect(pageWidth - 15 - textWidth - 8, 32, textWidth + 8, 8, 4, 4, 'F');
+    doc.setTextColor('#ffffff');
+    doc.setFontSize(10);
+    doc.text(dateRange, pageWidth - 19, 37.5, { align: 'right' });
+  }
+
+  let startY = 65;
+
+  // --- STATS CARDS ---
+  if (stats && stats.length > 0) {
+    const cardWidth = (pageWidth - 30 - ((stats.length - 1) * 5)) / stats.length;
+    const cardHeight = 25;
+    
+    // Draw cards from right to left (RTL)
+    stats.forEach((stat, index) => {
+      // Calculate X position from right
+      const xPos = pageWidth - 15 - (index * (cardWidth + 5)) - cardWidth;
+      
+      // Card background
+      doc.setFillColor('#f8fafc'); // Slate 50
+      doc.setDrawColor('#e2e8f0'); // Slate 200
+      doc.roundedRect(xPos, startY, cardWidth, cardHeight, 3, 3, 'FD');
+      
+      // Label
+      doc.setFontSize(10);
+      doc.setTextColor('#64748b'); // Slate 500
+      doc.text(stat.label, xPos + cardWidth / 2, startY + 8, { align: 'center' });
+      
+      // Value
+      doc.setFontSize(14);
+      doc.setTextColor(darkBlue);
+      doc.text(String(stat.value), xPos + cardWidth / 2, startY + 16, { align: 'center' });
+      
+      // SubLabel
+      if (stat.subLabel) {
+        doc.setFontSize(8);
+        doc.setTextColor('#94a3b8'); // Slate 400
+        doc.text(stat.subLabel, xPos + cardWidth / 2, startY + 22, { align: 'center' });
+      }
+    });
+    
+    startY += cardHeight + 10;
+  }
+
+  // --- TABLE ---
   autoTable(doc, {
     startY,
     head: [columns],
     body: data,
+    foot: totalsRow ? [totalsRow] : undefined,
     styles: {
       font: 'Amiri',
-      halign: 'right', // Align right for Arabic
+      halign: 'center',
+      valign: 'middle',
       fontSize: 10,
+      textColor: '#334155',
+      lineColor: '#e2e8f0',
+      lineWidth: 0.1,
     },
     headStyles: {
-      fillColor: [79, 70, 229], // Indigo 600
-      textColor: [255, 255, 255],
+      fillColor: darkBlue,
+      textColor: '#ffffff',
       fontStyle: 'bold',
-      halign: 'center',
     },
-    bodyStyles: {
-      halign: 'right',
+    footStyles: {
+      fillColor: '#fca5a5', // Red/Pink total row
+      textColor: '#ffffff',
+      fontStyle: 'bold',
     },
     alternateRowStyles: {
-      fillColor: [248, 250, 252], // Slate 50
+      fillColor: '#f8fafc',
     },
-    margin: { top: 20 },
+    margin: { top: 60, left: 15, right: 15, bottom: 40 },
     theme: 'grid',
     didDrawPage: (data) => {
-      // Footer
-      const str = `صفحة ${(doc as any).internal.getNumberOfPages()}`;
+      const isFirstPage = data.pageNumber === 1;
+      
+      // --- FOOTER ---
+      const footerY = pageHeight - 35;
+      
+      // Notes & Signatures (only on last page or all pages? Usually last page, but we can put it on all)
       doc.setFontSize(10);
-      const pageSize = doc.internal.pageSize;
-      const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
-      doc.text(str, data.settings.margin.left, pageHeight - 10);
+      doc.setTextColor('#475569');
+      
+      // Stamp circle placeholder
+      doc.setDrawColor(darkBlue);
+      doc.setLineWidth(0.5);
+      doc.circle(35, footerY - 5, 12, 'S');
+      doc.setFontSize(8);
+      doc.text('ختم الجمعية', 35, footerY - 5, { align: 'center' });
+      
+      // Signature line
+      doc.setFontSize(11);
+      doc.text('مدير الجمعية', pageWidth / 2, footerY - 12, { align: 'center' });
+      doc.setDrawColor('#cbd5e1');
+      doc.line(pageWidth / 2 - 20, footerY - 2, pageWidth / 2 + 20, footerY - 2);
+      
+      // Notes lines
+      doc.setFontSize(11);
+      doc.text('ملاحظات', pageWidth - 25, footerY - 12, { align: 'right' });
+      doc.line(pageWidth - 70, footerY - 7, pageWidth - 15, footerY - 7);
+      doc.line(pageWidth - 70, footerY - 2, pageWidth - 15, footerY - 2);
+
+      // Bottom Bar
+      doc.setFillColor(darkBlue);
+      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+      
+      doc.setTextColor('#ffffff');
+      doc.setFontSize(9);
+      
+      // Contact Info
+      doc.text('موريتانيا', pageWidth - 20, pageHeight - 6, { align: 'right' });
+      doc.text('associationaidesoutien@gmail.com', pageWidth / 2, pageHeight - 6, { align: 'center' });
+      doc.text('+222 XXXXXXX', 20, pageHeight - 6, { align: 'left' });
+      
+      // Page number and Registration number
+      doc.setFontSize(8);
+      doc.setTextColor('#94a3b8');
+      doc.text(`صفحة ${data.pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('رقم الجمعية: 32203250', pageWidth - 20, pageHeight - 10, { align: 'right' });
     },
   });
 

@@ -131,23 +131,50 @@ export const DonationExpensesTab = () => {
       const { data, error } = await query;
       if (error) throw error;
 
+      let dateRangeStr = '';
+      if (filterDateFrom && filterDateTo) {
+        dateRangeStr = `${filterDateFrom} - ${filterDateTo}`;
+      } else if (filterDateFrom) {
+        dateRangeStr = `من ${filterDateFrom}`;
+      } else if (filterDateTo) {
+        dateRangeStr = `إلى ${filterDateTo}`;
+      }
+
+      const totalAmount = (data || []).reduce((s, r) => s + Number(r.amount), 0);
+      const count = (data || []).length;
+      const avg = count > 0 ? Math.round(totalAmount / count) : 0;
+
       const columns = isRTL 
-        ? ['ملاحظات', 'التاريخ', 'المستفيد', 'المبلغ', 'مصدر التبرع', 'الوصف'] 
-        : ['Notes', 'Date', 'Beneficiary', 'Amount', 'Donation Source', 'Description'];
+        ? ['ملاحظات', 'التاريخ', 'المستفيد', 'المبلغ (MRU)', 'الوصف', '#'] 
+        : ['Notes', 'Date', 'Beneficiary', 'Amount', 'Description', '#'];
       
-      const rows = (data || []).map(r => [
-        r.notes || '',
+      const rows = (data || []).map((r, i) => [
+        r.notes || '-',
         new Date(r.expense_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
-        r.beneficiary || '—',
-        `${Number(r.amount).toLocaleString()} MRU`,
-        r.donation_source || '—',
-        r.description
+        r.beneficiary || '-',
+        `${Number(r.amount).toLocaleString()}`,
+        r.description,
+        `#${i + 1}`
       ]);
 
+      const stats = [
+        { label: isRTL ? 'عدد المصاريف' : 'Total Expenses', value: count, subLabel: isRTL ? 'مصروف' : 'expenses' },
+        { label: isRTL ? 'متوسط المصروف' : 'Avg Amount', value: avg.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'إجمالي المصاريف' : 'Total Amount', value: totalAmount.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'عدد المستفيدين' : 'Beneficiaries', value: new Set((data || []).filter(r => r.beneficiary).map(r => r.beneficiary)).size, subLabel: isRTL ? 'مستفيد' : 'beneficiary' },
+      ];
+
+      const totalsRow = [
+        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'مصروف' : 'expenses'}`
+      ];
+
       await generateFinancialPDF({
-        title: isRTL ? 'تقرير مصاريف التبرعات' : 'Donation Expenses Report',
+        title: isRTL ? 'تقرير المصاريف' : 'Expenses Report',
+        dateRange: dateRangeStr,
+        stats,
         columns,
         data: rows,
+        totalsRow,
         fileName: 'donation_expenses_report.pdf',
         logoUrl: '/logo.png',
       });

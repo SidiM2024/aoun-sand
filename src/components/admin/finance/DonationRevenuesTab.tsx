@@ -114,22 +114,50 @@ export const DonationRevenuesTab = () => {
       const { data, error } = await query;
       if (error) throw error;
 
+      let dateRangeStr = '';
+      if (filterDateFrom && filterDateTo) {
+        dateRangeStr = `${filterDateFrom} - ${filterDateTo}`;
+      } else if (filterDateFrom) {
+        dateRangeStr = `من ${filterDateFrom}`;
+      } else if (filterDateTo) {
+        dateRangeStr = `إلى ${filterDateTo}`;
+      }
+
+      const totalAmount = (data || []).reduce((s, r) => s + Number(r.amount), 0);
+      const count = (data || []).length;
+      const avg = count > 0 ? Math.round(totalAmount / count) : 0;
+
       const columns = isRTL 
-        ? ['ملاحظات', 'التاريخ', 'البنك', 'المبلغ', 'اسم المتبرع'] 
-        : ['Notes', 'Date', 'Bank', 'Amount', 'Donor'];
+        ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم المتبرع', '#'] 
+        : ['Notes', 'Date', 'Bank', 'Amount', 'Donor', '#'];
       
-      const rows = (data || []).map(r => [
-        r.notes || '',
+      const rows = (data || []).map((r, i) => [
+        r.notes || '-',
         new Date(r.donation_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
         r.payment_method,
-        `${Number(r.amount).toLocaleString()} MRU`,
-        r.donor_name
+        `${Number(r.amount).toLocaleString()}`,
+        r.donor_name,
+        `#${i + 1}`
       ]);
 
+      const stats = [
+        { label: isRTL ? 'عدد التبرعات' : 'Total Donations', value: count, subLabel: isRTL ? 'تبرع' : 'donations' },
+        { label: isRTL ? 'متوسط التبرع' : 'Avg Amount', value: avg.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'إجمالي التبرعات' : 'Total Amount', value: totalAmount.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'عدد المتبرعين' : 'Donors Count', value: new Set((data || []).map(r => r.donor_name)).size, subLabel: isRTL ? 'متبرع' : 'donor' },
+      ];
+
+      const totalsRow = [
+        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'تبرع' : 'donations'}`
+      ];
+
       await generateFinancialPDF({
-        title: isRTL ? 'تقرير مداخيل التبرعات' : 'Donation Revenues Report',
+        title: isRTL ? 'تقرير التبرعات' : 'Donation Revenues Report',
+        dateRange: dateRangeStr,
+        stats,
         columns,
         data: rows,
+        totalsRow,
         fileName: 'donation_revenues_report.pdf',
         logoUrl: '/logo.png',
       });

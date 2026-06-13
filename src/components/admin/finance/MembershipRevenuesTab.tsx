@@ -139,23 +139,50 @@ export const MembershipRevenuesTab = () => {
       const { data, error } = await query;
       if (error) throw error;
 
+      let dateRangeStr = '';
+      if (filterDateFrom && filterDateTo) {
+        dateRangeStr = `${filterDateFrom} - ${filterDateTo}`;
+      } else if (filterDateFrom) {
+        dateRangeStr = `من ${filterDateFrom}`;
+      } else if (filterDateTo) {
+        dateRangeStr = `إلى ${filterDateTo}`;
+      }
+
+      const totalAmount = (data || []).reduce((s, r) => s + Number(r.amount), 0);
+      const count = (data || []).length;
+      const avg = count > 0 ? Math.round(totalAmount / count) : 0;
+
       const columns = isRTL 
-        ? ['ملاحظات', 'التاريخ', 'البنك', 'المبلغ', 'اسم العضو', 'رقم العملية'] 
+        ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم العضو', '#'] 
         : ['Notes', 'Date', 'Bank', 'Amount', 'Member', 'Op #'];
       
       const rows = (data || []).map(r => [
-        r.notes || '',
+        r.notes || '-',
         new Date(r.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
         r.payment_method,
-        `${Number(r.amount).toLocaleString()} MRU`,
+        `${Number(r.amount).toLocaleString()}`,
         r.member_name,
         `#${r.operation_number}`
       ]);
 
+      const stats = [
+        { label: isRTL ? 'عدد الانتساب' : 'Total Memberships', value: count, subLabel: isRTL ? 'انتساب' : 'members' },
+        { label: isRTL ? 'متوسط المبلغ' : 'Avg Amount', value: avg.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'إجمالي المداخيل' : 'Total Amount', value: totalAmount.toLocaleString(), subLabel: 'MRU' },
+        { label: isRTL ? 'عدد الأعضاء' : 'Members Count', value: new Set((data || []).map(r => r.member_name)).size, subLabel: isRTL ? 'عضو' : 'member' },
+      ];
+
+      const totalsRow = [
+        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'انتساب' : 'members'}`
+      ];
+
       await generateFinancialPDF({
         title: isRTL ? 'تقرير مداخيل الانتساب' : 'Membership Revenues Report',
+        dateRange: dateRangeStr,
+        stats,
         columns,
         data: rows,
+        totalsRow,
         fileName: 'membership_revenues_report.pdf',
         logoUrl: '/logo.png',
       });
