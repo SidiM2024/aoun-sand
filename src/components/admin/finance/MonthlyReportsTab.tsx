@@ -7,6 +7,7 @@ import {
   FileText, Printer, Download, TrendingUp, TrendingDown, Wallet,
   ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
+import { generateMonthlyReportPDF, formatPDFDate } from '../../../utils/pdfGenerator';
 
 interface ReportData {
   membershipRevenues: any[];
@@ -73,8 +74,132 @@ export const MonthlyReportsTab = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!reportData) return;
+    
+    const tables = [];
+    
+    // 1. Membership Revenues
+    if (reportData.membershipRevenues.length > 0) {
+      const data = reportData.membershipRevenues;
+      const totalAmount = data.reduce((s, r) => s + Number(r.amount), 0);
+      tables.push({
+        title: isRTL ? 'مداخيل الانتساب' : 'Membership Revenues',
+        columns: isRTL 
+          ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم العضو', '#'] 
+          : ['#', 'Member', 'Amount', 'Bank', 'Date', 'Notes'],
+        data: data.map((r, i) => {
+          const _notes = r.notes || '-';
+          const _date = formatPDFDate(r.payment_date);
+          const _bank = r.payment_method;
+          const _amount = `${Number(r.amount).toLocaleString()}`;
+          const _name = r.member_name;
+          const _op = `#${i + 1}`;
+          return isRTL ? [_notes, _date, _bank, _amount, _name, _op] : [_op, _name, _amount, _bank, _date, _notes];
+        }),
+        totalsRow: isRTL
+          ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${data.length} عملية`]
+          : [`${data.length} ops`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', '']
+      });
+    }
+
+    // 2. Donation Revenues
+    if (reportData.donationRevenues.length > 0) {
+      const data = reportData.donationRevenues;
+      const totalAmount = data.reduce((s, r) => s + Number(r.amount), 0);
+      tables.push({
+        title: isRTL ? 'مداخيل التبرعات' : 'Donation Revenues',
+        columns: isRTL 
+          ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم المتبرع', '#'] 
+          : ['#', 'Donor', 'Amount', 'Bank', 'Date', 'Notes'],
+        data: data.map((r, i) => {
+          const _notes = r.notes || '-';
+          const _date = formatPDFDate(r.donation_date);
+          const _bank = r.payment_method;
+          const _amount = `${Number(r.amount).toLocaleString()}`;
+          const _name = r.donor_name;
+          const _op = `#${i + 1}`;
+          return isRTL ? [_notes, _date, _bank, _amount, _name, _op] : [_op, _name, _amount, _bank, _date, _notes];
+        }),
+        totalsRow: isRTL
+          ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${data.length} عملية`]
+          : [`${data.length} ops`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', '']
+      });
+    }
+
+    // 3. Membership Expenses
+    if (reportData.membershipExpenses.length > 0) {
+      const data = reportData.membershipExpenses;
+      const totalAmount = data.reduce((s, r) => s + Number(r.amount), 0);
+      tables.push({
+        title: isRTL ? 'مصاريف الانتساب' : 'Membership Expenses',
+        columns: isRTL 
+          ? ['ملاحظات', 'التاريخ', 'المستفيد', 'المبلغ (MRU)', 'الوصف', '#'] 
+          : ['#', 'Description', 'Amount', 'Beneficiary', 'Date', 'Notes'],
+        data: data.map((r, i) => {
+          const _notes = r.notes || '-';
+          const _date = formatPDFDate(r.expense_date);
+          const _beneficiary = r.beneficiary || '-';
+          const _amount = `${Number(r.amount).toLocaleString()}`;
+          const _desc = r.description;
+          const _op = `#${i + 1}`;
+          return isRTL ? [_notes, _date, _beneficiary, _amount, _desc, _op] : [_op, _desc, _amount, _beneficiary, _date, _notes];
+        }),
+        totalsRow: isRTL
+          ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${data.length} عملية`]
+          : [`${data.length} ops`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', '']
+      });
+    }
+
+    // 4. Donation Expenses
+    if (reportData.donationExpenses.length > 0) {
+      const data = reportData.donationExpenses;
+      const totalAmount = data.reduce((s, r) => s + Number(r.amount), 0);
+      tables.push({
+        title: isRTL ? 'مصاريف التبرعات' : 'Donation Expenses',
+        columns: isRTL 
+          ? ['ملاحظات', 'التاريخ', 'المستفيد', 'المبلغ (MRU)', 'الوصف', '#'] 
+          : ['#', 'Description', 'Amount', 'Beneficiary', 'Date', 'Notes'],
+        data: data.map((r, i) => {
+          const _notes = r.notes || '-';
+          const _date = formatPDFDate(r.expense_date);
+          const _beneficiary = r.beneficiary || '-';
+          const _amount = `${Number(r.amount).toLocaleString()}`;
+          const _desc = r.description;
+          const _op = `#${i + 1}`;
+          return isRTL ? [_notes, _date, _beneficiary, _amount, _desc, _op] : [_op, _desc, _amount, _beneficiary, _date, _notes];
+        }),
+        totalsRow: isRTL
+          ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${data.length} عملية`]
+          : [`${data.length} ops`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', '']
+      });
+    }
+
+    const stats = [
+      { label: isRTL ? 'إجمالي المداخيل' : 'Total Revenues', value: reportData.totalRevenues.toLocaleString(), subLabel: 'MRU' },
+      { label: isRTL ? 'إجمالي المصاريف' : 'Total Expenses', value: reportData.totalExpenses.toLocaleString(), subLabel: 'MRU' },
+      { label: isRTL ? 'صافي الرصيد' : 'Net Balance', value: reportData.netBalance.toLocaleString(), subLabel: 'MRU' },
+    ];
+
+    const title = isRTL ? `التقرير المالي الشهري` : `Monthly Financial Report`;
+    const dateRange = `${monthName} ${selectedYear}`;
+    const fileName = `monthly_report_${selectedMonth + 1}_${selectedYear}.pdf`;
+
+    try {
+      toast.loading(isRTL ? 'جاري إنشاء التقرير...' : 'Generating report...', { id: 'pdf' });
+      await generateMonthlyReportPDF({
+        title,
+        dateRange,
+        stats,
+        tables,
+        fileName,
+        logoUrl: '/logo.png'
+      });
+      toast.success(isRTL ? 'تم تحميل التقرير' : 'Report downloaded', { id: 'pdf' });
+    } catch (err) {
+      console.error(err);
+      toast.error(isRTL ? 'حدث خطأ أثناء الإنشاء' : 'Error generating PDF', { id: 'pdf' });
+    }
   };
 
   const monthName = isRTL ? ARABIC_MONTHS[selectedMonth] : new Date(selectedYear, selectedMonth).toLocaleString('en-US', { month: 'long' });
@@ -117,7 +242,7 @@ export const MonthlyReportsTab = () => {
               onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-white text-teal-600 rounded-xl font-bold text-sm hover:bg-teal-50 transition-colors shadow-sm"
             >
-              <Printer className="w-4 h-4" />{isRTL ? 'طباعة / PDF' : 'Print / PDF'}
+              <Download className="w-4 h-4" />{isRTL ? 'تحميل PDF' : 'Download PDF'}
             </button>
           </div>
         </div>

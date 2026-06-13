@@ -34,7 +34,7 @@ export const MahajaTab = () => {
   };
 
   const handleAddNew = () => {
-    const newItem = {
+    const newItem: any = {
       id: 'new',
       title: '',
       description: '',
@@ -103,13 +103,36 @@ export const MahajaTab = () => {
   const uploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(isRTL ? 'الرجاء اختيار ملف صورة صالح' : 'Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(isRTL ? 'حجم الصورة يجب أن لا يتجاوز 5 ميجابايت' : 'Image size must be less than 5MB');
+      return;
+    }
+
+    // Sanitize file name
     const fileExt = file.name.split('.').pop();
-    const fileName = `mahaja-${Date.now()}.${fileExt}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '');
+    const fileName = `mahaja-${Date.now()}-${safeName.substring(0, 10)}.${fileExt}`;
 
     try {
       toast.loading(isRTL ? 'جاري الرفع...' : 'Uploading...', { id: 'upload' });
-      const { data, error } = await supabase.storage.from('mahaja_content').upload(fileName, file);
-      if (error) throw error;
+      
+      const { data, error } = await supabase.storage.from('mahaja_content').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+      if (error) {
+        console.error('Supabase upload error:', error);
+        throw new Error(error.message);
+      }
       
       const { data: urlData } = supabase.storage.from('mahaja_content').getPublicUrl(fileName);
       const url = urlData.publicUrl;
@@ -119,7 +142,8 @@ export const MahajaTab = () => {
       
       toast.success(isRTL ? 'تم رفع الصورة' : 'Image uploaded', { id: 'upload' });
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed', { id: 'upload' });
+      console.error('Upload failed catch block:', err);
+      toast.error(err.message || (isRTL ? 'فشل الرفع' : 'Upload failed'), { id: 'upload' });
     }
   };
 
@@ -245,7 +269,7 @@ export const MahajaTab = () => {
                   </div>
                   
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button onClick={() => { setIsEditing(null); if (id === 'new') fetchItems(); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+                    <button onClick={() => { setIsEditing(null); if (item.id === 'new') fetchItems(); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
                       {isRTL ? 'إلغاء' : 'Cancel'}
                     </button>
                     <button onClick={() => handleSave(item.id)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors flex items-center gap-2">
