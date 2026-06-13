@@ -178,12 +178,12 @@ export const generateFinancialPDF = async ({
     headStyles: {
       fillColor: darkBlue,
       textColor: '#ffffff',
-      fontStyle: 'bold',
+      fontStyle: 'normal',
     },
     footStyles: {
       fillColor: '#fca5a5', // Red/Pink total row
       textColor: '#ffffff',
-      fontStyle: 'bold',
+      fontStyle: 'normal',
     },
     alternateRowStyles: {
       fillColor: '#f8fafc',
@@ -224,18 +224,21 @@ export const generateFinancialPDF = async ({
       doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
       
       doc.setTextColor('#ffffff');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       
-      // Contact Info
-      doc.text('موريتانيا', pageWidth - 20, pageHeight - 6, { align: 'right' });
+      // Contact Info - Left
+      doc.text('+222 41315555', 15, pageHeight - 6, { align: 'left' });
+      
+      // Email - Center
       doc.text('associationaidesoutien@gmail.com', pageWidth / 2, pageHeight - 6, { align: 'center' });
-      doc.text('+222 XXXXXXX', 20, pageHeight - 6, { align: 'left' });
       
-      // Page number and Registration number
-      doc.setFontSize(8);
-      doc.setTextColor('#94a3b8');
-      doc.text(`صفحة ${data.pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-      doc.text('رقم الجمعية: 32203250', pageWidth - 20, pageHeight - 10, { align: 'right' });
+      // Location - Right
+      doc.text('موريتانيا', pageWidth - 15, pageHeight - 6, { align: 'right' });
+      
+      // Page number and Registration number above the email
+      doc.setFontSize(9);
+      doc.text(`صفحة ${data.pageNumber}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
+      doc.text('رقم الجمعية: 32203250', pageWidth - 15, pageHeight - 11, { align: 'right' });
     },
   });
 

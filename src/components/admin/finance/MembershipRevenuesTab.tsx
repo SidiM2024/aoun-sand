@@ -154,16 +154,19 @@ export const MembershipRevenuesTab = () => {
 
       const columns = isRTL 
         ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم العضو', '#'] 
-        : ['Notes', 'Date', 'Bank', 'Amount', 'Member', 'Op #'];
+        : ['#', 'Member', 'Amount', 'Bank', 'Date', 'Notes'];
       
-      const rows = (data || []).map(r => [
-        r.notes || '-',
-        new Date(r.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
-        r.payment_method,
-        `${Number(r.amount).toLocaleString()}`,
-        r.member_name,
-        `#${r.operation_number}`
-      ]);
+      const rows = (data || []).map(r => {
+        const _notes = r.notes || '-';
+        const _date = new Date(r.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US');
+        const _bank = r.payment_method;
+        const _amount = `${Number(r.amount).toLocaleString()}`;
+        const _name = r.member_name;
+        const _op = `#${r.operation_number}`;
+        return isRTL 
+          ? [_notes, _date, _bank, _amount, _name, _op]
+          : [_op, _name, _amount, _bank, _date, _notes];
+      });
 
       const stats = [
         { label: isRTL ? 'عدد الانتساب' : 'Total Memberships', value: count, subLabel: isRTL ? 'انتساب' : 'members' },
@@ -172,9 +175,9 @@ export const MembershipRevenuesTab = () => {
         { label: isRTL ? 'عدد الأعضاء' : 'Members Count', value: new Set((data || []).map(r => r.member_name)).size, subLabel: isRTL ? 'عضو' : 'member' },
       ];
 
-      const totalsRow = [
-        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'انتساب' : 'members'}`
-      ];
+      const totalsRow = isRTL
+        ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${count} انتساب`]
+        : [`${count} members`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', ''];
 
       await generateFinancialPDF({
         title: isRTL ? 'تقرير مداخيل الانتساب' : 'Membership Revenues Report',

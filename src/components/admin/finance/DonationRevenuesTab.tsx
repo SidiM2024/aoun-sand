@@ -129,16 +129,19 @@ export const DonationRevenuesTab = () => {
 
       const columns = isRTL 
         ? ['ملاحظات', 'التاريخ', 'طريقة الدفع', 'المبلغ (MRU)', 'اسم المتبرع', '#'] 
-        : ['Notes', 'Date', 'Bank', 'Amount', 'Donor', '#'];
+        : ['#', 'Donor', 'Amount', 'Bank', 'Date', 'Notes'];
       
-      const rows = (data || []).map((r, i) => [
-        r.notes || '-',
-        new Date(r.donation_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
-        r.payment_method,
-        `${Number(r.amount).toLocaleString()}`,
-        r.donor_name,
-        `#${i + 1}`
-      ]);
+      const rows = (data || []).map((r, i) => {
+        const _notes = r.notes || '-';
+        const _date = new Date(r.donation_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US');
+        const _bank = r.payment_method;
+        const _amount = `${Number(r.amount).toLocaleString()}`;
+        const _name = r.donor_name;
+        const _op = `#${i + 1}`;
+        return isRTL 
+          ? [_notes, _date, _bank, _amount, _name, _op]
+          : [_op, _name, _amount, _bank, _date, _notes];
+      });
 
       const stats = [
         { label: isRTL ? 'عدد التبرعات' : 'Total Donations', value: count, subLabel: isRTL ? 'تبرع' : 'donations' },
@@ -147,9 +150,9 @@ export const DonationRevenuesTab = () => {
         { label: isRTL ? 'عدد المتبرعين' : 'Donors Count', value: new Set((data || []).map(r => r.donor_name)).size, subLabel: isRTL ? 'متبرع' : 'donor' },
       ];
 
-      const totalsRow = [
-        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'تبرع' : 'donations'}`
-      ];
+      const totalsRow = isRTL
+        ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${count} تبرع`]
+        : [`${count} donations`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', ''];
 
       await generateFinancialPDF({
         title: isRTL ? 'تقرير التبرعات' : 'Donation Revenues Report',

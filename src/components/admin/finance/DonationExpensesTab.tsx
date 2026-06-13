@@ -146,16 +146,19 @@ export const DonationExpensesTab = () => {
 
       const columns = isRTL 
         ? ['ملاحظات', 'التاريخ', 'المستفيد', 'المبلغ (MRU)', 'الوصف', '#'] 
-        : ['Notes', 'Date', 'Beneficiary', 'Amount', 'Description', '#'];
+        : ['#', 'Description', 'Amount', 'Beneficiary', 'Date', 'Notes'];
       
-      const rows = (data || []).map((r, i) => [
-        r.notes || '-',
-        new Date(r.expense_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US'),
-        r.beneficiary || '-',
-        `${Number(r.amount).toLocaleString()}`,
-        r.description,
-        `#${i + 1}`
-      ]);
+      const rows = (data || []).map((r, i) => {
+        const _notes = r.notes || '-';
+        const _date = new Date(r.expense_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US');
+        const _beneficiary = r.beneficiary || '-';
+        const _amount = `${Number(r.amount).toLocaleString()}`;
+        const _desc = r.description;
+        const _op = `#${i + 1}`;
+        return isRTL 
+          ? [_notes, _date, _beneficiary, _amount, _desc, _op]
+          : [_op, _desc, _amount, _beneficiary, _date, _notes];
+      });
 
       const stats = [
         { label: isRTL ? 'عدد المصاريف' : 'Total Expenses', value: count, subLabel: isRTL ? 'مصروف' : 'expenses' },
@@ -164,9 +167,9 @@ export const DonationExpensesTab = () => {
         { label: isRTL ? 'عدد المستفيدين' : 'Beneficiaries', value: new Set((data || []).filter(r => r.beneficiary).map(r => r.beneficiary)).size, subLabel: isRTL ? 'مستفيد' : 'beneficiary' },
       ];
 
-      const totalsRow = [
-        '', '', '', `MRU ${totalAmount.toLocaleString()}`, isRTL ? 'الإجمالي' : 'Total', `${count} ${isRTL ? 'مصروف' : 'expenses'}`
-      ];
+      const totalsRow = isRTL
+        ? ['', '', '', `MRU ${totalAmount.toLocaleString()}`, 'الإجمالي', `${count} مصروف`]
+        : [`${count} expenses`, 'Total', `MRU ${totalAmount.toLocaleString()}`, '', '', ''];
 
       await generateFinancialPDF({
         title: isRTL ? 'تقرير المصاريف' : 'Expenses Report',
