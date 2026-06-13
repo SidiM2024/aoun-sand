@@ -4,13 +4,18 @@ import autoTable from 'jspdf-autotable';
 // A simple utility to fetch and add an Arabic font to jsPDF
 async function addArabicFont(doc: jsPDF) {
   try {
-    // Amiri Regular font from a reliable CDN
-    const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Amiri/amiri-regular.ttf';
+    // Amiri Regular font from Google Fonts repo
+    const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf';
     const response = await fetch(fontUrl);
+    if (!response.ok) return false;
+    
     const buffer = await response.arrayBuffer();
-    const base64 = btoa(
-      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
     
     doc.addFileToVFS('Amiri-Regular.ttf', base64);
     doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
@@ -74,13 +79,15 @@ export const generateFinancialPDF = async ({ title, columns, data, fileName, log
       const response = await fetch(logoUrl);
       if (response.ok) {
         const blob = await response.blob();
-        const reader = new FileReader();
-        const base64data = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-        // Assuming it's a square-ish logo, 25x25 mm
-        doc.addImage(base64data, 'PNG', 14, 10, 25, 25);
+        if (blob.type.startsWith('image/')) {
+          const reader = new FileReader();
+          const base64data = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          // Assuming it's a square-ish logo, 25x25 mm
+          doc.addImage(base64data, 'PNG', 14, 10, 25, 25);
+        }
       }
     } catch(e) {
        console.error('Logo failed to load', e);
