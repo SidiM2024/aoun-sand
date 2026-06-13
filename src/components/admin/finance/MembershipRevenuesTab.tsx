@@ -7,7 +7,7 @@ import {
   Users, Plus, Edit2, Trash2, Search, X, Save, Eye,
   ChevronLeft, ChevronRight, Filter, Hash, Calendar, CreditCard, Download
 } from 'lucide-react';
-import { generateFinancialPDF } from '../../../utils/pdfGenerator';
+import { generateFinancialPDF, formatPDFDate } from '../../../utils/pdfGenerator';
 
 interface MembershipRevenue {
   id: string;
@@ -158,7 +158,7 @@ export const MembershipRevenuesTab = () => {
       
       const rows = (data || []).map(r => {
         const _notes = r.notes || '-';
-        const _date = new Date(r.payment_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US');
+        const _date = formatPDFDate(r.payment_date);
         const _bank = r.payment_method;
         const _amount = `${Number(r.amount).toLocaleString()}`;
         const _name = r.member_name;

@@ -1,11 +1,22 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// --- Base64 Icons (Simple PNGs or SVGs converted to PNGs would be ideal, but for standalone code, 
-// we'll use clean typography and colored shapes if icons aren't perfectly available, 
-// or base64 encode small SVG images).
-// Here we define minimal base64 icons for the stats cards (16x16 or 24x24 PNGs).
-// To keep the file clean, we'll draw beautiful typographic cards.
+/**
+ * Formats a date string or Date object into a clean DD/MM/YYYY format.
+ * This avoids locale inconsistencies and ensures uniform display.
+ */
+export const formatPDFDate = (dateInput: string | Date): string => {
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return '-';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return '-';
+  }
+};
 
 async function addArabicFont(doc: jsPDF) {
   try {
@@ -224,10 +235,10 @@ export const generateFinancialPDF = async ({
       doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
       
       doc.setTextColor('#ffffff');
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       
-      // Contact Info - Left
-      doc.text('+222 41315555', 15, pageHeight - 6, { align: 'left' });
+      // Registration number - Left
+      doc.text('32203250 :رقم الجمعية', 15, pageHeight - 6, { align: 'left' });
       
       // Email - Center
       doc.text('associationaidesoutien@gmail.com', pageWidth / 2, pageHeight - 6, { align: 'center' });
@@ -235,10 +246,9 @@ export const generateFinancialPDF = async ({
       // Location - Right
       doc.text('موريتانيا', pageWidth - 15, pageHeight - 6, { align: 'right' });
       
-      // Page number and Registration number above the email
-      doc.setFontSize(9);
+      // Page number above footer bar
+      doc.setFontSize(8);
       doc.text(`صفحة ${data.pageNumber}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
-      doc.text('رقم الجمعية: 32203250', pageWidth - 15, pageHeight - 11, { align: 'right' });
     },
   });
 

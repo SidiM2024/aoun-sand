@@ -7,7 +7,7 @@ import {
   HandHeart, Plus, Edit2, Trash2, Search, X, Save,
   ChevronLeft, ChevronRight, Upload, ExternalLink, Wallet, AlertTriangle, Download
 } from 'lucide-react';
-import { generateFinancialPDF } from '../../../utils/pdfGenerator';
+import { generateFinancialPDF, formatPDFDate } from '../../../utils/pdfGenerator';
 
 interface DonationExpense {
   id: string;
@@ -150,7 +150,7 @@ export const DonationExpensesTab = () => {
       
       const rows = (data || []).map((r, i) => {
         const _notes = r.notes || '-';
-        const _date = new Date(r.expense_date).toLocaleDateString(isRTL ? 'ar-MA' : 'en-US');
+        const _date = formatPDFDate(r.expense_date);
         const _beneficiary = r.beneficiary || '-';
         const _amount = `${Number(r.amount).toLocaleString()}`;
         const _desc = r.description;
