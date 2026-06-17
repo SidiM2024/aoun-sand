@@ -39,7 +39,7 @@ export const MahajaTab = () => {
       id: 'new',
       title: '',
       description: '',
-      is_published: false,
+      is_published: true,
     };
     if (activeSubTab === 'courses') {
       newItem['content_link' as keyof typeof newItem] = '';
