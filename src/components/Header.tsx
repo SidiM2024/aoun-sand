@@ -130,14 +130,14 @@ export const Header = () => {
         {/* ── Actions ── */}
         <div className="flex items-center gap-1 sm:gap-2">
 
-          {/* My Card Button */}
+          {/* My Card Button (Mobile Only) */}
           {userProfile && (
             <button
               onClick={() => setIsCardModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-100 to-rose-50 hover:from-rose-200 hover:to-rose-100 dark:from-rose-900/30 dark:to-rose-800/30 text-rose-700 dark:text-rose-300 font-bold text-sm transition-all shadow-sm border border-rose-200 dark:border-rose-800/50"
+              className="flex sm:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-100 to-rose-50 hover:from-rose-200 hover:to-rose-100 dark:from-rose-900/30 dark:to-rose-800/30 text-rose-700 dark:text-rose-300 font-bold text-sm transition-all shadow-sm border border-rose-200 dark:border-rose-800/50"
             >
               <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">{isRTL ? 'بطاقتي' : 'My Card'}</span>
+              <span>{isRTL ? 'بطاقتي' : 'My Card'}</span>
             </button>
           )}
 
