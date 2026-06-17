@@ -72,15 +72,15 @@ export const MahajaDashboard = () => {
   return (
     <div
       className="min-h-screen pb-24"
-      style={{ background: 'linear-gradient(135deg, #0d1b2a 0%, #1a2a3a 50%, #0f2436 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #1a1838 0%, #221e50 50%, #1c1a44 100%)' }}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* ── Hero Header ───────────────────────────────────── */}
       <div className="relative overflow-hidden">
         {/* Decorative blobs */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[10%] w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: 'radial-gradient(circle, #c9b99a 0%, transparent 70%)' }} />
-          <div className="absolute bottom-0 right-[5%] w-80 h-80 rounded-full opacity-15 blur-3xl" style={{ background: 'radial-gradient(circle, #8b6f47 0%, transparent 70%)' }} />
+          <div className="absolute top-[-10%] left-[10%] w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: 'radial-gradient(circle, #c9a4b8 0%, transparent 70%)' }} />
+          <div className="absolute bottom-0 right-[5%] w-80 h-80 rounded-full opacity-15 blur-3xl" style={{ background: 'radial-gradient(circle, #6b5b95 0%, transparent 70%)' }} />
           {/* Subtle Arabic pattern overlay */}
           <div className="absolute inset-0 opacity-5" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30 Z' fill='none' stroke='%23c9b99a' stroke-width='1'/%3E%3C/svg%3E")`,
@@ -94,7 +94,7 @@ export const MahajaDashboard = () => {
             <button
               onClick={logout}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-              style={{ background: 'rgba(201,185,154,0.12)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.25)' }}
+              style={{ background: 'rgba(201,164,184,0.12)', color: '#c9a4b8', border: '1px solid rgba(201,164,184,0.25)' }}
             >
               <LogOut className="w-4 h-4" />
               {isRTL ? 'تسجيل الخروج' : 'Logout'}
@@ -109,12 +109,12 @@ export const MahajaDashboard = () => {
             className="mb-6 flex justify-center"
           >
             <div className="relative">
-              <div className="absolute inset-0 rounded-3xl blur-2xl opacity-40" style={{ background: '#c9b99a', transform: 'scale(1.1)' }} />
+              <div className="absolute inset-0 rounded-3xl blur-2xl opacity-40" style={{ background: '#c9a4b8', transform: 'scale(1.1)' }} />
               <img
                 src="/mahaja-logo.png"
                 alt="شعار المحجة البيضاء"
-                className="relative w-28 h-28 sm:w-36 sm:h-36 object-cover rounded-3xl shadow-2xl"
-                style={{ border: '3px solid rgba(201,185,154,0.5)' }}
+                className="relative w-28 h-28 sm:w-36 sm:h-36 object-cover rounded-none shadow-2xl"
+                style={{ border: '3px solid rgba(201,164,184,0.5)', borderRadius: '24px' }}
               />
             </div>
           </motion.div>
@@ -167,16 +167,16 @@ export const MahajaDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="rounded-3xl p-3 flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center shadow-2xl"
-          style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(201,185,154,0.15)' }}
+          style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)', border: '1px solid rgba(201,164,184,0.2)' }}
         >
           {/* Tabs */}
-          <div className="flex gap-2 p-1 rounded-2xl flex-1 sm:flex-none" style={{ background: 'rgba(0,0,0,0.3)' }}>
+          <div className="flex gap-2 p-1 rounded-2xl flex-1 sm:flex-none" style={{ background: 'rgba(0,0,0,0.35)' }}>
             <button
               onClick={() => { setActiveTab('courses'); setSearchQuery(''); setExpandedVideo(null); }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300"
               style={activeTab === 'courses'
-                ? { background: 'linear-gradient(135deg, #c9b99a, #a08060)', color: '#1a1a1a', boxShadow: '0 4px 20px rgba(201,185,154,0.4)' }
-                : { color: 'rgba(201,185,154,0.6)' }
+                ? { background: 'linear-gradient(135deg, #c9a4b8, #9b7ea8)', color: '#fff', boxShadow: '0 4px 20px rgba(201,164,184,0.5)' }
+                : { color: 'rgba(201,164,184,0.6)' }
               }
             >
               <Video className="w-4 h-4" />
@@ -186,8 +186,8 @@ export const MahajaDashboard = () => {
               onClick={() => { setActiveTab('books'); setSearchQuery(''); setExpandedVideo(null); }}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300"
               style={activeTab === 'books'
-                ? { background: 'linear-gradient(135deg, #c9b99a, #a08060)', color: '#1a1a1a', boxShadow: '0 4px 20px rgba(201,185,154,0.4)' }
-                : { color: 'rgba(201,185,154,0.6)' }
+                ? { background: 'linear-gradient(135deg, #c9a4b8, #9b7ea8)', color: '#fff', boxShadow: '0 4px 20px rgba(201,164,184,0.5)' }
+                : { color: 'rgba(201,164,184,0.6)' }
               }
             >
               <BookOpen className="w-4 h-4" />
@@ -205,7 +205,7 @@ export const MahajaDashboard = () => {
               className="w-full py-3 rounded-xl text-sm outline-none"
               style={{
                 background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(201,185,154,0.2)',
+                border: '1px solid rgba(201,164,184,0.2)',
                 color: '#f0e8d8',
                 paddingLeft: isRTL ? '1rem' : '2.75rem',
                 paddingRight: isRTL ? '2.75rem' : '1rem',
@@ -214,7 +214,7 @@ export const MahajaDashboard = () => {
             />
             <Search
               className="w-4 h-4 absolute top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'rgba(201,185,154,0.5)', right: isRTL ? '0.875rem' : 'auto', left: isRTL ? 'auto' : '0.875rem' }}
+              style={{ color: 'rgba(201,164,184,0.5)', right: isRTL ? '0.875rem' : 'auto', left: isRTL ? 'auto' : '0.875rem' }}
             />
           </div>
         </motion.div>
@@ -226,7 +226,7 @@ export const MahajaDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="animate-pulse rounded-3xl h-64"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,185,154,0.1)' }} />
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,164,184,0.12)' }} />
             ))}
           </div>
         ) : (
@@ -253,10 +253,10 @@ export const MahajaDashboard = () => {
                           transition={{ delay: idx * 0.06 }}
                           className={`rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isExpanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
                           style={{
-                            background: 'linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
-                            border: '1px solid rgba(201,185,154,0.18)',
+                            background: 'linear-gradient(145deg, rgba(107,91,149,0.12) 0%, rgba(40,36,90,0.08) 100%)',
+                            border: '1px solid rgba(201,164,184,0.2)',
                             backdropFilter: 'blur(12px)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.35)'
                           }}
                         >
                           {/* Video area */}
@@ -281,12 +281,12 @@ export const MahajaDashboard = () => {
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                   />
                                   {/* Dark overlay */}
-                                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300" />
+                                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
                                   {/* Play button */}
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <div
                                       className="w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-2xl"
-                                      style={{ background: 'linear-gradient(135deg, #c9b99a, #a08060)' }}
+                                      style={{ background: 'linear-gradient(135deg, #d4a5a5, #8c6a6a)' }}
                                     >
                                       <Play className="w-6 h-6 text-[#1a1a1a] fill-current ml-1" />
                                     </div>
@@ -295,9 +295,9 @@ export const MahajaDashboard = () => {
                               )
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
-                                style={{ background: 'rgba(201,185,154,0.05)' }}>
-                                <Video className="w-10 h-10" style={{ color: 'rgba(201,185,154,0.4)' }} />
-                                <span className="text-xs font-bold" style={{ color: 'rgba(201,185,154,0.5)' }}>
+                                style={{ background: 'rgba(212,165,165,0.05)' }}>
+                                <Video className="w-10 h-10" style={{ color: 'rgba(212,165,165,0.3)' }} />
+                                <span className="text-xs font-bold" style={{ color: 'rgba(212,165,165,0.4)' }}>
                                   {isRTL ? 'رابط غير صالح' : 'Invalid link'}
                                 </span>
                               </div>
@@ -306,7 +306,7 @@ export const MahajaDashboard = () => {
                             {/* Badge */}
                             <div
                               className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5"
-                              style={{ background: 'rgba(201,185,154,0.15)', backdropFilter: 'blur(8px)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.3)' }}
+                              style={{ background: 'rgba(212,165,165,0.15)', backdropFilter: 'blur(8px)', color: '#d4a5a5', border: '1px solid rgba(212,165,165,0.3)' }}
                             >
                               <Video className="w-3 h-3" />
                               {isRTL ? 'درس' : 'Lesson'}
@@ -328,10 +328,10 @@ export const MahajaDashboard = () => {
                               className="w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300"
                               style={{
                                 background: isExpanded
-                                  ? 'rgba(201,185,154,0.08)'
-                                  : 'linear-gradient(135deg, rgba(201,185,154,0.15), rgba(160,128,96,0.1))',
-                                color: '#c9b99a',
-                                border: '1px solid rgba(201,185,154,0.25)',
+                                  ? 'rgba(201,164,184,0.08)'
+                                  : 'linear-gradient(135deg, rgba(201,164,184,0.18), rgba(155,126,168,0.12))',
+                                color: '#c9a4b8',
+                                border: '1px solid rgba(201,164,184,0.3)',
                                 fontFamily: '"Cairo", sans-serif'
                               }}
                             >
@@ -397,7 +397,7 @@ export const MahajaDashboard = () => {
                           {/* Badge */}
                           <div
                             className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1"
-                            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.3)' }}
+                            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: '#c9a4b8', border: '1px solid rgba(201,164,184,0.35)' }}
                           >
                             <BookOpen className="w-3 h-3" />
                             {isRTL ? 'كتاب' : 'Book'}
@@ -420,9 +420,9 @@ export const MahajaDashboard = () => {
                             rel="noopener noreferrer"
                             className="w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-300"
                             style={{
-                              background: 'linear-gradient(135deg, rgba(201,185,154,0.18), rgba(160,128,96,0.12))',
-                              color: '#c9b99a',
-                              border: '1px solid rgba(201,185,154,0.25)',
+                              background: 'linear-gradient(135deg, rgba(201,164,184,0.18), rgba(155,126,168,0.12))',
+                              color: '#c9a4b8',
+                              border: '1px solid rgba(201,164,184,0.3)',
                               fontFamily: '"Cairo", sans-serif'
                             }}
                           >
