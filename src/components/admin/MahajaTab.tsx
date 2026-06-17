@@ -43,7 +43,6 @@ export const MahajaTab = () => {
     };
     if (activeSubTab === 'courses') {
       newItem['content_link' as keyof typeof newItem] = '';
-      newItem['image_url' as keyof typeof newItem] = '';
     } else {
       newItem['download_link' as keyof typeof newItem] = '';
       newItem['cover_image_url' as keyof typeof newItem] = '';
@@ -265,25 +264,27 @@ export const MahajaTab = () => {
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 h-24" 
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{isRTL ? 'الصورة' : 'Image'}</label>
-                      <div className="flex gap-2 items-center">
-                        <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 px-4 py-3 rounded-xl flex items-center justify-center">
-                          <ImageIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                          <input type="file" accept="image/*" className="hidden" onChange={uploadImage} />
-                        </label>
-                        <input 
-                          type="text" 
-                          value={editForm[imgField] || ''} 
-                          onChange={e => setEditForm({...editForm, [imgField]: e.target.value})}
-                          placeholder="Image URL"
-                          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-left" dir="ltr"
-                        />
+                    {activeSubTab === 'books' && (
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">{isRTL ? 'الصورة' : 'Image'}</label>
+                        <div className="flex gap-2 items-center">
+                          <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 px-4 py-3 rounded-xl flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                            <input type="file" accept="image/*" className="hidden" onChange={uploadImage} />
+                          </label>
+                          <input 
+                            type="text" 
+                            value={editForm[imgField] || ''} 
+                            onChange={e => setEditForm({...editForm, [imgField]: e.target.value})}
+                            placeholder="Image URL"
+                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-left" dir="ltr"
+                          />
+                        </div>
+                        {editForm[imgField] && (
+                          <img src={editForm[imgField]} alt="Preview" className="h-20 object-cover mt-2 rounded-lg border border-slate-200 dark:border-slate-700" />
+                        )}
                       </div>
-                      {editForm[imgField] && (
-                        <img src={editForm[imgField]} alt="Preview" className="h-20 object-cover mt-2 rounded-lg border border-slate-200 dark:border-slate-700" />
-                      )}
-                    </div>
+                    )}
                     <div className="flex items-center">
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input 
@@ -317,10 +318,14 @@ export const MahajaTab = () => {
             return (
               <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="w-20 h-20 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
-                  {item[imgField] ? (
-                    <img src={item[imgField]} alt={item.title} className="w-full h-full object-cover" />
+                  {activeSubTab === 'books' ? (
+                    item[imgField] ? (
+                      <img src={item[imgField]} alt={item.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-slate-300" />
+                    )
                   ) : (
-                    <ImageIcon className="w-8 h-8 text-slate-300" />
+                    <Video className="w-8 h-8 text-teal-500" />
                   )}
                 </div>
                 <div className="flex-1 text-center sm:text-start">

@@ -10,7 +10,6 @@ interface MahajaCourse {
   title: string;
   description: string;
   content_link: string;
-  image_url: string;
   created_at: string;
 }
 
@@ -23,6 +22,13 @@ interface MahajaBook {
   created_at: string;
 }
 
+const getYoutubeVideoId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export const MahajaDashboard = () => {
   const { language } = useLanguage();
   const { logout } = useAuth();
@@ -31,7 +37,6 @@ export const MahajaDashboard = () => {
   const [courses, setCourses] = useState<MahajaCourse[]>([]);
   const [books, setBooks] = useState<MahajaBook[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'courses' | 'books'>('courses');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -103,34 +108,12 @@ export const MahajaDashboard = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
-        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-2 flex flex-col md:flex-row gap-4 justify-between items-center border border-slate-200 dark:border-slate-700">
-          
-          <div className="flex gap-2 w-full md:w-auto p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl">
-            <button
-              onClick={() => setActiveTab('courses')}
-              className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'courses' 
-                  ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <Video className="w-5 h-5" />
-              {isRTL ? 'الدورات العلمية' : 'Courses'}
-            </button>
-            <button
-              onClick={() => setActiveTab('books')}
-              className={`flex-1 md:flex-none px-6 py-3 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'books' 
-                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              {isRTL ? 'الكتب والمراجع' : 'Books'}
-            </button>
+        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-4 flex justify-between items-center border border-slate-200 dark:border-slate-700">
+          <div className="font-bold text-slate-800 dark:text-slate-200 text-lg md:text-xl px-2 flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-teal-500" />
+            {isRTL ? 'محتويات المحجة البيضاء' : 'Al-Mahaja Content'}
           </div>
-
-          <div className="relative w-full md:w-72">
+          <div className="relative w-full md:w-96">
             <input
               type="text"
               placeholder={isRTL ? 'البحث...' : 'Search...'}
@@ -157,83 +140,103 @@ export const MahajaDashboard = () => {
               transition={{ duration: 0.4 }}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
-              {activeTab === 'courses' ? (
-                filteredCourses.length > 0 ? (
-                  filteredCourses.map(course => (
-                    <div key={course.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                      <div className="aspect-video w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
-                        {course.image_url ? (
-                          <img src={course.image_url} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-teal-50 dark:bg-teal-900/20">
-                            <Video className="w-12 h-12 text-teal-300 dark:text-teal-700" />
+              <div className="space-y-12">
+                {/* Courses Section */}
+                <section>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                    <Video className="w-6 h-6 text-teal-500" />
+                    {isRTL ? 'الدورات العلمية' : 'Courses'}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredCourses.length > 0 ? (
+                      filteredCourses.map(course => {
+                        const videoId = getYoutubeVideoId(course.content_link);
+                        return (
+                          <div key={course.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+                            <div className="aspect-video w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
+                              {videoId ? (
+                                <iframe
+                                  src={`https://www.youtube.com/embed/${videoId}`}
+                                  title={course.title}
+                                  className="w-full h-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                ></iframe>
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 gap-2 p-4 text-center">
+                                  <Video className="w-10 h-10" />
+                                  <span className="text-sm font-bold opacity-80">{isRTL ? 'رابط فيديو غير صالح' : 'Invalid Video Link'}</span>
+                                  <a href={course.content_link} target="_blank" rel="noopener noreferrer" className="text-xs underline break-all">{course.content_link}</a>
+                                </div>
+                              )}
+                              <div className="absolute pointer-events-none top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 shadow-sm">
+                                <Video className="w-3.5 h-3.5" />
+                                {isRTL ? 'دورة' : 'Course'}
+                              </div>
+                            </div>
+                            <div className="p-6 flex flex-col flex-1">
+                              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{course.title}</h3>
+                              <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-3 flex-1">{course.description}</p>
+                            </div>
                           </div>
-                        )}
-                        <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 shadow-sm">
-                          <Video className="w-3.5 h-3.5" />
-                          {isRTL ? 'دورة' : 'Course'}
-                        </div>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-full py-12 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
+                        <Video className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{isRTL ? 'لا توجد دورات متاحة' : 'No courses available'}</h3>
                       </div>
-                      <div className="p-6 flex flex-col flex-1">
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{course.title}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-3 flex-1">{course.description}</p>
-                        <a 
-                          href={course.content_link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-full py-3 px-4 bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 text-teal-600 dark:text-teal-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto"
-                        >
-                          {isRTL ? 'مشاهدة الدورة' : 'Watch Course'}
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center">
-                    <Video className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">{isRTL ? 'لا توجد دورات متاحة' : 'No courses available'}</h3>
+                    )}
                   </div>
-                )
-              ) : (
-                filteredBooks.length > 0 ? (
-                  filteredBooks.map(book => (
-                    <div key={book.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                      <div className="aspect-[3/4] w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
-                        {book.cover_image_url ? (
-                          <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
-                            <BookOpen className="w-16 h-16 text-emerald-300 dark:text-emerald-700" />
+                </section>
+
+                {/* Books Section */}
+                <section>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                    <BookOpen className="w-6 h-6 text-emerald-500" />
+                    {isRTL ? 'الكتب والمراجع' : 'Books'}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredBooks.length > 0 ? (
+                      filteredBooks.map(book => (
+                        <div key={book.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+                          <div className="aspect-[3/4] w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
+                            {book.cover_image_url ? (
+                              <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
+                                <BookOpen className="w-16 h-16 text-emerald-300 dark:text-emerald-700" />
+                              </div>
+                            )}
+                            <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 shadow-sm">
+                              <BookOpen className="w-3.5 h-3.5" />
+                              {isRTL ? 'كتاب' : 'Book'}
+                            </div>
                           </div>
-                        )}
-                        <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 shadow-sm">
-                          <BookOpen className="w-3.5 h-3.5" />
-                          {isRTL ? 'كتاب' : 'Book'}
+                          <div className="p-6 flex flex-col flex-1">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{book.title}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-3 flex-1">{book.description}</p>
+                            <a 
+                              href={book.download_link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto"
+                            >
+                              {isRTL ? 'تحميل الكتاب' : 'Download Book'}
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-12 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
+                        <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{isRTL ? 'لا توجد كتب متاحة' : 'No books available'}</h3>
                       </div>
-                      <div className="p-6 flex flex-col flex-1">
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{book.title}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-3 flex-1">{book.description}</p>
-                        <a 
-                          href={book.download_link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto"
-                        >
-                          {isRTL ? 'تحميل الكتاب' : 'Download Book'}
-                          <Download className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center">
-                    <BookOpen className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">{isRTL ? 'لا توجد كتب متاحة' : 'No books available'}</h3>
+                    )}
                   </div>
-                )
-              )}
+                </section>
+              </div>
             </motion.div>
           )}
         </div>
