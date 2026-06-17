@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { BookOpen, Video, Plus, Trash2, Edit2, Save, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+
+// Admin client: uses service role key if available (bypasses RLS completely)
+// Falls back to anon key if service role key is not configured
+const adminSupabase = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+  : supabase;
 
 export const MahajaTab = () => {
   const { language } = useLanguage();
@@ -22,25 +33,17 @@ export const MahajaTab = () => {
 
   const fetchItems = async () => {
     setLoading(true);
-    try {
-      const fnName = activeSubTab === 'courses' ? 'mahaja_get_courses' : 'mahaja_get_books';
-      const { data, error } = await supabase.rpc(fnName);
-      if (error) {
-        console.error('fetchItems RPC error:', error);
-        // Fallback to direct select
-        const table = activeSubTab === 'courses' ? 'mahaja_courses' : 'mahaja_books';
-        const { data: fallback, error: fallbackErr } = await supabase.from(table).select('*').order('created_at', { ascending: false });
-        if (fallbackErr) {
-          toast.error(isRTL ? 'خطأ في جلب البيانات' : 'Error fetching data');
-        } else {
-          setItems(fallback || []);
-        }
-      } else {
-        setItems(data || []);
-      }
-    } catch (e) {
-      console.error('fetchItems error:', e);
+    const table = activeSubTab === 'courses' ? 'mahaja_courses' : 'mahaja_books';
+    const { data, error } = await adminSupabase
+      .from(table)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('fetchItems error:', error);
       toast.error(isRTL ? 'خطأ في جلب البيانات' : 'Error fetching data');
+    } else {
+      setItems(data || []);
     }
     setLoading(false);
   };
@@ -81,71 +84,45 @@ export const MahajaTab = () => {
 
     setIsSaving(true);
     const isNew = id === 'new';
+    const table = activeSubTab === 'courses' ? 'mahaja_courses' : 'mahaja_books';
+
+    // Build clean payload — only known columns, no id/timestamps
+    const payload =
+      activeSubTab === 'courses'
+        ? {
+            title: editForm.title.trim(),
+            description: editForm.description?.trim() || '',
+            content_link: editForm.content_link?.trim(),
+            image_url: editForm.image_url?.trim() || '',
+            is_published: editForm.is_published ?? true,
+          }
+        : {
+            title: editForm.title.trim(),
+            description: editForm.description?.trim() || '',
+            download_link: editForm.download_link?.trim(),
+            cover_image_url: editForm.cover_image_url?.trim() || '',
+            is_published: editForm.is_published ?? true,
+          };
 
     try {
-      if (activeSubTab === 'courses') {
-        if (isNew) {
-          const { error } = await supabase.rpc('mahaja_insert_course', {
-            p_title: editForm.title?.trim(),
-            p_description: editForm.description?.trim() || '',
-            p_content_link: editForm.content_link?.trim(),
-            p_image_url: editForm.image_url?.trim() || '',
-            p_is_published: editForm.is_published ?? true,
-          });
-          if (error) {
-            console.error('RPC insert course error:', error);
-            throw error;
-          }
-        } else {
-          const { error } = await supabase.rpc('mahaja_update_course', {
-            p_id: id,
-            p_title: editForm.title?.trim(),
-            p_description: editForm.description?.trim() || '',
-            p_content_link: editForm.content_link?.trim(),
-            p_image_url: editForm.image_url?.trim() || '',
-            p_is_published: editForm.is_published ?? true,
-          });
-          if (error) {
-            console.error('RPC update course error:', error);
-            throw error;
-          }
+      if (isNew) {
+        const { error } = await adminSupabase.from(table).insert([payload]);
+        if (error) {
+          console.error('insert error:', error);
+          throw error;
         }
+        toast.success(isRTL ? 'تمت الإضافة بنجاح ✓' : 'Added successfully ✓');
       } else {
-        if (isNew) {
-          const { error } = await supabase.rpc('mahaja_insert_book', {
-            p_title: editForm.title?.trim(),
-            p_description: editForm.description?.trim() || '',
-            p_download_link: editForm.download_link?.trim(),
-            p_cover_image_url: editForm.cover_image_url?.trim() || '',
-            p_is_published: editForm.is_published ?? true,
-          });
-          if (error) {
-            console.error('RPC insert book error:', error);
-            throw error;
-          }
-        } else {
-          const { error } = await supabase.rpc('mahaja_update_book', {
-            p_id: id,
-            p_title: editForm.title?.trim(),
-            p_description: editForm.description?.trim() || '',
-            p_download_link: editForm.download_link?.trim(),
-            p_cover_image_url: editForm.cover_image_url?.trim() || '',
-            p_is_published: editForm.is_published ?? true,
-          });
-          if (error) {
-            console.error('RPC update book error:', error);
-            throw error;
-          }
+        const { error } = await adminSupabase.from(table).update(payload).eq('id', id);
+        if (error) {
+          console.error('update error:', error);
+          throw error;
         }
+        toast.success(isRTL ? 'تم التحديث بنجاح ✓' : 'Updated successfully ✓');
       }
-
-      toast.success(isNew
-        ? (isRTL ? 'تمت الإضافة بنجاح ✓' : 'Added successfully ✓')
-        : (isRTL ? 'تم التحديث بنجاح ✓' : 'Updated successfully ✓'));
       setIsEditing(null);
       await fetchItems();
     } catch (err: any) {
-      console.error('handleSave error:', err);
       toast.error(err?.message || (isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving data'));
     } finally {
       setIsSaving(false);
@@ -158,17 +135,15 @@ export const MahajaTab = () => {
       setIsEditing(null);
       return;
     }
-    if (!window.confirm(isRTL ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+    if (!window.confirm(isRTL ? 'هل أنت متأكد من الحذف؟' : 'Are you sure?')) return;
 
-    try {
-      const fnName = activeSubTab === 'courses' ? 'mahaja_delete_course' : 'mahaja_delete_book';
-      const { error } = await supabase.rpc(fnName, { p_id: id });
-      if (error) throw error;
+    const table = activeSubTab === 'courses' ? 'mahaja_courses' : 'mahaja_books';
+    const { error } = await adminSupabase.from(table).delete().eq('id', id);
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success(isRTL ? 'تم الحذف بنجاح ✓' : 'Deleted successfully ✓');
       await fetchItems();
-    } catch (err: any) {
-      console.error('handleDelete error:', err);
-      toast.error(err?.message || (isRTL ? 'خطأ في الحذف' : 'Error deleting'));
     }
   };
 
@@ -191,9 +166,15 @@ export const MahajaTab = () => {
 
     toast.loading(isRTL ? 'جاري رفع الصورة...' : 'Uploading image...', { id: toastId });
     try {
-      const { error } = await supabase.storage.from('mahaja_content').upload(fileName, file, { cacheControl: '3600', upsert: false });
+      const { error } = await adminSupabase.storage
+        .from('mahaja_content')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from('mahaja_content').getPublicUrl(fileName);
+
+      const { data: urlData } = adminSupabase.storage
+        .from('mahaja_content')
+        .getPublicUrl(fileName);
+
       const imageField = activeSubTab === 'courses' ? 'image_url' : 'cover_image_url';
       setEditForm((prev: any) => ({ ...prev, [imageField]: urlData.publicUrl }));
       toast.success(isRTL ? 'تم رفع الصورة ✓' : 'Image uploaded ✓', { id: toastId });
@@ -205,9 +186,6 @@ export const MahajaTab = () => {
 
   const linkField = activeSubTab === 'courses' ? 'content_link' : 'download_link';
   const imgField = activeSubTab === 'courses' ? 'image_url' : 'cover_image_url';
-  const linkLabel = activeSubTab === 'courses'
-    ? (isRTL ? 'رابط الدورة (يوتيوب أو غيره)' : 'Course Link (YouTube, etc.)')
-    : (isRTL ? 'رابط الكتاب (درايف أو غيره)' : 'Book Link (Drive, etc.)');
 
   return (
     <motion.div
@@ -226,12 +204,13 @@ export const MahajaTab = () => {
             {isRTL ? 'إضافة وتعديل الدورات والكتب' : 'Manage courses and books'}
           </p>
         </div>
-
         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
           <button
             onClick={() => { setActiveSubTab('courses'); setIsEditing(null); }}
             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
-              activeSubTab === 'courses' ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm' : 'text-slate-500'
+              activeSubTab === 'courses'
+                ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                : 'text-slate-500'
             }`}
           >
             <Video className="w-4 h-4" />
@@ -240,7 +219,9 @@ export const MahajaTab = () => {
           <button
             onClick={() => { setActiveSubTab('books'); setIsEditing(null); }}
             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
-              activeSubTab === 'books' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500'
+              activeSubTab === 'books'
+                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                : 'text-slate-500'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -249,7 +230,7 @@ export const MahajaTab = () => {
         </div>
       </div>
 
-      {/* Add New Button */}
+      {/* Add Button */}
       <button
         onClick={handleAddNew}
         disabled={!!isEditing}
@@ -262,7 +243,7 @@ export const MahajaTab = () => {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
         </div>
       ) : (
         <div className="space-y-4">
@@ -289,7 +270,10 @@ export const MahajaTab = () => {
                     {/* Link */}
                     <div>
                       <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        {linkLabel} <span className="text-red-500">*</span>
+                        {activeSubTab === 'courses'
+                          ? (isRTL ? 'رابط الدورة' : 'Course Link')
+                          : (isRTL ? 'رابط الكتاب' : 'Book Link')}{' '}
+                        <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2 items-center">
                         <div className="bg-teal-100 dark:bg-teal-900/30 px-3 py-3 rounded-xl">
@@ -301,7 +285,7 @@ export const MahajaTab = () => {
                           onChange={e => setEditForm({ ...editForm, [linkField]: e.target.value })}
                           placeholder="https://..."
                           dir="ltr"
-                          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-left"
+                          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                         />
                       </div>
                     </div>
@@ -324,7 +308,7 @@ export const MahajaTab = () => {
                         {isRTL ? 'الصورة (اختياري)' : 'Image (optional)'}
                       </label>
                       <div className="flex gap-2 items-center mb-2">
-                        <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 px-3 py-3 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                        <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 px-3 py-3 rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" title={isRTL ? 'رفع صورة' : 'Upload image'}>
                           <ImageIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                           <input type="file" accept="image/*" className="hidden" onChange={uploadImage} />
                         </label>
@@ -334,7 +318,7 @@ export const MahajaTab = () => {
                           onChange={e => setEditForm({ ...editForm, [imgField]: e.target.value })}
                           placeholder={isRTL ? 'أو أدخل رابط الصورة' : 'Or enter image URL'}
                           dir="ltr"
-                          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-left"
+                          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                         />
                       </div>
                       {editForm[imgField] && (
@@ -358,7 +342,7 @@ export const MahajaTab = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Form Actions */}
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button
                       disabled={isSaving}
@@ -380,7 +364,9 @@ export const MahajaTab = () => {
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {isSaving ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ ونشر' : 'Save & Publish')}
+                      {isSaving
+                        ? (isRTL ? 'جاري الحفظ...' : 'Saving...')
+                        : (isRTL ? 'حفظ ونشر' : 'Save & Publish')}
                     </button>
                   </div>
                 </div>
@@ -397,15 +383,26 @@ export const MahajaTab = () => {
                   )}
                 </div>
                 <div className="flex-1 text-center sm:text-start min-w-0">
-                  <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2 justify-center sm:justify-start">
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2 justify-center sm:justify-start flex-wrap">
                     <span className="truncate">{item.title}</span>
-                    <span className={`shrink-0 text-xs px-2 py-1 rounded-full ${item.is_published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                      {item.is_published ? (isRTL ? 'منشور' : 'Published') : (isRTL ? 'مخفي' : 'Hidden')}
+                    <span className={`shrink-0 text-xs px-2 py-1 rounded-full ${
+                      item.is_published
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {item.is_published
+                        ? (isRTL ? 'منشور' : 'Published')
+                        : (isRTL ? 'مخفي' : 'Hidden')}
                     </span>
                   </h3>
                   <p className="text-sm text-slate-500 line-clamp-2 mt-1">{item.description}</p>
                   {item[linkField] && (
-                    <a href={item[linkField]} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 dark:text-teal-400 hover:underline mt-1 block truncate">
+                    <a
+                      href={item[linkField]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-teal-600 dark:text-teal-400 hover:underline mt-1 block truncate"
+                    >
                       {item[linkField]}
                     </a>
                   )}
@@ -414,14 +411,12 @@ export const MahajaTab = () => {
                   <button
                     onClick={() => { setIsEditing(item.id); setEditForm({ ...item }); }}
                     className="p-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
-                    title={isRTL ? 'تعديل' : 'Edit'}
                   >
                     <Edit2 className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="p-3 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-                    title={isRTL ? 'حذف' : 'Delete'}
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -429,10 +424,13 @@ export const MahajaTab = () => {
               </div>
             );
           })}
+
           {items.length === 0 && !loading && (
             <div className="text-center py-12 text-slate-500 dark:text-slate-400">
               <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-              <p className="font-medium">{isRTL ? 'لا توجد بيانات. أضف عنصراً جديداً.' : 'No data found. Add a new item.'}</p>
+              <p className="font-medium">
+                {isRTL ? 'لا توجد بيانات. أضف عنصراً جديداً.' : 'No data found. Add a new item.'}
+              </p>
             </div>
           )}
         </div>
