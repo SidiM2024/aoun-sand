@@ -10,6 +10,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { DonatePage } from './pages/DonatePage';
 import { ContactPage } from './pages/ContactPage';
 import { LessonsPage } from './pages/LessonsPage';
+import { DonationExpensesPage } from './pages/DonationExpensesPage';
 import { AuthPage } from './pages/AuthPage';
 import { AdminPage } from './pages/AdminPage';
 import { AccountPage } from './pages/AccountPage';
@@ -166,6 +167,7 @@ const AppContent = () => {
           <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
           <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
+          <Route path="/donation-expenses" element={<ProtectedRoute><DonationExpensesPage /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
         </Routes>
       </main>

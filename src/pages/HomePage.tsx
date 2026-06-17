@@ -31,10 +31,11 @@ const useCounter = (target: number, duration = 2000) => {
 
 /* ── Quick Links Data ── */
 const getQuickLinks = (isRTL: boolean, lang: string) => [
-  { path: '/about',      label: isRTL ? 'من نحن'   : (lang === 'fr' ? 'À propos' : 'About Us'),    icon: Info,     bg: 'bg-blue-50 dark:bg-blue-900/20',    color: 'text-blue-500'   },
-  { path: '/lessons',    label: isRTL ? 'المحجة البيضاء'   : (lang === 'fr' ? 'Al-Mahajja' : 'Al-Mahajja Al-Baydaa'),     icon: BookOpen, bg: 'bg-teal-50 dark:bg-teal-900/20',    color: 'text-teal-500'   },
-  { path: '/donate',     label: isRTL ? 'تبرع الآن': (lang === 'fr' ? 'Faire un don':'Donate Now'),icon: Heart,    bg: 'bg-rose-50 dark:bg-rose-900/20',    color: 'text-rose-500'   },
-  { path: '/contact',    label: isRTL ? 'اتصل بنا' : (lang === 'fr' ? 'Contact'  : 'Contact Us'),  icon: Info,     bg: 'bg-cyan-50 dark:bg-cyan-900/20',    color: 'text-cyan-500'   },
+  { path: '/about',              label: isRTL ? 'من نحن'              : (lang === 'fr' ? 'À propos'      : 'About Us'),              icon: Info,     bg: 'bg-blue-50 dark:bg-blue-900/20',    color: 'text-blue-500'   },
+  { path: '/mahaja',             label: isRTL ? 'المحجة البيضاء'     : (lang === 'fr' ? 'Al-Mahajja'    : 'Al-Mahajja Al-Baydaa'),  icon: BookOpen, bg: 'bg-teal-50 dark:bg-teal-900/20',    color: 'text-teal-500'   },
+  { path: '/donate',             label: isRTL ? 'تبرع الآن'          : (lang === 'fr' ? 'Faire un don'  : 'Donate Now'),            icon: Heart,    bg: 'bg-rose-50 dark:bg-rose-900/20',    color: 'text-rose-500'   },
+  { path: '/donation-expenses',  label: isRTL ? 'مصاريف التبرعات'   : (lang === 'fr' ? 'Dépenses'      : 'Donation Expenses'),     icon: Video,    bg: 'bg-amber-50 dark:bg-amber-900/20',  color: 'text-amber-500'  },
+  { path: '/contact',            label: isRTL ? 'اتصل بنا'          : (lang === 'fr' ? 'Contact'        : 'Contact Us'),            icon: Info,     bg: 'bg-cyan-50 dark:bg-cyan-900/20',    color: 'text-cyan-500'   },
 ];
 
 /* ── Campaign Card ── */
