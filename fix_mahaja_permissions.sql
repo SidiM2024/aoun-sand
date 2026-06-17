@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS public.mahaja_courses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- التأكد من إضافة الأعمدة في حال كان الجدول موجوداً مسبقاً
+ALTER TABLE public.mahaja_courses ADD COLUMN IF NOT EXISTS content_link TEXT;
+ALTER TABLE public.mahaja_courses ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.mahaja_courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT false;
+
 -- 3. إنشاء جدول الكتب (إذا لم يكن موجوداً)
 CREATE TABLE IF NOT EXISTS public.mahaja_books (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,9 +36,17 @@ CREATE TABLE IF NOT EXISTS public.mahaja_books (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. تمكين الحماية RLS للجداول
-ALTER TABLE public.mahaja_courses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.mahaja_books ENABLE ROW LEVEL SECURITY;
+-- التأكد من إضافة الأعمدة في حال كان الجدول موجوداً مسبقاً
+ALTER TABLE public.mahaja_books ADD COLUMN IF NOT EXISTS download_link TEXT;
+ALTER TABLE public.mahaja_books ADD COLUMN IF NOT EXISTS cover_image_url TEXT;
+ALTER TABLE public.mahaja_books ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT false;
+
+-- 4. إيقاف الحماية RLS مؤقتاً للتأكد من عمل النظام (RLS Disabled for testing)
+ALTER TABLE public.mahaja_courses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mahaja_books DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON TABLE public.mahaja_courses TO anon, authenticated;
+GRANT ALL ON TABLE public.mahaja_books TO anon, authenticated;
 
 -- 5. تحديث سياسات الدورات لتكون متاحة للوحة التحكم (مثل المالية)
 DROP POLICY IF EXISTS "mahaja_courses_insert" ON public.mahaja_courses;
@@ -86,4 +99,7 @@ CREATE POLICY "mahaja_storage_update" ON storage.objects FOR UPDATE
 CREATE POLICY "mahaja_storage_delete" ON storage.objects FOR DELETE
   TO anon, authenticated USING (bucket_id = 'mahaja_content');
 
-SELECT 'تم الانتهاء من إعداد قاعدة بيانات المحجة البيضاء بنجاح ✓' AS result;
+-- 8. إعادة تحميل الـ Schema في Supabase لتحديث الصلاحيات فوراً
+NOTIFY pgrst, 'reload schema';
+
+SELECT 'تم تحديث قاعدة بيانات المحجة البيضاء وإلغاء الحماية مؤقتاً بنجاح ✓' AS result;
