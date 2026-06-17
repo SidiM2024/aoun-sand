@@ -1,4 +1,4 @@
-import { Heart, Users, Video, Calendar, Wallet, Info, ArrowRight, BookOpen } from 'lucide-react';
+import { Heart, Users, Video, Calendar, Wallet, Info, ArrowRight, BookOpen, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useState } from 'react';
@@ -38,20 +38,6 @@ export const Hero = () => {
               <span className="hidden sm:inline">•</span>
               <span>{t.hero.date}</span>
             </div>
-          </div>
-
-          {/* New "Al-Mahajja Al-Baida" Button */}
-          <div className="mb-8 animate-slideUp">
-            <Link
-              to="/mahaja"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative"
-            >
-              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-              <BookOpen className="w-8 h-8 group-hover:scale-110 transition-transform" />
-              <span className="text-xl md:text-2xl font-bold">
-                {language === 'ar' ? 'المحجة البيضاء' : 'The White Path'}
-              </span>
-            </Link>
           </div>
 
           {/* Action Buttons */}
@@ -118,11 +104,10 @@ export const Hero = () => {
               <BookOpen className="w-6 h-6 text-teal-500" />
               {language === 'ar' ? 'روابط سريعة' : 'Quick Links'}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { path: '/about', label: language === 'ar' ? 'من نحن' : 'About Us', icon: Info, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                { path: '/mahaja', label: language === 'ar' ? 'المحجة البيضاء' : 'Al-Mahajja Al-Baydaa', icon: Video, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-                { path: '/donation-expenses', label: language === 'ar' ? 'مصاريف التبرعات' : 'Donation Expenses', icon: Wallet, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
+                { path: '/donation-expenses', label: language === 'ar' ? 'مصاريف التبرعات' : 'Donation Expenses', icon: Receipt, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
                 { path: '/contact', label: language === 'ar' ? 'اتصل بنا' : 'Contact Us', icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' }
               ].map((link, i) => (
                 <Link
