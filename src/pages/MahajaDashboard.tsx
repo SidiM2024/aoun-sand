@@ -113,8 +113,8 @@ export const MahajaDashboard = () => {
               <img
                 src="/mahaja-logo.png"
                 alt="شعار المحجة البيضاء"
-                className="relative object-contain drop-shadow-2xl"
-                style={{ width: '180px', maxWidth: '85vw', height: 'auto' }}
+                className="relative drop-shadow-2xl"
+                style={{ width: '130px', height: '130px', objectFit: 'cover', borderRadius: '50%', border: '3px solid rgba(201,164,184,0.3)' }}
               />
             </div>
           </motion.div>
