@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon, FileText } from 'lucide-react';
 
 export const MahajaTab = () => {
   const { language } = useLanguage();
@@ -12,6 +12,7 @@ export const MahajaTab = () => {
   const [activeSubTab, setActiveSubTab] = useState<'courses' | 'books'>('courses');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
@@ -56,15 +57,20 @@ export const MahajaTab = () => {
     const table = activeSubTab === 'courses' ? 'mahaja_courses' : 'mahaja_books';
     const isNew = id === 'new';
     
+    if (isSaving) return;
+    setIsSaving(true);
+
     // basic validation
     if (!editForm.title?.trim()) {
       toast.error(isRTL ? 'العنوان مطلوب' : 'Title is required');
+      setIsSaving(false);
       return;
     }
 
     const linkField = activeSubTab === 'courses' ? 'content_link' : 'download_link';
     if (!editForm[linkField]?.trim()) {
       toast.error(isRTL ? 'الرابط مطلوب' : 'Link is required');
+      setIsSaving(false);
       return;
     }
 
@@ -86,11 +92,13 @@ export const MahajaTab = () => {
         }
         toast.success(isRTL ? 'تم التحديث بنجاح' : 'Updated successfully');
       }
+      setIsSaving(false);
       setIsEditing(null);
       fetchItems();
     } catch (err: any) {
       console.error("Full save error catch block:", err);
       toast.error(err.message || (isRTL ? 'حدث خطأ أثناء الحفظ' : 'Error saving data'));
+      setIsSaving(false);
     }
   };
 
@@ -234,7 +242,7 @@ export const MahajaTab = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        {isRTL ? 'الرابط' : 'Link'} <span className="text-red-500">*</span>
+                        {isRTL ? 'رابط المحتوى' : 'Content Link'} <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2 items-center">
                         <div className="bg-slate-200 dark:bg-slate-700 px-4 py-3 rounded-xl flex items-center justify-center">
@@ -244,7 +252,7 @@ export const MahajaTab = () => {
                           type="text" 
                           value={editForm[linkField] || ''} 
                           onChange={e => setEditForm({...editForm, [linkField]: e.target.value})}
-                          placeholder={isRTL ? 'مثال: https://youtube.com/...' : 'e.g. https://youtube.com/...'}
+                          placeholder={isRTL ? 'أدخل الرابط (مثل يوتيوب أو درايف)' : 'Enter link (e.g. YouTube or Drive)'}
                           className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-left" dir="ltr"
                         />
                       </div>
@@ -290,12 +298,16 @@ export const MahajaTab = () => {
                   </div>
                   
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button onClick={() => { setIsEditing(null); if (item.id === 'new') fetchItems(); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+                    <button disabled={isSaving} onClick={() => { setIsEditing(null); if (item.id === 'new') fetchItems(); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
                       {isRTL ? 'إلغاء' : 'Cancel'}
                     </button>
-                    <button onClick={() => handleSave(item.id)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors flex items-center gap-2">
-                      <Save className="w-4 h-4" />
-                      {isRTL ? 'حفظ' : 'Save'}
+                    <button disabled={isSaving} onClick={() => handleSave(item.id)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50">
+                      {isSaving ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isSaving ? (isRTL ? 'جاري الحفظ...' : 'Saving...') : (isRTL ? 'حفظ' : 'Save')}
                     </button>
                   </div>
                 </div>
