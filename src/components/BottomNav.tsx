@@ -12,7 +12,6 @@ export const BottomNav = () => {
     { path: '/',           label: isRTL ? 'الرئيسية' : (language === 'fr' ? 'Accueil'  : 'Home'),       icon: Home          },
     { path: '/projects',   label: isRTL ? 'المشاريع' : (language === 'fr' ? 'Projets'  : 'Projects'),   icon: FolderHeart   },
     { path: '/donate',     label: isRTL ? 'التبرع'   : (language === 'fr' ? 'Don'      : 'Donate'),     icon: HeartHandshake},
-    { path: '/membership', label: isRTL ? 'الانتساب' : (language === 'fr' ? 'Adhésion' : 'Membership'), icon: CreditCard    },
     { path: '/account',    label: isRTL ? 'الحساب'   : (language === 'fr' ? 'Compte'   : 'Account'),    icon: User          },
   ];
 

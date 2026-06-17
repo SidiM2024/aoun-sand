@@ -73,7 +73,7 @@ export const LessonsPage = () => {
                 {/* Header Section */}
                 <div className="text-center mb-12 animate-fadeIn">
                     <h1 className="section-title mb-4">
-                        {language === 'ar' ? 'الدروس والمحاضرات' : 'Lessons & Lectures'}
+                        {language === 'ar' ? 'المحجة البيضاء' : 'Al-Mahajja Al-Baydaa'}
                     </h1>
                     <p className="section-subtitle">
                         {language === 'ar'

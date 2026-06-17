@@ -61,11 +61,6 @@ export const Hero = () => {
               <span>{language === 'ar' ? 'تبرع الآن' : 'Donate Now'}</span>
             </Link>
 
-            <Link to="/membership" className="btn-secondary group">
-              <Users className="w-5 h-5" />
-              <span>{language === 'ar' ? 'الانتساب' : 'Membership'}</span>
-            </Link>
-
             <Link to="/about" className="btn-outline group">
               <Info className="w-5 h-5" />
               <span>{language === 'ar' ? 'تعرف علينا' : 'About Us'}</span>
@@ -123,11 +118,10 @@ export const Hero = () => {
               <BookOpen className="w-6 h-6 text-teal-500" />
               {language === 'ar' ? 'روابط سريعة' : 'Quick Links'}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { path: '/about', label: language === 'ar' ? 'من نحن' : 'About Us', icon: Info, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                { path: '/volunteer', label: language === 'ar' ? 'التطوع' : 'Volunteer', icon: Users, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
-                { path: '/lessons', label: language === 'ar' ? 'الدروس' : 'Lessons', icon: Video, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+                { path: '/lessons', label: language === 'ar' ? 'المحجة البيضاء' : 'Al-Mahajja Al-Baydaa', icon: Video, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { path: '/contact', label: language === 'ar' ? 'اتصل بنا' : 'Contact Us', icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' }
               ].map((link, i) => (
                 <Link
