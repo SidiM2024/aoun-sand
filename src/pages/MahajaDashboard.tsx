@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
-import { BookOpen, Video, Download, ExternalLink, Calendar, Search, LogOut } from 'lucide-react';
+import { BookOpen, Video, Download, Search, LogOut, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface MahajaCourse {
@@ -33,11 +33,13 @@ export const MahajaDashboard = () => {
   const { language } = useLanguage();
   const { logout } = useAuth();
   const isRTL = language === 'ar';
-  
+
   const [courses, setCourses] = useState<MahajaCourse[]>([]);
   const [books, setBooks] = useState<MahajaBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'courses' | 'books'>('courses');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +49,6 @@ export const MahajaDashboard = () => {
           supabase.from('mahaja_courses').select('*').eq('is_published', true).order('created_at', { ascending: false }),
           supabase.from('mahaja_books').select('*').eq('is_published', true).order('created_at', { ascending: false })
         ]);
-        
         if (coursesRes.data) setCourses(coursesRes.data);
         if (booksRes.data) setBooks(booksRes.data);
       } catch (err) {
@@ -56,190 +57,410 @@ export const MahajaDashboard = () => {
         setLoading(false);
       }
     };
-    
     fetchData();
   }, []);
 
-  const filteredCourses = courses.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase())));
-  const filteredBooks = books.filter(b => b.title.toLowerCase().includes(searchQuery.toLowerCase()) || (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase())));
+  const filteredCourses = courses.filter(c =>
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+  const filteredBooks = books.filter(b =>
+    b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header Section */}
-      <div className="relative pt-24 pb-12 overflow-hidden bg-gradient-to-br from-teal-900 to-emerald-900">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1584285406087-b649d06634d1?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
-        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/20 blur-[120px] pointer-events-none animate-pulse-slow"></div>
-        
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="absolute top-0 right-4 rtl:left-4 rtl:right-auto">
-            <button 
+    <div
+      className="min-h-screen pb-24"
+      style={{ background: 'linear-gradient(135deg, #0d1b2a 0%, #1a2a3a 50%, #0f2436 100%)' }}
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      {/* ── Hero Header ───────────────────────────────────── */}
+      <div className="relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[10%] w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: 'radial-gradient(circle, #c9b99a 0%, transparent 70%)' }} />
+          <div className="absolute bottom-0 right-[5%] w-80 h-80 rounded-full opacity-15 blur-3xl" style={{ background: 'radial-gradient(circle, #8b6f47 0%, transparent 70%)' }} />
+          {/* Subtle Arabic pattern overlay */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30 Z' fill='none' stroke='%23c9b99a' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px'
+          }} />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 text-center">
+          {/* Logout Button */}
+          <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'}`}>
+            <button
               onClick={logout}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl backdrop-blur-md transition-colors text-sm font-bold border border-white/10"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+              style={{ background: 'rgba(201,185,154,0.12)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.25)' }}
             >
               <LogOut className="w-4 h-4" />
               {isRTL ? 'تسجيل الخروج' : 'Logout'}
             </button>
           </div>
-          
+
+          {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-20 h-20 mx-auto bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-xl mb-6 text-emerald-400"
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6, type: 'spring' }}
+            className="mb-6 flex justify-center"
           >
-            <BookOpen className="w-10 h-10" />
+            <div className="relative">
+              <div className="absolute inset-0 rounded-3xl blur-2xl opacity-40" style={{ background: '#c9b99a', transform: 'scale(1.1)' }} />
+              <img
+                src="/mahaja-logo.png"
+                alt="شعار المحجة البيضاء"
+                className="relative w-28 h-28 sm:w-36 sm:h-36 object-cover rounded-3xl shadow-2xl"
+                style={{ border: '3px solid rgba(201,185,154,0.5)' }}
+              />
+            </div>
           </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight"
-          >
-            {isRTL ? 'منصة المحجة البيضاء' : 'Al-Mahaja Al-Baydaa'}
-          </motion.h1>
-          <motion.p 
+
+          {/* Title */}
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-emerald-100/80 text-lg md:text-xl max-w-2xl mx-auto"
+            className="text-4xl sm:text-5xl md:text-6xl font-black mb-3 tracking-tight"
+            style={{ color: '#f0e8d8', fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif', textShadow: '0 2px 20px rgba(201,185,154,0.3)' }}
           >
-            {isRTL ? 'مكتبة شاملة للدورات العلمية والكتب الإسلامية الموثوقة' : 'A comprehensive library for scientific courses and authentic Islamic books'}
+            المحجة البيضاء
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-base sm:text-lg max-w-xl mx-auto"
+            style={{ color: 'rgba(201,185,154,0.75)', fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif' }}
+          >
+            {isRTL ? 'منصة العلوم الشرعية — دروس وكتب منتقاة' : 'Islamic Sciences Platform — Curated Lessons & Books'}
           </motion.p>
+
+          {/* Stats Pills */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex justify-center gap-4 mt-6 flex-wrap"
+          >
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+              style={{ background: 'rgba(201,185,154,0.1)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.2)' }}>
+              <Video className="w-4 h-4" />
+              <span>{courses.length} {isRTL ? 'درس' : 'Lessons'}</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+              style={{ background: 'rgba(201,185,154,0.1)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.2)' }}>
+              <BookOpen className="w-4 h-4" />
+              <span>{books.length} {isRTL ? 'كتاب' : 'Books'}</span>
+            </div>
+          </motion.div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
-        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-4 flex justify-between items-center border border-slate-200 dark:border-slate-700">
-          <div className="font-bold text-slate-800 dark:text-slate-200 text-lg md:text-xl px-2 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-teal-500" />
-            {isRTL ? 'محتويات المحجة البيضاء' : 'Al-Mahaja Content'}
+      {/* ── Navigation Tabs + Search ─────────────────────── */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 relative z-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="rounded-3xl p-3 flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center shadow-2xl"
+          style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid rgba(201,185,154,0.15)' }}
+        >
+          {/* Tabs */}
+          <div className="flex gap-2 p-1 rounded-2xl flex-1 sm:flex-none" style={{ background: 'rgba(0,0,0,0.3)' }}>
+            <button
+              onClick={() => { setActiveTab('courses'); setSearchQuery(''); setExpandedVideo(null); }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300"
+              style={activeTab === 'courses'
+                ? { background: 'linear-gradient(135deg, #c9b99a, #a08060)', color: '#1a1a1a', boxShadow: '0 4px 20px rgba(201,185,154,0.4)' }
+                : { color: 'rgba(201,185,154,0.6)' }
+              }
+            >
+              <Video className="w-4 h-4" />
+              {isRTL ? 'الدروس' : 'Lessons'}
+            </button>
+            <button
+              onClick={() => { setActiveTab('books'); setSearchQuery(''); setExpandedVideo(null); }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300"
+              style={activeTab === 'books'
+                ? { background: 'linear-gradient(135deg, #c9b99a, #a08060)', color: '#1a1a1a', boxShadow: '0 4px 20px rgba(201,185,154,0.4)' }
+                : { color: 'rgba(201,185,154,0.6)' }
+              }
+            >
+              <BookOpen className="w-4 h-4" />
+              {isRTL ? 'الكتب' : 'Books'}
+            </button>
           </div>
-          <div className="relative w-full md:w-96">
+
+          {/* Search */}
+          <div className="relative flex-1 sm:max-w-xs">
             <input
               type="text"
-              placeholder={isRTL ? 'البحث...' : 'Search...'}
+              placeholder={isRTL ? 'ابحث هنا...' : 'Search here...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rtl:pr-11 rtl:pl-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400"
+              className="w-full py-3 rounded-xl text-sm outline-none"
+              style={{
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(201,185,154,0.2)',
+                color: '#f0e8d8',
+                paddingLeft: isRTL ? '1rem' : '2.75rem',
+                paddingRight: isRTL ? '2.75rem' : '1rem',
+                fontFamily: '"Cairo", "Noto Sans Arabic", sans-serif'
+              }}
             />
-            <Search className="w-5 h-5 text-slate-400 absolute top-1/2 -translate-y-1/2 left-4 rtl:right-4 rtl:left-auto pointer-events-none" />
+            <Search
+              className="w-4 h-4 absolute top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'rgba(201,185,154,0.5)', right: isRTL ? '0.875rem' : 'auto', left: isRTL ? 'auto' : '0.875rem' }}
+            />
           </div>
-        </div>
+        </motion.div>
+      </div>
 
-        <div className="mt-8">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-3xl h-80 border border-slate-200 dark:border-slate-700"></div>
-              ))}
-            </div>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
-              <div className="space-y-12">
-                {/* Courses Section */}
-                <section>
-                  <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                    <Video className="w-6 h-6 text-teal-500" />
-                    {isRTL ? 'الدورات العلمية' : 'Courses'}
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredCourses.length > 0 ? (
-                      filteredCourses.map(course => {
-                        const videoId = getYoutubeVideoId(course.content_link);
-                        return (
-                          <div key={course.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                            <div className="aspect-video w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
-                              {videoId ? (
+      {/* ── Content ──────────────────────────────────────── */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="animate-pulse rounded-3xl h-64"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,185,154,0.1)' }} />
+            ))}
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            {/* ── COURSES TAB ── */}
+            {activeTab === 'courses' && (
+              <motion.div
+                key="courses"
+                initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: isRTL ? 30 : -30 }}
+                transition={{ duration: 0.35 }}
+              >
+                {filteredCourses.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {filteredCourses.map((course, idx) => {
+                      const videoId = getYoutubeVideoId(course.content_link);
+                      const isExpanded = expandedVideo === course.id;
+                      return (
+                        <motion.div
+                          key={course.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.06 }}
+                          className={`rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isExpanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
+                          style={{
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
+                            border: '1px solid rgba(201,185,154,0.18)',
+                            backdropFilter: 'blur(12px)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {/* Video area */}
+                          <div className={`relative overflow-hidden ${isExpanded ? 'aspect-video' : 'aspect-video'} w-full`}>
+                            {videoId ? (
+                              isExpanded ? (
                                 <iframe
-                                  src={`https://www.youtube.com/embed/${videoId}`}
+                                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
                                   title={course.title}
                                   className="w-full h-full"
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                   allowFullScreen
-                                ></iframe>
+                                />
                               ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 gap-2 p-4 text-center">
-                                  <Video className="w-10 h-10" />
-                                  <span className="text-sm font-bold opacity-80">{isRTL ? 'رابط فيديو غير صالح' : 'Invalid Video Link'}</span>
-                                  <a href={course.content_link} target="_blank" rel="noopener noreferrer" className="text-xs underline break-all">{course.content_link}</a>
+                                <div
+                                  className="w-full h-full relative cursor-pointer group"
+                                  onClick={() => setExpandedVideo(course.id)}
+                                >
+                                  <img
+                                    src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                                    alt={course.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                  {/* Dark overlay */}
+                                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-300" />
+                                  {/* Play button */}
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div
+                                      className="w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-2xl"
+                                      style={{ background: 'linear-gradient(135deg, #c9b99a, #a08060)' }}
+                                    >
+                                      <Play className="w-6 h-6 text-[#1a1a1a] fill-current ml-1" />
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                              <div className="absolute pointer-events-none top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 shadow-sm">
-                                <Video className="w-3.5 h-3.5" />
-                                {isRTL ? 'دورة' : 'Course'}
-                              </div>
-                            </div>
-                            <div className="p-6 flex flex-col flex-1">
-                              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{course.title}</h3>
-                              <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-3 flex-1">{course.description}</p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="col-span-full py-12 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
-                        <Video className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{isRTL ? 'لا توجد دورات متاحة' : 'No courses available'}</h3>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                {/* Books Section */}
-                <section>
-                  <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                    <BookOpen className="w-6 h-6 text-emerald-500" />
-                    {isRTL ? 'الكتب والمراجع' : 'Books'}
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredBooks.length > 0 ? (
-                      filteredBooks.map(book => (
-                        <div key={book.id} className="group bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                          <div className="aspect-[3/4] w-full bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
-                            {book.cover_image_url ? (
-                              <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                              )
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
-                                <BookOpen className="w-16 h-16 text-emerald-300 dark:text-emerald-700" />
+                              <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
+                                style={{ background: 'rgba(201,185,154,0.05)' }}>
+                                <Video className="w-10 h-10" style={{ color: 'rgba(201,185,154,0.4)' }} />
+                                <span className="text-xs font-bold" style={{ color: 'rgba(201,185,154,0.5)' }}>
+                                  {isRTL ? 'رابط غير صالح' : 'Invalid link'}
+                                </span>
                               </div>
                             )}
-                            <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 shadow-sm">
-                              <BookOpen className="w-3.5 h-3.5" />
-                              {isRTL ? 'كتاب' : 'Book'}
+
+                            {/* Badge */}
+                            <div
+                              className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5"
+                              style={{ background: 'rgba(201,185,154,0.15)', backdropFilter: 'blur(8px)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.3)' }}
+                            >
+                              <Video className="w-3 h-3" />
+                              {isRTL ? 'درس' : 'Lesson'}
                             </div>
                           </div>
-                          <div className="p-6 flex flex-col flex-1">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 line-clamp-2">{book.title}</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-3 flex-1">{book.description}</p>
-                            <a 
-                              href={book.download_link} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-auto"
+
+                          {/* Info */}
+                          <div className="p-5 flex flex-col flex-1">
+                            <h3 className="font-black text-lg mb-2 line-clamp-2 leading-snug" style={{ color: '#f0e8d8', fontFamily: '"Cairo", sans-serif' }}>
+                              {course.title}
+                            </h3>
+                            {course.description && (
+                              <p className="text-sm line-clamp-2 mb-4 flex-1" style={{ color: 'rgba(201,185,154,0.6)', fontFamily: '"Cairo", sans-serif' }}>
+                                {course.description}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => setExpandedVideo(isExpanded ? null : course.id)}
+                              className="w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300"
+                              style={{
+                                background: isExpanded
+                                  ? 'rgba(201,185,154,0.08)'
+                                  : 'linear-gradient(135deg, rgba(201,185,154,0.15), rgba(160,128,96,0.1))',
+                                color: '#c9b99a',
+                                border: '1px solid rgba(201,185,154,0.25)',
+                                fontFamily: '"Cairo", sans-serif'
+                              }}
                             >
-                              {isRTL ? 'تحميل الكتاب' : 'Download Book'}
-                              <Download className="w-4 h-4" />
-                            </a>
+                              <Play className="w-4 h-4" />
+                              {isExpanded
+                                ? (isRTL ? 'إغلاق' : 'Close')
+                                : (isRTL ? 'مشاهدة الدرس' : 'Watch Lesson')
+                              }
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState icon={<Video className="w-14 h-14" />} message={isRTL ? 'لا توجد دروس متاحة حالياً' : 'No lessons available yet'} />
+                )}
+              </motion.div>
+            )}
+
+            {/* ── BOOKS TAB ── */}
+            {activeTab === 'books' && (
+              <motion.div
+                key="books"
+                initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: isRTL ? 30 : -30 }}
+                transition={{ duration: 0.35 }}
+              >
+                {filteredBooks.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                    {filteredBooks.map((book, idx) => (
+                      <motion.div
+                        key={book.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.06 }}
+                        className="group rounded-3xl overflow-hidden flex flex-col"
+                        style={{
+                          background: 'linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
+                          border: '1px solid rgba(201,185,154,0.18)',
+                          backdropFilter: 'blur(12px)',
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        {/* Cover */}
+                        <div className="aspect-[3/4] w-full relative overflow-hidden">
+                          {book.cover_image_url ? (
+                            <img
+                              src={book.cover_image_url}
+                              alt={book.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-3"
+                              style={{ background: 'linear-gradient(135deg, rgba(201,185,154,0.1), rgba(160,128,96,0.05))' }}>
+                              <BookOpen className="w-12 h-12" style={{ color: 'rgba(201,185,154,0.4)' }} />
+                              <span className="text-xs font-bold text-center px-4 leading-snug" style={{ color: 'rgba(201,185,154,0.5)', fontFamily: '"Cairo", sans-serif' }}>
+                                {isRTL ? 'لا توجد صورة للغلاف' : 'No cover image'}
+                              </span>
+                            </div>
+                          )}
+                          {/* Badge */}
+                          <div
+                            className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1"
+                            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#c9b99a', border: '1px solid rgba(201,185,154,0.3)' }}
+                          >
+                            <BookOpen className="w-3 h-3" />
+                            {isRTL ? 'كتاب' : 'Book'}
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="col-span-full py-12 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
-                        <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{isRTL ? 'لا توجد كتب متاحة' : 'No books available'}</h3>
-                      </div>
-                    )}
+
+                        {/* Info */}
+                        <div className="p-4 flex flex-col flex-1">
+                          <h3 className="font-black text-sm mb-1.5 line-clamp-2 leading-snug flex-1" style={{ color: '#f0e8d8', fontFamily: '"Cairo", sans-serif' }}>
+                            {book.title}
+                          </h3>
+                          {book.description && (
+                            <p className="text-xs line-clamp-2 mb-3" style={{ color: 'rgba(201,185,154,0.55)', fontFamily: '"Cairo", sans-serif' }}>
+                              {book.description}
+                            </p>
+                          )}
+                          <a
+                            href={book.download_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-300"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(201,185,154,0.18), rgba(160,128,96,0.12))',
+                              color: '#c9b99a',
+                              border: '1px solid rgba(201,185,154,0.25)',
+                              fontFamily: '"Cairo", sans-serif'
+                            }}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            {isRTL ? 'تحميل' : 'Download'}
+                          </a>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </section>
-              </div>
-            </motion.div>
-          )}
-        </div>
+                ) : (
+                  <EmptyState icon={<BookOpen className="w-14 h-14" />} message={isRTL ? 'لا توجد كتب متاحة حالياً' : 'No books available yet'} />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+      </div>
+
+      {/* Footer strip */}
+      <div className="mt-16 text-center pb-8">
+        <p className="text-xs" style={{ color: 'rgba(201,185,154,0.35)', fontFamily: '"Cairo", sans-serif' }}>
+          منصة المحجة البيضاء — العلوم الشرعية
+        </p>
       </div>
     </div>
   );
 };
+
+// ── Empty State Component ────────────────────────────────
+const EmptyState: React.FC<{ icon: React.ReactNode; message: string }> = ({ icon, message }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="py-24 flex flex-col items-center justify-center gap-4 rounded-3xl"
+    style={{ border: '2px dashed rgba(201,185,154,0.15)' }}
+  >
+    <div style={{ color: 'rgba(201,185,154,0.25)' }}>{icon}</div>
+    <p className="font-bold text-lg" style={{ color: 'rgba(201,185,154,0.4)', fontFamily: '"Cairo", sans-serif' }}>{message}</p>
+  </motion.div>
+);
