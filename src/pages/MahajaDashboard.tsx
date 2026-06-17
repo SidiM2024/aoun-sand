@@ -109,12 +109,12 @@ export const MahajaDashboard = () => {
             className="mb-6 flex justify-center"
           >
             <div className="relative">
-              <div className="absolute inset-0 rounded-3xl blur-2xl opacity-40" style={{ background: '#c9a4b8', transform: 'scale(1.1)' }} />
+              <div className="absolute inset-0 blur-3xl opacity-30" style={{ background: '#c9a4b8', transform: 'scale(1.05)' }} />
               <img
                 src="/mahaja-logo.png"
                 alt="شعار المحجة البيضاء"
-                className="relative w-28 h-28 sm:w-36 sm:h-36 object-cover rounded-none shadow-2xl"
-                style={{ border: '3px solid rgba(201,164,184,0.5)', borderRadius: '24px' }}
+                className="relative object-contain drop-shadow-2xl"
+                style={{ width: '280px', maxWidth: '85vw', height: 'auto' }}
               />
             </div>
           </motion.div>
