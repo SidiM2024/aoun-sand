@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen, UserCog } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -14,6 +14,7 @@ import { ApprovalsTab } from '../components/admin/ApprovalsTab';
 import { FinanceTab } from '../components/admin/FinanceTab';
 import { PatientsTab } from '../components/admin/PatientsTab';
 import { MahajaTab } from '../components/admin/MahajaTab';
+import { AdminsTab } from '../components/admin/AdminsTab';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
@@ -24,8 +25,9 @@ export const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [adminRole, setAdminRole] = useState<string>('Super Admin');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -39,6 +41,8 @@ export const AdminPage = () => {
   useEffect(() => {
     // Basic session check or dynamic database admin role check
     if (sessionStorage.getItem('admin_auth') === 'true' || localStorage.getItem('admin_auth') === 'true' || isAdmin) {
+      const role = sessionStorage.getItem('admin_role') || localStorage.getItem('admin_role') || 'Super Admin';
+      setAdminRole(role);
       setIsAuthenticated(true);
       fetchDashboardData();
       setupRealtimeSubscriptions();
@@ -130,7 +134,7 @@ export const AdminPage = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
     const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
@@ -138,17 +142,44 @@ export const AdminPage = () => {
     if (username === envUsername && password === envPassword) {
       // Use sessionStorage for better security (expires when tab closes)
       sessionStorage.setItem('admin_auth', 'true');
+      sessionStorage.setItem('admin_role', 'Super Admin');
+      setAdminRole('Super Admin');
       setIsAuthenticated(true);
       fetchDashboardData();
       toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
     } else {
-      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      // Try DB authentication
+      try {
+        const { data, error } = await supabase.rpc('verify_admin_login', {
+          p_username: username,
+          p_password: password
+        });
+
+        if (error) throw error;
+
+        if (data && data.success) {
+          sessionStorage.setItem('admin_auth', 'true');
+          sessionStorage.setItem('admin_role', data.admin.role);
+          setAdminRole(data.admin.role);
+          setIsAuthenticated(true);
+          fetchDashboardData();
+          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+        } else {
+          toast.error(isRTL ? 'بيانات الدخول خاطئة أو الحساب معطل' : data?.message || 'Invalid credentials');
+        }
+      } catch (err: any) {
+        console.error("Login error:", err);
+        // If the RPC fails (e.g. table not created yet), fallback to generic error without breaking app
+        toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      }
     }
   };
 
   const handleLogout = async () => {
     sessionStorage.removeItem('admin_auth');
+    sessionStorage.removeItem('admin_role');
     localStorage.removeItem('admin_auth');
+    localStorage.removeItem('admin_role');
     await logout();
     setIsAuthenticated(false);
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
@@ -219,7 +250,7 @@ export const AdminPage = () => {
     );
   }
 
-  const tabs = [
+  let tabs = [
     { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },
@@ -230,6 +261,10 @@ export const AdminPage = () => {
     { id: 'finance',       icon: DollarSign, label: isRTL ? 'المالية'    : 'Finance',        color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { id: 'mahaja',        icon: BookOpen,   label: isRTL ? 'المحجة البيضاء' : 'Al-Mahaja',    color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
   ];
+
+  if (adminRole === 'Super Admin') {
+    tabs.push({ id: 'admins', icon: UserCog, label: isRTL ? 'المشرفين' : 'Admins', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' });
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -312,6 +347,7 @@ export const AdminPage = () => {
               {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
               {activeTab === 'finance'       && <FinanceTab />}
               {activeTab === 'mahaja'        && <MahajaTab />}
+              {activeTab === 'admins'        && <AdminsTab />}
             </AnimatePresence>
           </div>
         </div>
