@@ -4,6 +4,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      colors: {
+        primary: {
+          DEFAULT: '#1E3A8A', // Navy Blue
+          light: '#3B82F6',
+          dark: '#1E40AF',
+        },
+        secondary: {
+          DEFAULT: '#FBCFE8', // Light Pink
+          light: '#FCE7F3',
+          dark: '#F9A8D4',
+        },
+      },
       fontFamily: {
         arabic: ['Cairo', 'Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
       },

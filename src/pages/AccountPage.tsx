@@ -138,6 +138,34 @@ export const AccountPage = () => {
           </div>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <a
+            href="/requests"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex items-center justify-between hover:border-primary transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 dark:text-white">
+                  {isRTL ? 'طلباتي ومدفوعاتي' : 'My Requests & Payments'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {isRTL ? 'عرض الطلبات والمدفوعات الخاصة بك' : 'View your requests and payments'}
+                </p>
+              </div>
+            </div>
+            <div className="text-slate-400 group-hover:text-primary transition-colors">
+              {isRTL ? '←' : '→'}
+            </div>
+          </a>
+        </motion.div>
+
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

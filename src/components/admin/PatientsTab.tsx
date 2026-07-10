@@ -701,11 +701,11 @@ export function PatientsTab() {
                   )}
 
                   {/* Existing reports (when editing) */}
-                  {editingPatient?.medical_report_urls?.length > 0 && (
+                  {(editingPatient?.medical_report_urls?.length ?? 0) > 0 && (
                     <div className="mt-3">
                       <p className="text-xs font-bold text-slate-500 mb-2">{isRTL ? 'التقارير الموجودة:' : 'Existing Reports:'}</p>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {editingPatient.medical_report_urls.map((url, i) => (
+                        {editingPatient?.medical_report_urls?.map((url, i) => (
                           <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                             className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-square block">
                             <img src={url} alt="" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />

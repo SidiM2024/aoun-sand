@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen, UserCog } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen, UserCog, FileText } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -15,6 +15,8 @@ import { FinanceTab } from '../components/admin/FinanceTab';
 import { PatientsTab } from '../components/admin/PatientsTab';
 import { MahajaTab } from '../components/admin/MahajaTab';
 import { AdminsTab } from '../components/admin/AdminsTab';
+import { RequestsManagementTab } from '../components/admin/RequestsManagementTab';
+import { CompetitionsManagementTab } from '../components/admin/CompetitionsManagementTab';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AdminPage = () => {
@@ -27,7 +29,7 @@ export const AdminPage = () => {
   const [password, setPassword] = useState('');
   const [adminRole, setAdminRole] = useState<string>('Super Admin');
   
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions'>('users');
   
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -160,6 +162,7 @@ export const AdminPage = () => {
         if (data && data.success) {
           sessionStorage.setItem('admin_auth', 'true');
           sessionStorage.setItem('admin_role', data.admin.role);
+          sessionStorage.setItem('admin_id', data.admin.id);
           setAdminRole(data.admin.role);
           setIsAuthenticated(true);
           fetchDashboardData();
@@ -259,6 +262,8 @@ export const AdminPage = () => {
     { id: 'patients',      icon: HeartPulse, label: isRTL ? 'إدارة المرضى' : 'Patients',    color: 'text-rose-500',   bg: 'bg-rose-50 dark:bg-rose-900/20'   },
     { id: 'media',         icon: Upload,    label: isRTL ? 'الوسائط'    : 'Media',          color: 'text-pink-500',   bg: 'bg-pink-50 dark:bg-pink-900/20'   },
     { id: 'finance',       icon: DollarSign, label: isRTL ? 'المالية'    : 'Finance',        color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { id: 'requests',      icon: FileText,   label: isRTL ? 'الطلبات'    : 'Requests',       color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { id: 'competitions',  icon: Vote,       label: isRTL ? 'المسابقات'  : 'Competitions',   color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-900/20' },
     { id: 'mahaja',        icon: BookOpen,   label: isRTL ? 'المحجة البيضاء' : 'Al-Mahaja',    color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
   ];
 
@@ -346,6 +351,8 @@ export const AdminPage = () => {
               {activeTab === 'patients'      && <PatientsTab />}
               {activeTab === 'media'         && <MediaTab mediaFiles={mediaFiles} fetchMedia={fetchMedia} />}
               {activeTab === 'finance'       && <FinanceTab />}
+              {activeTab === 'requests'      && <RequestsManagementTab />}
+              {activeTab === 'competitions'  && <CompetitionsManagementTab />}
               {activeTab === 'mahaja'        && <MahajaTab />}
               {activeTab === 'admins'        && <AdminsTab />}
             </AnimatePresence>
