@@ -16,6 +16,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AccountPage } from './pages/AccountPage';
 import { UserRequestsPage } from './pages/UserRequestsPage';
 import { MahajaDashboard } from './pages/MahajaDashboard';
+import { MahajaCoursePage } from './pages/MahajaCoursePage';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
@@ -168,6 +169,7 @@ const AppContent = () => {
           <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
           <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
+          <Route path="/mahaja/course/:id" element={<ProtectedRoute><MahajaCoursePage /></ProtectedRoute>} />
           <Route path="/donation-expenses" element={<ProtectedRoute><DonationExpensesPage /></ProtectedRoute>} />
           <Route path="/requests" element={<ProtectedRoute><UserRequestsPage /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

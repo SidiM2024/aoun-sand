@@ -9,8 +9,11 @@ interface MahajaCourse {
   id: string;
   title: string;
   description: string;
-  content_link: string;
+  instructor: string;
+  image_url: string;
   created_at: string;
+  mahaja_lessons?: { id: string }[];
+  progress_percentage?: number;
 }
 
 interface MahajaBook {
@@ -45,11 +48,23 @@ export const MahajaDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [coursesRes, booksRes] = await Promise.all([
-          supabase.from('mahaja_courses').select('*').eq('is_published', true).order('created_at', { ascending: false }),
-          supabase.from('mahaja_books').select('*').eq('is_published', true).order('created_at', { ascending: false })
+        const [coursesRes, booksRes, progressRes] = await Promise.all([
+          supabase.from('mahaja_courses').select('*, mahaja_lessons(id)').eq('is_published', true).order('created_at', { ascending: false }),
+          supabase.from('mahaja_books').select('*').eq('is_published', true).order('created_at', { ascending: false }),
+          supabase.from('mahaja_user_progress').select('course_id, progress_percentage')
         ]);
-        if (coursesRes.data) setCourses(coursesRes.data);
+        
+        if (coursesRes.data) {
+          const coursesWithProgress = coursesRes.data.map((course: any) => {
+            const progress = progressRes.data?.find(p => p.course_id === course.id);
+            return {
+              ...course,
+              progress_percentage: progress ? progress.progress_percentage : 0
+            };
+          });
+          setCourses(coursesWithProgress);
+        }
+        
         if (booksRes.data) setBooks(booksRes.data);
       } catch (err) {
         console.error('Error fetching mahaja content:', err);
@@ -243,15 +258,14 @@ export const MahajaDashboard = () => {
                 {filteredCourses.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredCourses.map((course, idx) => {
-                      const videoId = getYoutubeVideoId(course.content_link);
-                      const isExpanded = expandedVideo === course.id;
+                      const lessonCount = course.mahaja_lessons?.length || 0;
                       return (
                         <motion.div
                           key={course.id}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.06 }}
-                          className={`rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${isExpanded ? 'sm:col-span-2 lg:col-span-3' : ''}`}
+                          className="group rounded-3xl overflow-hidden flex flex-col transition-all duration-300"
                           style={{
                             background: 'linear-gradient(145deg, rgba(107,91,149,0.12) 0%, rgba(40,36,90,0.08) 100%)',
                             border: '1px solid rgba(201,164,184,0.2)',
@@ -259,88 +273,53 @@ export const MahajaDashboard = () => {
                             boxShadow: '0 8px 32px rgba(0,0,0,0.35)'
                           }}
                         >
-                          {/* Video area */}
-                          <div className={`relative overflow-hidden ${isExpanded ? 'aspect-video' : 'aspect-video'} w-full`}>
-                            {videoId ? (
-                              isExpanded ? (
-                                <iframe
-                                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                                  title={course.title}
-                                  className="w-full h-full"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full relative cursor-pointer group"
-                                  onClick={() => setExpandedVideo(course.id)}
-                                >
-                                  <img
-                                    src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
-                                    alt={course.title}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                  />
-                                  {/* Dark overlay */}
-                                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
-                                  {/* Play button */}
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <div
-                                      className="w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-2xl"
-                                      style={{ background: 'linear-gradient(135deg, #d4a5a5, #8c6a6a)' }}
-                                    >
-                                      <Play className="w-6 h-6 text-[#1a1a1a] fill-current ml-1" />
-                                    </div>
-                                  </div>
-                                </div>
-                              )
+                          <div className="relative overflow-hidden aspect-[4/3] w-full">
+                            {course.image_url ? (
+                              <img src={course.image_url} alt={course.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                             ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4"
-                                style={{ background: 'rgba(212,165,165,0.05)' }}>
-                                <Video className="w-10 h-10" style={{ color: 'rgba(212,165,165,0.3)' }} />
-                                <span className="text-xs font-bold" style={{ color: 'rgba(212,165,165,0.4)' }}>
-                                  {isRTL ? 'رابط غير صالح' : 'Invalid link'}
-                                </span>
+                              <div className="w-full h-full flex items-center justify-center bg-black/40">
+                                <Video className="w-12 h-12 text-white/20" />
                               </div>
                             )}
-
-                            {/* Badge */}
-                            <div
-                              className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5"
-                              style={{ background: 'rgba(212,165,165,0.15)', backdropFilter: 'blur(8px)', color: '#d4a5a5', border: '1px solid rgba(212,165,165,0.3)' }}
-                            >
+                            
+                            <div className="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-black/50 backdrop-blur-md text-[#c9a4b8] border border-[#c9a4b8]/30">
                               <Video className="w-3 h-3" />
-                              {isRTL ? 'درس' : 'Lesson'}
+                              {lessonCount} {isRTL ? 'درس' : 'Lessons'}
+                            </div>
+
+                            {/* Progress overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/50">
+                              <div 
+                                className="h-full bg-gradient-to-r from-[#9b7ea8] to-[#c9a4b8]" 
+                                style={{ width: `${course.progress_percentage || 0}%` }}
+                              />
                             </div>
                           </div>
 
-                          {/* Info */}
                           <div className="p-5 flex flex-col flex-1">
-                            <h3 className="font-black text-lg mb-2 line-clamp-2 leading-snug" style={{ color: '#f0e8d8', fontFamily: '"Cairo", sans-serif' }}>
+                            <h3 className="font-black text-lg mb-1 line-clamp-2 leading-snug" style={{ color: '#f0e8d8', fontFamily: '"Cairo", sans-serif' }}>
                               {course.title}
                             </h3>
-                            {course.description && (
-                              <p className="text-sm line-clamp-2 mb-4 flex-1" style={{ color: 'rgba(201,185,154,0.6)', fontFamily: '"Cairo", sans-serif' }}>
-                                {course.description}
-                              </p>
-                            )}
-                            <button
-                              onClick={() => setExpandedVideo(isExpanded ? null : course.id)}
+                            <p className="text-sm font-bold text-[#c9a4b8] mb-2">{course.instructor}</p>
+                            
+                            <div className="flex justify-between items-center text-xs mb-4 text-[#c9a4b8]/60">
+                              <span>{isRTL ? 'نسبة الإنجاز:' : 'Progress:'}</span>
+                              <span className="font-bold text-[#c9a4b8]">{Math.round(course.progress_percentage || 0)}%</span>
+                            </div>
+
+                            <a
+                              href={`/mahaja/course/${course.id}`}
                               className="w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300"
                               style={{
-                                background: isExpanded
-                                  ? 'rgba(201,164,184,0.08)'
-                                  : 'linear-gradient(135deg, rgba(201,164,184,0.18), rgba(155,126,168,0.12))',
+                                background: 'linear-gradient(135deg, rgba(201,164,184,0.18), rgba(155,126,168,0.12))',
                                 color: '#c9a4b8',
                                 border: '1px solid rgba(201,164,184,0.3)',
                                 fontFamily: '"Cairo", sans-serif'
                               }}
                             >
                               <Play className="w-4 h-4" />
-                              {isExpanded
-                                ? (isRTL ? 'إغلاق' : 'Close')
-                                : (isRTL ? 'مشاهدة الدرس' : 'Watch Lesson')
-                              }
-                            </button>
+                              {isRTL ? 'دخول الدورة' : 'Enter Course'}
+                            </a>
                           </div>
                         </motion.div>
                       );
