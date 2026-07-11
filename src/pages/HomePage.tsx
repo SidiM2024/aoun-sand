@@ -7,7 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import {
   Users, TrendingUp, HandHeart, Sparkles,
   BookOpen, Video, Info, Heart, ArrowLeft, ArrowRight,
-  Target, CheckCircle2, Bell, Receipt
+  Target, CheckCircle2, Bell, Receipt, Trophy, CreditCard, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { PollsSection } from '../components/PollsSection';
 
@@ -29,13 +29,7 @@ const useCounter = (target: number, duration = 2000) => {
   return count;
 };
 
-/* ── Quick Links Data ── */
-const getQuickLinks = (isRTL: boolean, lang: string) => [
-  { path: '/about',              label: isRTL ? 'من نحن'              : (lang === 'fr' ? 'À propos'      : 'About Us'),              icon: Info,     bg: 'bg-blue-50 dark:bg-blue-900/20',    color: 'text-blue-500'   },
-  { path: '/donate',             label: isRTL ? 'تبرع الآن'          : (lang === 'fr' ? 'Faire un don'  : 'Donate Now'),            icon: Heart,    bg: 'bg-rose-50 dark:bg-rose-900/20',    color: 'text-rose-500'   },
-  { path: '/donation-expenses',  label: isRTL ? 'مصاريف التبرعات'   : (lang === 'fr' ? 'Dépenses'      : 'Donation Expenses'),     icon: Receipt,  bg: 'bg-amber-50 dark:bg-amber-900/20',  color: 'text-amber-500'  },
-  { path: '/contact',            label: isRTL ? 'اتصل بنا'          : (lang === 'fr' ? 'Contact'        : 'Contact Us'),            icon: Info,     bg: 'bg-cyan-50 dark:bg-cyan-900/20',    color: 'text-cyan-500'   },
-];
+/* ── Removed old Quick Links Data ── */
 
 /* ── Campaign Card ── */
 const CampaignCard = ({ campaign, isRTL }: { campaign: any; isRTL: boolean }) => {
@@ -286,7 +280,6 @@ export const HomePage = () => {
   }, []);
 
   const animatedMembers = useCounter(usersCount, 2000);
-  const quickLinks = getQuickLinks(isRTL, language);
 
   // Only show donation section if admin has published public campaigns
   const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true && c.status === 'active');
@@ -295,70 +288,165 @@ export const HomePage = () => {
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
 
-      {/* ── Background ── */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-[120px]" />
-        <div className="absolute top-1/2 -right-40 w-[400px] h-[400px] rounded-full bg-teal-400/10 dark:bg-teal-500/10 blur-[100px]" />
-        <div className="absolute bottom-0 left-1/3 w-[300px] h-[300px] rounded-full bg-purple-400/10 dark:bg-purple-500/10 blur-[80px]" />
+      {/* ── Background Hero & Wave ── */}
+      <div aria-hidden className="absolute top-0 left-0 right-0 h-[380px] sm:h-[420px] bg-[#1a1c4b] z-0 overflow-hidden">
+        {/* Soft glows in background */}
+        <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+        
+        {/* Wave SVG matching the mockup */}
+        <svg className="absolute bottom-0 left-0 right-0 w-full h-[60px] sm:h-[100px] text-slate-50 dark:text-slate-950 preserve-3d" preserveAspectRatio="none" viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 50C240 100 480 0 720 50C960 100 1200 0 1440 50V100H0V50Z" fill="currentColor" />
+        </svg>
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-20">
-
-        {/* ═══ HERO ═══ */}
+      <div className="relative z-10 max-w-lg sm:max-w-xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-32">
+        {/* ═══ HERO TEXT ═══ */}
         <motion.section
-          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="text-center sm:text-start mb-8"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 text-sm font-semibold mb-5 select-none">
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span>{hp.platform || 'Official Members Platform'}</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/90 text-[11px] font-bold mb-4 backdrop-blur-sm shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+            <span>{isRTL ? 'منصة الأعضاء الرسمية' : 'Official Members Platform'}</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 dark:text-white leading-tight mb-4">
-            {hp.welcome || 'Welcome'}{' '}
-            {userProfile?.full_name && (
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-500 bg-clip-text text-transparent">
-                {userProfile.full_name}
-              </span>
-            )}
-          </h1>
-
-          <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            {hp.welcomeDesc || 'We are delighted to have you join us in making an impact and giving.'}
+          <p className="text-sm sm:text-base text-indigo-100/90 font-medium mb-1">
+            {isRTL ? 'جمعية عون وسند ترحب بك' : 'Aoun & Sanad welcomes you'}
           </p>
 
-          {/* ── User Counter Card ── */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            className="inline-block mt-10 relative group"
-          >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-teal-400 to-emerald-500 blur-xl opacity-25 group-hover:opacity-40 transition-opacity duration-500" />
-            <div className="relative flex items-center gap-5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 rounded-3xl px-6 py-5 shadow-2xl">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shrink-0">
-                <Users className="w-7 h-7 text-white" />
-              </div>
-              <div className="text-start">
-                {/* ✅ Updated label as per requirement */}
-                <p className="text-xs sm:text-sm font-bold text-slate-400 mb-1 leading-snug">
-                  {isRTL ? 'عدد المسجلين في الجمعية' : (language === 'fr' ? 'Membres inscrits' : 'Registered Members')}
-                </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums">
-                    +{animatedMembers.toLocaleString()}
-                  </span>
-                  <span className="text-lg font-bold text-teal-500">
-                    {isRTL ? 'عضو' : (language === 'fr' ? 'membre' : 'Member')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+            {userProfile?.full_name || (isRTL ? 'ضيفنا الكريم' : 'Dear Guest')}
+          </h1>
         </motion.section>
 
-        {/* ═══ DONATION CAMPAIGNS (above Quick Links — shown only when admin publishes) ═══ */}
+        {/* ═══ QUICK LINKS ═══ */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="mb-6 relative z-20"
+        >
+          <div className="flex items-center justify-between mb-4 px-2">
+             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+               <BookOpen className="w-4 h-4 text-[#1a1c4b] dark:text-indigo-400 opacity-80" />
+               {isRTL ? 'روابط سريعة' : 'Quick Links'}
+             </h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {/* About Us Card */}
+            <Link to="/about" className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-[2rem] p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:-translate-y-1 transition-transform border border-slate-100 dark:border-slate-700/50">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                <Info className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 dark:text-white text-sm leading-tight">{isRTL ? 'من نحن' : 'About Us'}</h3>
+                <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">{isRTL ? 'تعرف على رسالتنا' : 'Our mission'}</p>
+              </div>
+            </Link>
+
+            {/* Donate Now Card */}
+            <Link to="/donate" className="flex items-center gap-3 bg-rose-600 rounded-[2rem] p-4 sm:p-5 shadow-[0_8px_30px_rgba(225,29,72,0.3)] hover:-translate-y-1 transition-transform">
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 text-white">
+                <Heart className="w-5 h-5 fill-current" />
+              </div>
+              <div>
+                <h3 className="font-black text-white text-sm leading-tight">{isRTL ? 'تبرع الآن' : 'Donate Now'}</h3>
+                <p className="text-[10px] text-rose-100 font-medium leading-tight mt-0.5">{isRTL ? 'شارك في العطاء' : 'Give back'}</p>
+              </div>
+            </Link>
+          </div>
+        </motion.section>
+
+        {/* ═══ MAIN ACTION CARDS ═══ */}
+        <div className="space-y-4">
+          {/* Mahaja Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Link to="/mahaja" className="block bg-[#1a1c4b] rounded-[2rem] p-5 sm:p-6 shadow-xl hover:-translate-y-1 transition-all relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
+              
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-rose-200/20 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-7 h-7 text-rose-200" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-white text-base sm:text-lg mb-1 leading-tight">{isRTL ? 'محظرة المحجة البيضاء التعليمية' : 'Al-Mahaja Educational Institute'}</h3>
+                  <p className="text-xs text-indigo-200/80 leading-relaxed font-medium">
+                    {isRTL ? 'منصة العلوم الشرعية المتكاملة: قراءة وتدبر القرآن الكريم، الدروس والمحاضرات الفقهية والمكتبة الشرعية.' : 'Integrated Islamic sciences platform: Quran reading & contemplation, fiqh lessons, and library.'}
+                  </p>
+                </div>
+                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-1">
+                  {isRTL ? <ChevronLeft className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />}
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Subscription Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <Link to="/account" className="block bg-rose-50 dark:bg-rose-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-rose-900/40 flex items-center justify-center shrink-0 shadow-sm border border-rose-100 dark:border-rose-800">
+                  <CreditCard className="w-6 h-6 text-rose-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-rose-900 dark:text-rose-100 text-sm sm:text-base mb-1">{isRTL ? 'دفع رسوم الانتساب الشهري' : 'Pay Monthly Subscription'}</h3>
+                  <p className="text-[11px] sm:text-xs text-rose-700/70 dark:text-rose-300/70 font-medium leading-relaxed">
+                    {isRTL ? 'ساهم بانتظام في سداد اشتراكك لدعم واستمرارية المشاريع الإنسانية للجمعية.' : 'Contribute regularly to your subscription to support our humanitarian projects.'}
+                  </p>
+                </div>
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  {isRTL ? <ChevronLeft className="w-5 h-5 text-rose-400" /> : <ChevronRight className="w-5 h-5 text-rose-400" />}
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Transparency Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <Link to="/donation-expenses" className="block bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-blue-900/40 flex items-center justify-center shrink-0 shadow-sm border border-blue-100 dark:border-blue-800">
+                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-blue-950 dark:text-blue-100 text-sm sm:text-base mb-1">{isRTL ? 'مصاريف التبرعات والشفافية المالية' : 'Donation Expenses & Transparency'}</h3>
+                  <p className="text-[11px] sm:text-xs text-blue-800/70 dark:text-blue-200/70 font-medium leading-relaxed">
+                    {isRTL ? 'اطلع على كشوفات وقنوات صرف التبرعات والمساعدات بكل مصداقية وشفافية إدارية.' : 'View statements and channels of donation disbursement with transparency.'}
+                  </p>
+                </div>
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  {isRTL ? <ChevronLeft className="w-5 h-5 text-blue-400" /> : <ChevronRight className="w-5 h-5 text-blue-400" />}
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Competitions Card */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            {/* Note: Links to /projects for now if competitions page doesn't exist, change later if needed */}
+            <Link to="/projects" className="block bg-amber-50 dark:bg-amber-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-sm border border-amber-100 dark:border-amber-800">
+                  <Trophy className="w-6 h-6 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-amber-950 dark:text-amber-100 text-sm sm:text-base mb-1">{isRTL ? 'مسابقات الجمعية' : 'Association Competitions'}</h3>
+                  <p className="text-[11px] sm:text-xs text-amber-800/70 dark:text-amber-200/70 font-medium leading-relaxed">
+                    {isRTL ? 'شارك في مسابقات الجمعية الثقافية والقرآنية واربح جوائز قيمة.' : 'Participate in our cultural and Quranic competitions and win valuable prizes.'}
+                  </p>
+                </div>
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  {isRTL ? <ChevronLeft className="w-5 h-5 text-amber-400" /> : <ChevronRight className="w-5 h-5 text-amber-400" />}
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* ═══ DONATION CAMPAIGNS (Preserved) ═══ */}
         <AnimatePresence>
           {showDonationsSection && (
             <motion.div
@@ -367,6 +455,7 @@ export const HomePage = () => {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.5 }}
+              className="mt-12"
             >
               <DonationBanner
                 campaigns={publicCampaigns}
@@ -378,35 +467,10 @@ export const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* ═══ QUICK LINKS ═══ */}
-        <motion.section
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.6 }}
-          className="mb-14"
-          aria-label="Quick Links"
-        >
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-indigo-500" />
-            {isRTL ? 'روابط سريعة' : (language === 'fr' ? 'Liens rapides' : 'Quick Links')}
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            {quickLinks.map((lnk, i) => (
-              <motion.div key={lnk.path} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.07 }}>
-                <Link to={lnk.path} id={`quick-link-${lnk.path.replace('/', '')}`}
-                  className="flex flex-col items-center justify-center p-4 sm:p-5 bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-700 hover:shadow-lg hover:-translate-y-1 active:scale-95 transition-all duration-200 group text-center gap-3">
-                  <div className={`w-11 h-11 rounded-xl sm:rounded-2xl ${lnk.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <lnk.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${lnk.color}`} />
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">{lnk.label}</span>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* ═══ POLLS ═══ */}
-        <PollsSection />
+        {/* ═══ POLLS (Preserved) ═══ */}
+        <div className="mt-8">
+          <PollsSection />
+        </div>
 
       </div>
     </div>

@@ -17,16 +17,14 @@ export const BottomNav = () => {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50
-        bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl
-        border-t border-slate-200/80 dark:border-slate-800/80
-        shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.4)]"
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <nav
-        className="flex justify-around items-center h-16 max-w-lg mx-auto px-1"
-        dir={isRTL ? 'rtl' : 'ltr'}
-      >
+      <div className="px-4 pb-4 sm:pb-6 pointer-events-auto">
+        <nav
+          className="flex justify-around items-center h-16 sm:h-20 max-w-lg mx-auto px-2 sm:px-4 rounded-[2rem] bg-[#1a1c4b] shadow-2xl shadow-indigo-900/20"
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
         {navItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
@@ -37,41 +35,35 @@ export const BottomNav = () => {
               key={item.path}
               to={item.path}
               id={`bottom-nav-${item.path.replace('/', '') || 'home'}`}
-              className="relative flex flex-col items-center justify-center flex-1 h-full pt-1"
+              className="relative flex items-center justify-center h-full"
             >
-              {/* Active indicator pill */}
-              {isActive && (
-                <motion.div
-                  layoutId="bottom-nav-pill"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-indigo-500 to-teal-500"
-                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                />
-              )}
-
-              <motion.div
-                animate={{ scale: isActive ? 1.12 : 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className={`flex flex-col items-center gap-1 transition-colors ${
+              <div
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl transition-all duration-300 ${
                   isActive
-                    ? 'text-indigo-600 dark:text-indigo-400'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    ? 'bg-indigo-50/10 text-indigo-50'
+                    : 'text-indigo-200/60 hover:text-indigo-100 hover:bg-white/5'
                 }`}
               >
                 <item.icon
-                  className={`w-5 h-5 transition-all ${
+                  className={`w-5 h-5 sm:w-6 sm:h-6 transition-all ${
                     isActive ? 'stroke-[2.2]' : 'stroke-[1.6]'
                   }`}
                 />
-                <span className={`text-[10px] font-semibold leading-none transition-all ${
-                  isActive ? 'opacity-100' : 'opacity-60'
-                }`}>
-                  {item.label}
-                </span>
-              </motion.div>
+                {isActive && (
+                  <motion.span 
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 'auto', opacity: 1 }}
+                    className="text-xs sm:text-sm font-bold whitespace-nowrap overflow-hidden"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </div>
             </Link>
           );
         })}
       </nav>
+      </div>
     </div>
   );
 };

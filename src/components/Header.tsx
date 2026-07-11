@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon, Globe, Bell, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,7 +21,9 @@ export const Header = () => {
   const { language, setLanguage } = useLanguage();
   const { userProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isRTL = language === 'ar';
+  const isHomePage = location.pathname === '/';
 
   /* ── Scroll shadow ── */
   useEffect(() => {
@@ -85,53 +87,71 @@ export const Header = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.4)]'
-          : 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-md'
-      } border-b border-slate-200/50 dark:border-slate-800/50`}
+        isHomePage 
+          ? 'bg-transparent border-transparent' 
+          : scrolled
+            ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.4)] border-b border-slate-200/50 dark:border-slate-800/50'
+            : 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50'
+      }`}
     >
       <nav
         className="px-4 sm:px-6 py-3 max-w-5xl mx-auto flex items-center justify-between"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
-        {/* ── Logo ── */}
-        <Link
-          to="/"
-          id="header-logo"
-          className="flex items-center gap-2.5 group shrink-0"
-        >
-          <div className="relative overflow-hidden rounded-full shadow-md ring-2 ring-indigo-500/20 group-hover:ring-indigo-500/50 transition-all">
-            <img
-              src="/ABC.jpg"
-              alt="Logo"
-              className="h-9 w-9 object-cover transform group-hover:scale-110 transition-transform duration-500"
-            />
-          </div>
-          <span className="text-base font-black bg-gradient-to-r from-indigo-600 to-teal-600 dark:from-indigo-400 dark:to-teal-400 bg-clip-text text-transparent hidden sm:block">
-            {brandName}
-          </span>
-        </Link>
+        {/* ── Group 1: Logo/Avatar (RTL Start, LTR Left) ── */}
+        <div className="flex items-center gap-3">
+          {!isHomePage && (
+            <Link
+              to="/"
+              id="header-logo"
+              className="flex items-center gap-2.5 group shrink-0"
+            >
+              <div className="relative overflow-hidden rounded-full shadow-md ring-2 ring-indigo-500/20 group-hover:ring-indigo-500/50 transition-all">
+                <img
+                  src="/ABC.jpg"
+                  alt="Logo"
+                  className="h-9 w-9 object-cover transform group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <span className="text-base font-black bg-gradient-to-r from-indigo-600 to-teal-600 dark:from-indigo-400 dark:to-teal-400 bg-clip-text text-transparent hidden sm:block">
+                {brandName}
+              </span>
+            </Link>
+          )}
 
-        {/* ── User greeting (sm+) ── */}
-        {userProfile?.full_name && (
-          <button
-            onClick={() => navigate('/account')}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full
-              bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30
-              text-slate-600 dark:text-slate-300 text-sm font-medium transition-colors"
-          >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {userProfile.full_name.charAt(0)}
-            </div>
-            <span className="max-w-[120px] truncate">{userProfile.full_name}</span>
-          </button>
-        )}
+          {/* User greeting (sm+) for non-home, Avatar only for home */}
+          {userProfile?.full_name && (
+            <button
+              onClick={() => navigate('/account')}
+              className={isHomePage 
+                ? "flex items-center justify-center w-10 h-10 rounded-full bg-slate-100/20 hover:bg-slate-100/30 border border-white/20 transition-colors shadow-sm shrink-0"
+                : "hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 text-sm font-medium transition-colors"
+              }
+            >
+              <div className={isHomePage ? "w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-white text-sm font-bold" : "w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0"}>
+                {userProfile.full_name.charAt(0)}
+              </div>
+              {!isHomePage && <span className="max-w-[120px] truncate">{userProfile.full_name}</span>}
+            </button>
+          )}
+          
+          {/* My Card Button - Show next to avatar on home page, otherwise handle in right group */}
+          {isHomePage && userProfile && (
+            <button
+              onClick={() => setIsCardModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm transition-all shadow-sm border border-rose-200"
+            >
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>{isRTL ? 'بطاقتي' : 'My Card'}</span>
+            </button>
+          )}
+        </div>
 
-        {/* ── Actions ── */}
+        {/* ── Group 2: Actions (RTL End, LTR Right) ── */}
         <div className="flex items-center gap-1 sm:gap-2">
 
-          {/* My Card Button (Mobile Only) */}
-          {userProfile && (
+          {/* My Card Button (Mobile Only for non-homepage) */}
+          {!isHomePage && userProfile && (
             <button
               onClick={() => setIsCardModalOpen(true)}
               className="flex sm:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-100 to-rose-50 hover:from-rose-200 hover:to-rose-100 dark:from-rose-900/30 dark:to-rose-800/30 text-rose-700 dark:text-rose-300 font-bold text-sm transition-all shadow-sm border border-rose-200 dark:border-rose-800/50"
@@ -146,7 +166,11 @@ export const Header = () => {
             <button
               id="header-bell"
               onClick={openNotifications}
-              className="relative p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+              className={`relative p-2.5 rounded-full transition-colors ${
+                isHomePage
+                  ? 'hover:bg-white/10 text-white'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5" />
@@ -283,7 +307,11 @@ export const Header = () => {
           <button
             id="header-theme-toggle"
             onClick={toggleTheme}
-            className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+            className={`p-2.5 rounded-full transition-colors ${
+              isHomePage
+                ? 'hover:bg-white/10 text-white'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+            }`}
             aria-label="Toggle theme"
           >
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
