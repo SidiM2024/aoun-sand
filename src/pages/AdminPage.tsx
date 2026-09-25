@@ -140,43 +140,41 @@ export const AdminPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const envUsername = import.meta.env.VITE_ADMIN_USERNAME;
-    const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
 
-    if (username === envUsername && password === envPassword) {
-      // Use sessionStorage for better security (expires when tab closes)
-      sessionStorage.setItem('admin_auth', 'true');
-      sessionStorage.setItem('admin_role', 'Super Admin');
-      setAdminRole('Super Admin');
-      setIsAuthenticated(true);
-      fetchDashboardData();
-      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
-    } else {
-      // Try DB authentication
-      try {
-        const { data, error } = await supabase.rpc('verify_admin_login', {
-          p_username: username,
-          p_password: password
-        });
+    try {
+      // Use standard Supabase Auth with email/password
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: username, // Assuming username input is used for email
+        password: password
+      });
 
-        if (error) throw error;
+      if (authError) throw authError;
 
-        if (data && data.success) {
-          sessionStorage.setItem('admin_auth', 'true');
-          sessionStorage.setItem('admin_role', data.admin.role);
-          sessionStorage.setItem('admin_id', data.admin.id);
-          setAdminRole(data.admin.role);
-          setIsAuthenticated(true);
-          fetchDashboardData();
-          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
-        } else {
-          toast.error(isRTL ? 'بيانات الدخول خاطئة أو الحساب معطل' : data?.message || 'Invalid credentials');
+      if (authData.user) {
+        // Check if user is in admins table
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (adminError || !adminData) {
+          // If not an admin, sign out immediately
+          await supabase.auth.signOut();
+          toast.error(isRTL ? 'هذا الحساب ليس لديه صلاحيات الإدارة' : 'This account does not have admin privileges');
+          return;
         }
-      } catch (err: any) {
-        console.error("Login error:", err);
-        // If the RPC fails (e.g. table not created yet), fallback to generic error without breaking app
-        toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+
+        sessionStorage.setItem('admin_auth', 'true');
+        sessionStorage.setItem('admin_role', adminData.role || 'Super Admin');
+        setAdminRole(adminData.role || 'Super Admin');
+        setIsAuthenticated(true);
+        fetchDashboardData();
+        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
       }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
     }
   };
 
@@ -185,6 +183,7 @@ export const AdminPage = () => {
     sessionStorage.removeItem('admin_role');
     localStorage.removeItem('admin_auth');
     localStorage.removeItem('admin_role');
+    await supabase.auth.signOut();
     await logout();
     setIsAuthenticated(false);
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
@@ -219,10 +218,10 @@ export const AdminPage = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                {isRTL ? 'اسم المستخدم' : 'Username'}
+                {isRTL ? 'البريد الإلكتروني' : 'Email'}
               </label>
               <input 
-                type="text" 
+                type="email" 
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
