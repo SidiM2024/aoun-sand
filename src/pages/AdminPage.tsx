@@ -30,6 +30,7 @@ export const AdminPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [adminRole, setAdminRole] = useState<string>('Super Admin');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations'>('users');
   
@@ -140,11 +141,12 @@ export const AdminPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoggingIn(true);
 
     try {
       // Use standard Supabase Auth with email/password
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: username, // Assuming username input is used for email
+        email: username,
         password: password
       });
 
@@ -161,7 +163,8 @@ export const AdminPage = () => {
         if (adminError || !adminData) {
           // If not an admin, sign out immediately
           await supabase.auth.signOut();
-          toast.error(isRTL ? 'هذا الحساب ليس لديه صلاحيات الإدارة' : 'This account does not have admin privileges');
+          toast.error(isRTL ? 'عفواً، هذا الحساب ليس لديه صلاحيات الإدارة.' : 'This account does not have admin privileges.');
+          setIsLoggingIn(false);
           return;
         }
 
@@ -170,11 +173,17 @@ export const AdminPage = () => {
         setAdminRole(adminData.role || 'Super Admin');
         setIsAuthenticated(true);
         fetchDashboardData();
-        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully');
+        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      toast.error(isRTL ? 'بيانات الدخول خاطئة' : 'Invalid credentials');
+      if (err.message === 'Invalid login credentials') {
+        toast.error(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.');
+      } else {
+        toast.error(isRTL ? 'حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقاً.' : 'An error occurred during login. Please try again.');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -244,9 +253,21 @@ export const AdminPage = () => {
             </div>
             <button 
               type="submit" 
-              className="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              disabled={isLoggingIn}
+              className={`w-full py-4 px-4 rounded-xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-2 ${
+                isLoggingIn 
+                  ? 'bg-slate-400 dark:bg-slate-700 text-white cursor-not-allowed shadow-none'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]'
+              }`}
             >
-              {isRTL ? 'تسجيل الدخول' : 'Sign In'}
+              {isLoggingIn ? (
+                <>
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{isRTL ? 'جاري التحقق...' : 'Verifying...'}</span>
+                </>
+              ) : (
+                <span>{isRTL ? 'دخول المشرف' : 'Admin Login'}</span>
+              )}
             </button>
           </form>
         </motion.div>
