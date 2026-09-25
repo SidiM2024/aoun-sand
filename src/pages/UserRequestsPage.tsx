@@ -289,7 +289,7 @@ export const UserRequestsPage = () => {
               </div>
             )}
 
-            {(activeTab !== 'requests' || true) && (
+            {activeTab !== 'requests' && (
               <div className="mb-4">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   {isRTL ? 'المبلغ' : 'Amount'} {activeTab === 'requests' && <span className="text-slate-400 text-xs">({isRTL ? 'اختياري' : 'Optional'})</span>}

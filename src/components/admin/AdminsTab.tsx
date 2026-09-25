@@ -100,7 +100,7 @@ export const AdminsTab = () => {
 
     try {
       if (isEditMode) {
-        let updateData: any = {
+        const updateData: any = {
           username,
           role,
           permissions,

@@ -255,7 +255,7 @@ export const AdminPage = () => {
     );
   }
 
-  let tabs = [
+  const tabs = [
     { id: 'users',         icon: Users,     label: isRTL ? 'المستخدمين' : 'Users',         color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { id: 'approvals',     icon: ShieldCheck, label: isRTL ? 'طلبات الموافقة' : 'User Approvals', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { id: 'notifications', icon: Bell,      label: isRTL ? 'الإشعارات'  : 'Notifications',  color: 'text-amber-500',  bg: 'bg-amber-50 dark:bg-amber-900/20'  },

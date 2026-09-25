@@ -30,7 +30,7 @@ export const UserDonationsTab = () => {
         const { data, error } = await supabase.rpc('admin_get_all_donations', { p_admin_id: adminId });
         if (error) throw error;
         const userIds = [...new Set((data || []).map((d: any) => d.user_id))];
-        let usersMap: Record<string, any> = {};
+        const usersMap: Record<string, any> = {};
         if (userIds.length > 0) {
           const { data: usersData } = await supabase.from('users').select('id, name, phone').in('id', userIds);
           (usersData || []).forEach((u: any) => { usersMap[u.id] = u; });

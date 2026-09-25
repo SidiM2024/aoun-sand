@@ -31,7 +31,7 @@ export const MembershipsTab = () => {
         if (error) throw error;
         // Enrich with user data
         const userIds = [...new Set((data || []).map((m: any) => m.user_id))];
-        let usersMap: Record<string, any> = {};
+        const usersMap: Record<string, any> = {};
         if (userIds.length > 0) {
           const { data: usersData } = await supabase.from('users').select('id, name, phone').in('id', userIds);
           (usersData || []).forEach((u: any) => { usersMap[u.id] = u; });
