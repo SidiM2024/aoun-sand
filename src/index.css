@@ -127,3 +127,29 @@
   .animation-delay-400 { animation-delay: 400ms; }
   .animation-delay-500 { animation-delay: 500ms; }
 }
+
+/* Shared website shell, with content-first responsive navigation. */
+.website-navigation { max-width: 1280px; margin: auto; display: flex; align-items: center; gap: 8px; padding: 8px 24px 12px; flex-wrap: wrap; }
+.website-navigation a { padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 700; }
+.website-navigation a:hover, .website-navigation a.active { background: #e5f1ed; color: #14594a; }
+.website-navigation a[href="/donate"] { background: #14594a; color: white; }
+.website-main { min-width: 0; }
+.website-main > div.pt-20 { padding-top: 140px; }
+.website-hero { min-height: 390px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid #0d9488; outline-offset: 4px; }
+img, video { max-width: 100%; }
+input, select, textarea { min-width: 0; }
+@media (max-width: 640px) {
+  .website-navigation { gap: 2px; padding: 4px 12px 10px; }
+  .website-navigation a { font-size: 12px; padding: 6px 8px; }
+  .website-navigation select { font-size: 12px; }
+  .website-hero { min-height: 410px; }
+  .website-main > div.pt-20 { padding-top: 160px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+.website-main > div.pt-24 { padding-top: 165px; }
+@media (max-width: 640px) { .website-main > div.pt-24, .website-main > div.pt-20 { padding-top: 208px; } }

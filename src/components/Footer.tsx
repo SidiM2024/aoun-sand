@@ -123,11 +123,11 @@ export const Footer = () => {
               {language === 'ar' ? 'النشرة البريدية' : 'Newsletter'}
             </h4>
             <p className="text-slate-400 mb-4 text-sm">
-              {language === 'ar' ? 'اشترك ليصلك كل جديد عن نشاطاتنا' : 'Subscribe to get latest updates'}
+              {language === 'ar' ? 'اطلب الاشتراك عبر بريدك ليصلك جديد نشاطاتنا' : 'Request newsletter updates through your email app'}
             </p>
-            <form className="space-y-3">
+            <form className="space-y-3" onSubmit={e => { e.preventDefault(); const email = new FormData(e.currentTarget).get('email'); window.location.href = 'mailto:associationaidesoutien@gmail.com?subject=' + encodeURIComponent('Newsletter subscription') + '&body=' + encodeURIComponent(String(email)); }}>
               <input
-                type="email"
+                type="email" name="email" required aria-label={language === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
                 placeholder={language === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
                 className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-teal-500 text-white placeholder-slate-500"
               />
@@ -138,8 +138,8 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-slate-800 pt-8 mt-8 text-center">
-          <p className="flex items-center justify-center gap-2 text-slate-500 text-sm">
+        <div className="border-t border-slate-800 pt-8 mt-8 text-center"><div className="flex flex-wrap justify-center gap-5 mb-5"><Link to="/privacy-policy">{language === 'ar' ? 'سياسة الخصوصية' : 'Privacy policy'}</Link><Link to="/terms">{language === 'ar' ? 'شروط الاستخدام' : 'Terms'}</Link><Link to="/admin">{language === 'ar' ? 'دخول المشرف' : 'Admin login'}</Link></div>
+          <p className="flex flex-wrap items-center justify-center gap-2 text-slate-500 text-sm">
             {t.footer.rights} © {new Date().getFullYear()}
             <span className="mx-2">|</span>
             {language === 'ar' ? 'صُنع بكل' : 'Made with'}

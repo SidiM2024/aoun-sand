@@ -83,6 +83,7 @@ export const Projects = () => {
                         className="absolute top-0 left-0 w-full h-full pointer-events-none"
                         src={`${project.video}?controls=0&showinfo=0&rel=0`}
                         title={project.title}
+                        loading="lazy"
                         frameBorder="0"
                         tabIndex={-1}
                       ></iframe>

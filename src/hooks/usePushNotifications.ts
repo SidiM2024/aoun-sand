@@ -128,11 +128,13 @@ export const usePushNotifications = () => {
 
   /* ── Main effect ── */
   useEffect(() => {
+    let disposed = false;
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const init = async () => {
       // 1. Register SW always (needed even for guests)
       const reg = await registerSW();
+      if (disposed) return;
 
       // 2. Request permission & subscribe if user is logged in
       if (user && reg) {
@@ -142,6 +144,7 @@ export const usePushNotifications = () => {
         }
       }
 
+      if (disposed) return;
       // 3. Realtime: show in-app notification when tab is open
       realtimeChannel = supabase
         .channel('push:realtime:v3')
@@ -176,7 +179,7 @@ export const usePushNotifications = () => {
         .subscribe();
     };
 
-    init();
+    void init().catch(error => { if (!disposed) console.error('Notification initialization failed:', error); });
 
     // 4. Handle SW notification click → navigate to URL
     const handleSWMessage = (event: MessageEvent) => {
@@ -189,6 +192,7 @@ export const usePushNotifications = () => {
     navigator.serviceWorker?.addEventListener('message', handleSWMessage);
 
     return () => {
+      disposed = true;
       if (realtimeChannel) supabase.removeChannel(realtimeChannel);
       navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
     };

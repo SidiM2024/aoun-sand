@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon, Globe, Bell, X } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,7 +23,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isRTL = language === 'ar';
-  const isHomePage = location.pathname === '/';
+  const isHomePage = false;
 
   /* ── Scroll shadow ── */
   useEffect(() => {
@@ -91,11 +91,11 @@ export const Header = () => {
           ? 'bg-transparent border-transparent' 
           : scrolled
             ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_2px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_-4px_rgba(0,0,0,0.4)] border-b border-slate-200/50 dark:border-slate-800/50'
-            : 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50'
+            : 'bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800'
       }`}
     >
       <nav
-        className="px-4 sm:px-6 py-3 max-w-5xl mx-auto flex items-center justify-between"
+        className="px-4 sm:px-6 py-3 max-w-7xl mx-auto flex items-center justify-between"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* ── Group 1: Logo/Avatar (RTL Start, LTR Left) ── */}
@@ -321,6 +321,13 @@ export const Header = () => {
         </div>
       </nav>
       
+      <nav aria-label={isRTL ? 'التنقل الرئيسي' : 'Main navigation'} className="website-navigation" dir={isRTL ? 'rtl' : 'ltr'}>
+        {[
+          ['/', 'الرئيسية', 'Home'], ['/about', 'عن الجمعية', 'About'], ['/projects', 'مشاريعنا', 'Projects'],
+          ['/lessons', 'الدروس والمحاضرات', 'Lessons'], ['/contact', 'تواصل معنا', 'Contact'], ['/account', 'حسابي', 'Account'], ['/admin', 'الإدارة', 'Admin'], ['/donate', 'ساهم بتبرعك', 'Donate']
+        ].map(([to, ar, en]) => <NavLink key={to} to={to} end={to === '/'}>{isRTL ? ar : en}</NavLink>)}
+        <select aria-label="Language" value={language} onChange={e => setLanguage(e.target.value as 'ar' | 'fr' | 'en')} className="bg-transparent rounded-lg text-sm p-2"><option value="ar">العربية</option><option value="fr">Français</option><option value="en">English</option></select>
+      </nav>
       {userProfile && (
         <MembershipCardModal 
           isOpen={isCardModalOpen} 

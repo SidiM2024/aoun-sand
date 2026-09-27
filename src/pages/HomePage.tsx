@@ -9,6 +9,7 @@ import {
   BookOpen, Video, Info, Heart, ArrowLeft, ArrowRight,
   Target, CheckCircle2, Bell, Receipt, Trophy, CreditCard, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { Projects } from '../components/Projects';
 import { PollsSection } from '../components/PollsSection';
 
 /* ── Animated Counter ── */
@@ -289,7 +290,7 @@ export const HomePage = () => {
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* ── Background Hero & Wave ── */}
-      <div aria-hidden className="absolute top-0 left-0 right-0 h-[380px] sm:h-[420px] bg-[#1a1c4b] z-0 overflow-hidden">
+      <div aria-hidden className="absolute top-0 left-0 right-0 h-[620px] sm:h-[660px] bg-[#123e38] z-0 overflow-hidden">
         {/* Soft glows in background */}
         <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
         <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
@@ -300,27 +301,31 @@ export const HomePage = () => {
         </svg>
       </div>
 
-      <div className="relative z-10 max-w-lg sm:max-w-xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-32">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-44 sm:pt-48 pb-20">
         {/* ═══ HERO TEXT ═══ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="text-center sm:text-start mb-8"
+          className="website-hero mb-16 relative"
         >
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/90 text-[11px] font-bold mb-4 backdrop-blur-sm shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-            <span>{isRTL ? 'منصة الأعضاء الرسمية' : 'Official Members Platform'}</span>
+            <span>{isRTL ? 'جمعية عون وسند الخيرية' : 'Aoun & Sanad Charity'}</span>
           </div>
 
           <p className="text-sm sm:text-base text-indigo-100/90 font-medium mb-1">
             {isRTL ? 'جمعية عون وسند ترحب بك' : 'Aoun & Sanad welcomes you'}
           </p>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-            {userProfile?.full_name || (isRTL ? 'ضيفنا الكريم' : 'Dear Guest')}
+          <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight max-w-3xl">
+            {isRTL ? 'معًا نصنع الأمل، ونترك أثرًا يدوم.' : 'Together, we create hope that lasts.'}
           </h1>
+          <p className="text-white/80 text-lg leading-loose max-w-2xl mt-6">{isRTL ? 'جمعية تطوعية تجمعنا على الخير؛ ندعم المحتاجين، ونفتح أبواب العلم، ونحوّل عطاءكم إلى مبادرات تمسّ حياة الناس.' : 'A volunteer association supporting people in need, opening doors to education, and turning your generosity into meaningful action.'}</p>
+          <div className="flex flex-wrap gap-3 mt-8"><Link to="/donate" className="btn bg-white text-teal-900">{isRTL ? 'كن عونًا وسندًا' : 'Make a difference'} <Heart className="w-5 h-5" /></Link><Link to="/projects" className="btn border border-white/40 text-white">{isRTL ? 'اكتشف مشاريعنا' : 'Explore our projects'}</Link></div>
+          {userProfile?.full_name && <p className="text-teal-100 mt-5">{isRTL ? 'أهلًا بك، ' : 'Welcome, '}{userProfile.full_name}</p>}
         </motion.section>
 
+        <figure className="mb-14 overflow-hidden rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 grid md:grid-cols-2"><img src="/Gaza.jpg" alt={isRTL ? 'توثيق مساهمة جمعية عون وسند لدعم أهل غزة' : 'Aoun and Sanad supporting Gaza'} className="w-full h-80 object-contain bg-slate-100 dark:bg-slate-900" loading="lazy"/><figcaption className="p-7 sm:p-10 flex flex-col justify-center"><p className="text-teal-600 font-bold mb-3">{isRTL ? 'من أثر عطائكم' : 'Your generosity in action'}</p><h2 className="text-3xl font-bold mb-5">{isRTL ? 'عطاءٌ يصل إلى من يحتاجه' : 'Support that reaches people'}</h2><p className="leading-loose text-slate-600 dark:text-slate-300">{isRTL ? 'نشارككم توثيق مبادرات الجمعية ومساهماتها الإنسانية، ونواصل معكم مسيرة التكافل ومساندة المحتاجين.' : 'Explore our documented initiatives and humanitarian contributions, and join us in supporting people in need.'}</p><Link to="/projects" className="mt-6 font-bold text-teal-700 dark:text-teal-300">{isRTL ? 'شاهد مبادراتنا ←' : 'View our initiatives →'}</Link></figcaption></figure>
         {/* ═══ QUICK LINKS ═══ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -361,7 +366,7 @@ export const HomePage = () => {
         </motion.section>
 
         {/* ═══ MAIN ACTION CARDS ═══ */}
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Mahaja Card */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <Link to="/mahaja" className="block bg-[#1a1c4b] rounded-[2rem] p-5 sm:p-6 shadow-xl hover:-translate-y-1 transition-all relative overflow-hidden group">
@@ -467,6 +472,8 @@ export const HomePage = () => {
           )}
         </AnimatePresence>
 
+        <section className="my-16 rounded-3xl border border-teal-100 dark:border-slate-700 p-6 sm:p-10 bg-white dark:bg-slate-800"><p className="text-teal-600 font-bold mb-3">{isRTL ? 'العطاء يبدأ من إنسان' : 'Giving starts with people'}</p><h2 className="text-3xl font-bold mb-5">{isRTL ? 'عونٌ في الحاجة، وسندٌ في الطريق' : 'Support when it matters'}</h2><p className="text-slate-600 dark:text-slate-300 leading-loose max-w-3xl">{t.hero.subtitle}</p><Link to="/about" className="inline-flex mt-6 text-teal-700 dark:text-teal-300 font-bold">{isRTL ? 'تعرّف على الجمعية ←' : 'Meet the association →'}</Link>{usersCount > 0 && <p className="mt-6 text-2xl font-bold">{animatedMembers.toLocaleString()} <span className="text-base font-normal">{isRTL ? 'عضو مسجل' : 'registered members'}</span></p>}</section>
+        <Projects />
         {/* ═══ POLLS (Preserved) ═══ */}
         <div className="mt-8">
           <PollsSection />

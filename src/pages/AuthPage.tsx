@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar } from 'lucide-react';
@@ -22,6 +22,9 @@ const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
 
 export const AuthPage = () => {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
+  const requestedPath = routeLocation.state?.from?.pathname;
+  const returnTo = typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//') && requestedPath !== '/auth' ? requestedPath : '/account';
   const { language } = useLanguage();
   const { user, isAdmin, loading: authLoading } = useAuth();
   const isRTL = language === 'ar';
@@ -35,9 +38,9 @@ export const AuthPage = () => {
 
   React.useEffect(() => {
     if (!authLoading && !isManualSignupInProgress && (user || isAdmin)) {
-      navigate('/', { replace: true });
+      navigate(isAdmin ? '/admin' : returnTo, { replace: true });
     }
-  }, [user, isAdmin, authLoading, isManualSignupInProgress, navigate]);
+  }, [user, isAdmin, authLoading, isManualSignupInProgress, navigate, returnTo]);
 
   // Common Login/Signup Fields
   const [email, setEmail] = useState('');
@@ -128,7 +131,7 @@ export const AuthPage = () => {
         toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       }
       
-      navigate('/');
+      navigate(returnTo);
     }
     setIsLoading(false);
   };

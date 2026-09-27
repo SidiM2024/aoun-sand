@@ -26,7 +26,7 @@ export const AccountPage = () => {
 
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 bg-slate-50 dark:bg-slate-900" dir={isRTL ? 'rtl' : 'ltr'}>
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

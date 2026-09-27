@@ -24,44 +24,36 @@ import { useAuth } from '../contexts/AuthContext';
 export const AdminPage = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { isAdmin, logout } = useAuth();
-  
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAdmin, adminRole, loading: authLoading, logout, checkLegacyAdmin } = useAuth() as any;
+
+  const isAuthenticated = isAdmin;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [adminRole, setAdminRole] = useState<string>('Super Admin');
+
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
+
   const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations'>('users');
-  
+
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [polls, setPolls] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
 
   useEffect(() => {
-    // Basic session check or dynamic database admin role check
-    if (sessionStorage.getItem('admin_auth') === 'true' || localStorage.getItem('admin_auth') === 'true' || isAdmin) {
-      const role = sessionStorage.getItem('admin_role') || localStorage.getItem('admin_role') || 'Super Admin';
-      setAdminRole(role);
-      setIsAuthenticated(true);
-      fetchDashboardData();
-      setupRealtimeSubscriptions();
-    }
-  }, [isAdmin]);
-
-  const setupRealtimeSubscriptions = () => {
-    supabase.channel('admin-dashboard')
+    if (!isAdmin) return;
+    void fetchDashboardData();
+    const channel = supabase.channel('admin-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => fetchPolls())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUsers())
       .subscribe();
-  };
+    return () => { void supabase.removeChannel(channel); };
+  }, [isAdmin]);
 
   const fetchUsers = async () => {
     let allUsers: any[] = [];
@@ -91,7 +83,7 @@ export const AdminPage = () => {
         fetchMore = false;
       }
     }
-    
+
     setUsers(allUsers);
     setUsersCount(allUsers.length);
   };
@@ -128,9 +120,9 @@ export const AdminPage = () => {
         fetchNotifications().catch(err => console.error("Error fetching notifications:", err)),
         fetchMedia().catch(err => console.error("Error fetching media:", err))
       ]);
-      
+
       const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
-      
+
       await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
       console.error("Error in fetchDashboardData:", err);
@@ -144,44 +136,46 @@ export const AdminPage = () => {
     setIsLoggingIn(true);
 
     try {
-      // Use standard Supabase Auth with email/password
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: username,
-        password: password
+      const { data, error } = await supabase.rpc('verify_admin_login', {
+        p_username: username.trim(),
+        p_password: password
       });
 
-      if (authError) throw authError;
+      if (error) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: username.trim(),
+          password: password
+        });
 
-      if (authData.user) {
-        // Check if user is in admins table
-        const { data: adminData, error: adminError } = await supabase
-          .from('admins')
-          .select('role')
-          .eq('id', authData.user.id)
-          .single();
+        if (authError) throw authError;
 
-        if (adminError || !adminData) {
-          // If not an admin, sign out immediately
-          await supabase.auth.signOut();
-          toast.error(isRTL ? 'عفواً، هذا الحساب ليس لديه صلاحيات الإدارة.' : 'This account does not have admin privileges.');
-          setIsLoggingIn(false);
-          return;
+        if (authData.user) {
+          const { data: adminData, error: adminError } = await supabase.from('admins').select('id').eq('id', authData.user.id).single();
+          if (adminError || !adminData) {
+            await supabase.auth.signOut();
+            toast.error(isRTL ? 'عفواً، هذا الحساب ليس لديه صلاحيات الإدارة.' : 'This account does not have admin privileges.');
+            setIsLoggingIn(false);
+            return;
+          }
+          setPassword('');
+          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
         }
-
-        sessionStorage.setItem('admin_auth', 'true');
-        sessionStorage.setItem('admin_role', adminData.role || 'Super Admin');
-        setAdminRole(adminData.role || 'Super Admin');
-        setIsAuthenticated(true);
-        fetchDashboardData();
-        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
+      } else {
+        if (data && data.success) {
+          sessionStorage.setItem('admin_auth', 'true');
+          sessionStorage.setItem('admin_role', data.admin.role);
+          localStorage.setItem('admin_auth', 'true');
+          localStorage.setItem('admin_role', data.admin.role);
+          setPassword('');
+          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
+          if (checkLegacyAdmin) { checkLegacyAdmin(); } else { window.location.reload(); }
+        } else {
+          toast.error(data?.message || 'Invalid email or password.');
+        }
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err.message === 'Invalid login credentials') {
-        toast.error(isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.');
-      } else {
-        toast.error(isRTL ? 'حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقاً.' : 'An error occurred during login. Please try again.');
-      }
+      toast.error('An error occurred during login. Please try again.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -192,27 +186,27 @@ export const AdminPage = () => {
     sessionStorage.removeItem('admin_role');
     localStorage.removeItem('admin_auth');
     localStorage.removeItem('admin_role');
-    await supabase.auth.signOut();
-    await logout();
-    setIsAuthenticated(false);
+    try { await logout(); } catch { toast.error(isRTL ? 'تعذر تسجيل الخروج' : 'Unable to sign out.'); return; }
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
+    if (checkLegacyAdmin) checkLegacyAdmin();
   };
 
+  if (authLoading) return <div role="status" className="min-h-screen grid place-items-center">{isRTL ? 'جارٍ التحقق من الجلسة…' : 'Verifying session…'}</div>;
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 pt-24" dir={isRTL ? 'rtl' : 'ltr'}>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 border border-slate-200 dark:border-slate-800"
         >
           <div className="text-center mb-8">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
-              className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/30"
+              className="w-20 h-20 bg-gradient-to-br from-teal-800 to-teal-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/30"
             >
               <ShieldAlert className="w-10 h-10" />
             </motion.div>
@@ -224,13 +218,14 @@ export const AdminPage = () => {
             </p>
           </div>
 
+          <a href="/" className="block text-center text-teal-700 mb-5">{isRTL ? 'العودة إلى الموقع' : 'Back to website'}</a>
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                 {isRTL ? 'البريد الإلكتروني' : 'Email'}
               </label>
-              <input 
-                type="email" 
+              <input
+                type="text" autoComplete="username" aria-label={isRTL ? 'البريد الإلكتروني' : 'Email'}
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -242,8 +237,8 @@ export const AdminPage = () => {
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                 {isRTL ? 'كلمة المرور' : 'Password'}
               </label>
-              <input 
-                type="password" 
+              <input
+                type="password" autoComplete="current-password" aria-label={isRTL ? 'كلمة المرور' : 'Password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -251,13 +246,13 @@ export const AdminPage = () => {
                 dir="ltr"
               />
             </div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoggingIn}
               className={`w-full py-4 px-4 rounded-xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-2 ${
-                isLoggingIn 
+                isLoggingIn
                   ? 'bg-slate-400 dark:bg-slate-700 text-white cursor-not-allowed shadow-none'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]'
+                  : 'bg-teal-800 hover:bg-teal-700 text-white shadow-teal-500/20 hover:scale-[1.02] active:scale-[0.98]'
               }`}
             >
               {isLoggingIn ? (
@@ -298,7 +293,7 @@ export const AdminPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="container-custom max-w-7xl">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-4">
@@ -314,7 +309,7 @@ export const AdminPage = () => {
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-5 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl font-bold transition-colors"
           >
@@ -334,13 +329,13 @@ export const AdminPage = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center gap-3 px-5 py-4 rounded-2xl transition-all whitespace-nowrap font-bold text-lg relative ${
-                      isActive 
-                        ? 'text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800' 
+                      isActive
+                        ? 'text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800'
                         : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}
                   >
                     {isActive && (
-                      <motion.div 
+                      <motion.div
                         layoutId="activeTabIndicator"
                         className="absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"
                         style={{ zIndex: 0 }}
@@ -365,7 +360,7 @@ export const AdminPage = () => {
                 <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin" />
               </div>
             )}
-            
+
             <AnimatePresence mode="wait">
               {activeTab === 'users'         && <UsersTab users={users} usersCount={usersCount} />}
               {activeTab === 'approvals'     && <ApprovalsTab users={users} onRefresh={fetchUsers} />}
