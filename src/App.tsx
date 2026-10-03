@@ -169,15 +169,15 @@ const AppContent = () => {
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/donate" element={<DonatePage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/lessons" element={<LessonsPage />} />
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+          <Route path="/donate" element={<ProtectedRoute><DonatePage /></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
+          <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
           <Route path="/mahaja/course/:id" element={<ProtectedRoute><MahajaCoursePage /></ProtectedRoute>} />
-          <Route path="/elections" element={<ElectionsPage />} />
+          <Route path="/elections" element={<ProtectedRoute><ElectionsPage /></ProtectedRoute>} />
           <Route path="/donation-expenses" element={<ProtectedRoute><DonationExpensesPage /></ProtectedRoute>} />
           <Route path="/requests" element={<ProtectedRoute><UserRequestsPage /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
