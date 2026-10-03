@@ -7,7 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import {
   Users, TrendingUp, HandHeart, Sparkles,
   BookOpen, Info, Heart, ArrowLeft, ArrowRight,
-  Target, CheckCircle2, Trophy, CreditCard, ChevronLeft, ChevronRight, Vote, MessageCircle, Map, DollarSign, Globe, PlayCircle
+  Target, CheckCircle2, Trophy, CreditCard, ChevronLeft, ChevronRight, Vote, MessageCircle, Map, DollarSign, Globe, PlayCircle, Clock
 } from 'lucide-react';
 import { Projects } from '../components/Projects';
 import { PollsSection } from '../components/PollsSection';
