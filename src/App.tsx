@@ -19,6 +19,7 @@ const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({ d
 const UserRequestsPage = lazy(() => import('./pages/UserRequestsPage').then(module => ({ default: module.UserRequestsPage })));
 const MahajaDashboard = lazy(() => import('./pages/MahajaDashboard').then(module => ({ default: module.MahajaDashboard })));
 const MahajaCoursePage = lazy(() => import('./pages/MahajaCoursePage').then(module => ({ default: module.MahajaCoursePage })));
+const ElectionsPage = lazy(() => import('./pages/ElectionsPage').then(module => ({ default: module.ElectionsPage })));
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 // import { usePushNotifications } from './hooks/usePushNotifications';
@@ -176,6 +177,7 @@ const AppContent = () => {
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
           <Route path="/mahaja/course/:id" element={<ProtectedRoute><MahajaCoursePage /></ProtectedRoute>} />
+          <Route path="/elections" element={<ElectionsPage />} />
           <Route path="/donation-expenses" element={<ProtectedRoute><DonationExpensesPage /></ProtectedRoute>} />
           <Route path="/requests" element={<ProtectedRoute><UserRequestsPage /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

@@ -324,7 +324,7 @@ export const Header = () => {
       <nav aria-label={isRTL ? 'التنقل الرئيسي' : 'Main navigation'} className="website-navigation" dir={isRTL ? 'rtl' : 'ltr'}>
         {[
           ['/', 'الرئيسية', 'Home'], ['/about', 'عن الجمعية', 'About'], ['/projects', 'مشاريعنا', 'Projects'],
-          ['/lessons', 'الدروس والمحاضرات', 'Lessons'], ['/contact', 'تواصل معنا', 'Contact'], ['/account', 'حسابي', 'Account'], ['/admin', 'الإدارة', 'Admin'], ['/donate', 'ساهم بتبرعك', 'Donate']
+          ['/lessons', 'الدروس والمحاضرات', 'Lessons'], ['/contact', 'تواصل معنا', 'Contact'], ['/elections', 'الانتخابات', 'Elections'], ['/donate', 'تبرع الآن', 'Donate']
         ].map(([to, ar, en]) => <NavLink key={to} to={to} end={to === '/'}>{isRTL ? ar : en}</NavLink>)}
         <select aria-label="Language" value={language} onChange={e => setLanguage(e.target.value as 'ar' | 'fr' | 'en')} className="bg-transparent rounded-lg text-sm p-2"><option value="ar">العربية</option><option value="fr">Français</option><option value="en">English</option></select>
       </nav>

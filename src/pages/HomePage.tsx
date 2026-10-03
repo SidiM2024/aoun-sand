@@ -6,8 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
   Users, TrendingUp, HandHeart, Sparkles,
-  BookOpen, Video, Info, Heart, ArrowLeft, ArrowRight,
-  Target, CheckCircle2, Bell, Receipt, Trophy, CreditCard, ChevronLeft, ChevronRight
+  BookOpen, Info, Heart, ArrowLeft, ArrowRight,
+  Target, CheckCircle2, Trophy, CreditCard, ChevronLeft, ChevronRight, Vote, MessageCircle, Map, DollarSign, Globe, PlayCircle
 } from 'lucide-react';
 import { Projects } from '../components/Projects';
 import { PollsSection } from '../components/PollsSection';
@@ -290,10 +290,11 @@ export const HomePage = () => {
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* ── Background Hero & Wave ── */}
-      <div aria-hidden className="absolute top-0 left-0 right-0 h-[620px] sm:h-[660px] bg-[#123e38] z-0 overflow-hidden">
+      <div aria-hidden className="absolute top-0 left-0 right-0 h-[620px] sm:h-[660px] bg-[#1a1c2e] z-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #1b1935 0%, #291d38 100%)' }}>
         {/* Soft glows in background */}
-        <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 bottom-0 left-0 opacity-20" style={{ backgroundImage: 'url(/Gaza.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
         
         {/* Wave SVG matching the mockup */}
         <svg className="absolute bottom-0 left-0 right-0 w-full h-[60px] sm:h-[100px] text-slate-50 dark:text-slate-950 preserve-3d" preserveAspectRatio="none" viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -306,149 +307,126 @@ export const HomePage = () => {
         <motion.section
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="website-hero mb-16 relative"
+          className="website-hero mb-16 relative flex flex-col items-center sm:items-start text-center sm:text-start"
         >
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/90 text-[11px] font-bold mb-4 backdrop-blur-sm shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-            <span>{isRTL ? 'جمعية عون وسند الخيرية' : 'Aoun & Sanad Charity'}</span>
-          </div>
-
-          <p className="text-sm sm:text-base text-indigo-100/90 font-medium mb-1">
-            {isRTL ? 'جمعية عون وسند ترحب بك' : 'Aoun & Sanad welcomes you'}
+          <p className="text-sm sm:text-base text-rose-200/90 font-medium mb-1">
+            {isRTL ? 'جمعية عون وسند الخيرية ترحب بكم' : 'Aoun & Sanad Charity welcomes you'}
           </p>
 
-          <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight max-w-3xl">
-            {isRTL ? 'معًا نصنع الأمل، ونترك أثرًا يدوم.' : 'Together, we create hope that lasts.'}
+          <h1 className="text-4xl sm:text-6xl font-black text-white leading-tight max-w-2xl mb-6">
+            {isRTL ? 'معاً نصنع الأمل،' : 'Together, we create hope,'}<br/>
+            {isRTL ? 'ونترك أثراً يدوم.' : 'and leave a lasting impact.'}
           </h1>
-          <p className="text-white/80 text-lg leading-loose max-w-2xl mt-6">{isRTL ? 'جمعية تطوعية تجمعنا على الخير؛ ندعم المحتاجين، ونفتح أبواب العلم، ونحوّل عطاءكم إلى مبادرات تمسّ حياة الناس.' : 'A volunteer association supporting people in need, opening doors to education, and turning your generosity into meaningful action.'}</p>
-          <div className="flex flex-wrap gap-3 mt-8"><Link to="/donate" className="btn bg-white text-teal-900">{isRTL ? 'كن عونًا وسندًا' : 'Make a difference'} <Heart className="w-5 h-5" /></Link><Link to="/projects" className="btn border border-white/40 text-white">{isRTL ? 'اكتشف مشاريعنا' : 'Explore our projects'}</Link></div>
-          {userProfile?.full_name && <p className="text-teal-100 mt-5">{isRTL ? 'أهلًا بك، ' : 'Welcome, '}{userProfile.full_name}</p>}
+          <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-xl mb-8">
+            {isRTL 
+              ? 'جمعية تطوعية تجمعنا على الخير، ندعم المحتاجين، ونفتح أبواب العلم، ونحول عطائكم إلى مبادرات تمس حياة الناس.' 
+              : 'A volunteer association supporting people in need, opening doors to education, and turning your generosity into meaningful action.'}
+          </p>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+            <Link to="/donate" className="btn bg-rose-200 hover:bg-rose-300 text-slate-900 font-bold px-8 shadow-lg shadow-rose-200/20">
+              {isRTL ? 'كن عوناً وسنداً' : 'Make a difference'} <Heart className="w-4 h-4 text-rose-600" />
+            </Link>
+          </div>
+          {userProfile?.full_name && <p className="text-indigo-200 mt-5 font-medium">{isRTL ? 'أهلًا بك، ' : 'Welcome, '}{userProfile.full_name}</p>}
         </motion.section>
 
-        <figure className="mb-14 overflow-hidden rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 grid md:grid-cols-2"><img src="/Gaza.jpg" alt={isRTL ? 'توثيق مساهمة جمعية عون وسند لدعم أهل غزة' : 'Aoun and Sanad supporting Gaza'} className="w-full h-80 object-contain bg-slate-100 dark:bg-slate-900" loading="lazy"/><figcaption className="p-7 sm:p-10 flex flex-col justify-center"><p className="text-teal-600 font-bold mb-3">{isRTL ? 'من أثر عطائكم' : 'Your generosity in action'}</p><h2 className="text-3xl font-bold mb-5">{isRTL ? 'عطاءٌ يصل إلى من يحتاجه' : 'Support that reaches people'}</h2><p className="leading-loose text-slate-600 dark:text-slate-300">{isRTL ? 'نشارككم توثيق مبادرات الجمعية ومساهماتها الإنسانية، ونواصل معكم مسيرة التكافل ومساندة المحتاجين.' : 'Explore our documented initiatives and humanitarian contributions, and join us in supporting people in need.'}</p><Link to="/projects" className="mt-6 font-bold text-teal-700 dark:text-teal-300">{isRTL ? 'شاهد مبادراتنا ←' : 'View our initiatives →'}</Link></figcaption></figure>
         {/* ═══ QUICK LINKS ═══ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="mb-6 relative z-20"
+          className="mb-12 relative z-20"
         >
-          <div className="flex items-center justify-between mb-4 px-2">
-             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-               <BookOpen className="w-4 h-4 text-[#1a1c4b] dark:text-indigo-400 opacity-80" />
-               {isRTL ? 'روابط سريعة' : 'Quick Links'}
-             </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {/* About Us Card */}
-            <Link to="/about" className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-[2rem] p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:-translate-y-1 transition-transform border border-slate-100 dark:border-slate-700/50">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                <Info className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="font-black text-slate-800 dark:text-white text-sm leading-tight">{isRTL ? 'من نحن' : 'About Us'}</h3>
-                <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">{isRTL ? 'تعرف على رسالتنا' : 'Our mission'}</p>
-              </div>
-            </Link>
-
-            {/* Donate Now Card */}
-            <Link to="/donate" className="flex items-center gap-3 bg-rose-600 rounded-[2rem] p-4 sm:p-5 shadow-[0_8px_30px_rgba(225,29,72,0.3)] hover:-translate-y-1 transition-transform">
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 text-white">
-                <Heart className="w-5 h-5 fill-current" />
-              </div>
-              <div>
-                <h3 className="font-black text-white text-sm leading-tight">{isRTL ? 'تبرع الآن' : 'Donate Now'}</h3>
-                <p className="text-[10px] text-rose-100 font-medium leading-tight mt-0.5">{isRTL ? 'شارك في العطاء' : 'Give back'}</p>
-              </div>
-            </Link>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { to: '/about', icon: Info, title: isRTL ? 'عن الجمعية' : 'About Us', desc: isRTL ? 'تعرف على رؤيتنا وأهدافنا وقيمنا ورسالتنا' : 'Our vision and mission' },
+              { to: '/projects', icon: Heart, title: isRTL ? 'مشاريعنا' : 'Projects', desc: isRTL ? 'مبادرات نوعية تصنع فرقاً في المجتمع' : 'Qualitative initiatives' },
+              { to: '/lessons', icon: BookOpen, title: isRTL ? 'الدروس والمحاضرات' : 'Lessons', desc: isRTL ? 'مجتمع معرفي .. لعلم ينتفع به' : 'Knowledge society' },
+              { to: '/contact', icon: MessageCircle, title: isRTL ? 'تواصل معنا' : 'Contact Us', desc: isRTL ? 'نحن هنا لخدمتكم واستقبال استفساراتكم' : 'We are here to serve you' },
+              { to: '/donate', icon: HandHeart, title: isRTL ? 'التبرع' : 'Donate', desc: isRTL ? 'مساهمتكم يستمر الأثر' : 'Your contribution matters' },
+              { to: '/elections', icon: Vote, title: isRTL ? 'الانتخابات' : 'Elections', desc: isRTL ? 'شارك في انتخابات الجمعية' : 'Participate in elections' },
+            ].map((link, idx) => (
+              <Link key={idx} to={link.to} className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 transition-all flex flex-col items-center text-center group">
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <link.icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-1">{link.title}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-3">{link.desc}</p>
+                <div className="mt-auto w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors">
+                  {isRTL ? <ArrowLeft className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+                </div>
+              </Link>
+            ))}
           </div>
         </motion.section>
 
-        {/* ═══ MAIN ACTION CARDS ═══ */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Mahaja Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <Link to="/mahaja" className="block bg-[#1a1c4b] rounded-[2rem] p-5 sm:p-6 shadow-xl hover:-translate-y-1 transition-all relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-              
-              <div className="flex items-start gap-4 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-rose-200/20 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-7 h-7 text-rose-200" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-white text-base sm:text-lg mb-1 leading-tight">{isRTL ? 'محظرة المحجة البيضاء التعليمية' : 'Al-Mahaja Educational Institute'}</h3>
-                  <p className="text-xs text-indigo-200/80 leading-relaxed font-medium">
-                    {isRTL ? 'منصة العلوم الشرعية المتكاملة: قراءة وتدبر القرآن الكريم، الدروس والمحاضرات الفقهية والمكتبة الشرعية.' : 'Integrated Islamic sciences platform: Quran reading & contemplation, fiqh lessons, and library.'}
-                  </p>
-                </div>
-                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-1">
-                  {isRTL ? <ChevronLeft className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />}
-                </div>
+        {/* ═══ ELECTIONS SECTION (From Design) ═══ */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mb-12 grid lg:grid-cols-[1fr_400px] gap-6"
+        >
+          {/* Left Side: Elections Promo */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl p-8 sm:p-12 border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center text-center sm:items-start sm:text-start relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-200/40 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
+            
+            <div className="relative z-10 w-full flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-white shadow-xl flex items-center justify-center shrink-0">
+                <Vote className="w-12 h-12 text-indigo-900" />
               </div>
-            </Link>
-          </motion.div>
+              <div className="flex-1">
+                <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 dark:text-white mb-4">
+                  {isRTL ? 'صفحة الانتخابات' : 'Elections Page'}
+                </h2>
+                <p className="text-slate-600 dark:text-slate-300 text-lg mb-8 max-w-md">
+                  {isRTL 
+                    ? 'شارك في صناعة القرار ودعم مسيرة الجمعية. تظهر جميع الأصوات والمرشحين الذين يتم إضافتهم من قبل الإدارة مباشرة في صفحة الانتخابات.' 
+                    : 'Participate in decision making. View all polls and candidates added by the administration directly.'}
+                </p>
+                <Link to="/elections" className="inline-flex items-center gap-2 bg-indigo-950 hover:bg-indigo-900 text-white px-6 py-3 rounded-xl font-bold transition-colors">
+                  {isRTL ? 'الانتقال إلى صفحة الانتخابات' : 'Go to Elections Page'}
+                  {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                </Link>
+              </div>
+            </div>
+          </div>
 
-          {/* Subscription Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <Link to="/account" className="block bg-rose-50 dark:bg-rose-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-rose-900/40 flex items-center justify-center shrink-0 shadow-sm border border-rose-100 dark:border-rose-800">
-                  <CreditCard className="w-6 h-6 text-rose-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-rose-900 dark:text-rose-100 text-sm sm:text-base mb-1">{isRTL ? 'دفع رسوم الانتساب الشهري' : 'Pay Monthly Subscription'}</h3>
-                  <p className="text-[11px] sm:text-xs text-rose-700/70 dark:text-rose-300/70 font-medium leading-relaxed">
-                    {isRTL ? 'ساهم بانتظام في سداد اشتراكك لدعم واستمرارية المشاريع الإنسانية للجمعية.' : 'Contribute regularly to your subscription to support our humanitarian projects.'}
-                  </p>
-                </div>
-                <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  {isRTL ? <ChevronLeft className="w-5 h-5 text-rose-400" /> : <ChevronRight className="w-5 h-5 text-rose-400" />}
-                </div>
-              </div>
-            </Link>
-          </motion.div>
+          {/* Right Side: Recent Elections List / Polls */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
+            <div className="flex items-center gap-2 mb-6">
+              <Clock className="w-5 h-5 text-slate-400" />
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">{isRTL ? 'أحدث الانتخابات' : 'Recent Elections'}</h3>
+            </div>
+            
+            {/* Real Polls logic mixed with custom layout */}
+            <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: '350px' }}>
+               <PollsSection />
+            </div>
+          </div>
+        </motion.section>
 
-          {/* Transparency Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-            <Link to="/donation-expenses" className="block bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-blue-900/40 flex items-center justify-center shrink-0 shadow-sm border border-blue-100 dark:border-blue-800">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-blue-950 dark:text-blue-100 text-sm sm:text-base mb-1">{isRTL ? 'مصاريف التبرعات والشفافية المالية' : 'Donation Expenses & Transparency'}</h3>
-                  <p className="text-[11px] sm:text-xs text-blue-800/70 dark:text-blue-200/70 font-medium leading-relaxed">
-                    {isRTL ? 'اطلع على كشوفات وقنوات صرف التبرعات والمساعدات بكل مصداقية وشفافية إدارية.' : 'View statements and channels of donation disbursement with transparency.'}
-                  </p>
-                </div>
-                <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  {isRTL ? <ChevronLeft className="w-5 h-5 text-blue-400" /> : <ChevronRight className="w-5 h-5 text-blue-400" />}
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-
-          {/* Competitions Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-            {/* Note: Links to /projects for now if competitions page doesn't exist, change later if needed */}
-            <Link to="/projects" className="block bg-amber-50 dark:bg-amber-900/20 rounded-[2rem] p-5 sm:p-6 shadow-md hover:-translate-y-1 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-sm border border-amber-100 dark:border-amber-800">
-                  <Trophy className="w-6 h-6 text-amber-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-amber-950 dark:text-amber-100 text-sm sm:text-base mb-1">{isRTL ? 'مسابقات الجمعية' : 'Association Competitions'}</h3>
-                  <p className="text-[11px] sm:text-xs text-amber-800/70 dark:text-amber-200/70 font-medium leading-relaxed">
-                    {isRTL ? 'شارك في مسابقات الجمعية الثقافية والقرآنية واربح جوائز قيمة.' : 'Participate in our cultural and Quranic competitions and win valuable prizes.'}
-                  </p>
-                </div>
-                <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                  {isRTL ? <ChevronLeft className="w-5 h-5 text-amber-400" /> : <ChevronRight className="w-5 h-5 text-amber-400" />}
-                </div>
-              </div>
-            </Link>
-          </motion.div>
+        {/* ═══ SECONDARY ACTION BAR ═══ */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700 shadow-sm mb-16 flex flex-wrap justify-between items-center gap-4 text-center sm:text-start">
+          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
+            <Globe className="w-5 h-5 text-rose-400" />
+            <span>{isRTL ? 'مبادرات مستدامة' : 'Sustainable Initiatives'}</span>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
+            <HandHeart className="w-5 h-5 text-rose-400" />
+            <span>{isRTL ? 'خدمة المجتمع' : 'Community Service'}</span>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
+            <BookOpen className="w-5 h-5 text-rose-400" />
+            <span>{isRTL ? 'نشر العلم' : 'Spreading Knowledge'}</span>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
+          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
+            <Users className="w-5 h-5 text-rose-400" />
+            <span>{isRTL ? 'دعم المحتاجين' : 'Supporting the Needy'}</span>
+          </div>
         </div>
 
         {/* ═══ DONATION CAMPAIGNS (Preserved) ═══ */}
@@ -472,12 +450,7 @@ export const HomePage = () => {
           )}
         </AnimatePresence>
 
-        <section className="my-16 rounded-3xl border border-teal-100 dark:border-slate-700 p-6 sm:p-10 bg-white dark:bg-slate-800"><p className="text-teal-600 font-bold mb-3">{isRTL ? 'العطاء يبدأ من إنسان' : 'Giving starts with people'}</p><h2 className="text-3xl font-bold mb-5">{isRTL ? 'عونٌ في الحاجة، وسندٌ في الطريق' : 'Support when it matters'}</h2><p className="text-slate-600 dark:text-slate-300 leading-loose max-w-3xl">{t.hero.subtitle}</p><Link to="/about" className="inline-flex mt-6 text-teal-700 dark:text-teal-300 font-bold">{isRTL ? 'تعرّف على الجمعية ←' : 'Meet the association →'}</Link>{usersCount > 0 && <p className="mt-6 text-2xl font-bold">{animatedMembers.toLocaleString()} <span className="text-base font-normal">{isRTL ? 'عضو مسجل' : 'registered members'}</span></p>}</section>
         <Projects />
-        {/* ═══ POLLS (Preserved) ═══ */}
-        <div className="mt-8">
-          <PollsSection />
-        </div>
 
       </div>
     </div>
