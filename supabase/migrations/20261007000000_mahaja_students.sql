@@ -121,7 +121,11 @@ DECLARE v_admin RECORD; v_token TEXT; v_expires TIMESTAMPTZ := now() + interval 
 BEGIN
   SELECT id, username, password_hash, is_active INTO v_admin
     FROM public.system_admins WHERE username = btrim(p_username);
-  IF NOT FOUND OR NOT v_admin.is_active OR v_admin.password_hash <> crypt(p_password, v_admin.password_hash) THEN
+  IF NOT FOUND
+     OR v_admin.is_active IS NOT TRUE
+     OR v_admin.password_hash IS NULL
+     OR p_password IS NULL
+     OR v_admin.password_hash IS DISTINCT FROM crypt(p_password, v_admin.password_hash) THEN
     RETURN json_build_object('success', false);
   END IF;
   DELETE FROM public.mahaja_admin_tokens WHERE expires_at < now();
