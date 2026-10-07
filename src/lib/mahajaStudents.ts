@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getAdminToken, setAdminToken } from './adminSession';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,11 +15,87 @@ export interface MahajaStudent {
   photo_url: string | null;
   photo_path: string | null;
   notes: string | null;
+  /** Added by the 20261008 migration; treat a missing value as 'active'. */
+  status?: StudentStatus;
+  status_reason?: string | null;
+  status_changed_at?: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type StudentStatus = 'active' | 'suspended';
+export const isSuspended = (s: Pick<MahajaStudent, 'status'>) => s.status === 'suspended';
+
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'left_early' | 'excused';
+
+export const ATTENDANCE_STATUSES: { id: AttendanceStatus; label: string; short: string; tone: string; active: string }[] = [
+  { id: 'present', label: 'حاضر', short: 'حاضر', tone: 'text-emerald-700 border-emerald-200 dark:text-emerald-300 dark:border-emerald-800', active: 'bg-emerald-600 text-white border-emerald-600' },
+  { id: 'absent', label: 'غائب', short: 'غائب', tone: 'text-red-700 border-red-200 dark:text-red-300 dark:border-red-800', active: 'bg-red-600 text-white border-red-600' },
+  { id: 'late', label: 'متأخر', short: 'متأخر', tone: 'text-amber-700 border-amber-200 dark:text-amber-300 dark:border-amber-800', active: 'bg-amber-500 text-white border-amber-500' },
+  { id: 'left_early', label: 'خرج مبكرًا', short: 'خرج مبكرًا', tone: 'text-orange-700 border-orange-200 dark:text-orange-300 dark:border-orange-800', active: 'bg-orange-500 text-white border-orange-500' },
+  { id: 'excused', label: 'بعذر', short: 'بعذر', tone: 'text-sky-700 border-sky-200 dark:text-sky-300 dark:border-sky-800', active: 'bg-sky-600 text-white border-sky-600' },
+];
+export const attendanceLabel = (s: string) => ATTENDANCE_STATUSES.find(a => a.id === s)?.label ?? s;
+
+export interface AttendanceRecord {
+  id: string;
+  student_id: string;
+  attendance_date: string; // YYYY-MM-DD
+  status: AttendanceStatus;
+  note: string | null;
+  recorded_by: string;
+  recorded_at: string;
+}
+
+export interface StudentNote {
+  id: string;
+  student_id: string;
+  note: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface StudentLogEntry {
+  id: number;
+  student_id: string;
+  action: string;
+  details: Record<string, unknown>;
+  actor: string;
+  created_at: string;
+}
+
+export interface StudentDetails {
+  notes: StudentNote[];
+  attendance: AttendanceRecord[];
+  log: StudentLogEntry[];
+}
+
+export interface AttendanceStats {
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  left_early: number;
+  excused: number;
+  /** % of recorded days (excluding excused absences) the student attended — present, late or left early. */
+  rate: number | null;
+}
+
+export const computeAttendanceStats = (records: AttendanceRecord[]): AttendanceStats => {
+  const count = (s: AttendanceStatus) => records.filter(r => r.status === s).length;
+  const stats = { total: records.length, present: count('present'), absent: count('absent'), late: count('late'), left_early: count('left_early'), excused: count('excused') };
+  const counted = stats.total - stats.excused;
+  const attended = stats.present + stats.late + stats.left_early;
+  return { ...stats, rate: counted > 0 ? Math.round((attended / counted) * 100) : null };
+};
+
+/** Local calendar date as YYYY-MM-DD. */
+export const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export interface MahajaStudentInput {
   full_name: string;
@@ -50,34 +127,18 @@ export const formatAhzab = (n: number) => (n === 0 ? '0 حزب' : arabicCount(n,
 
 export const normalizePhone = (phone: string) => phone.replace(/[\s\-()]/g, '');
 
-// ─── Legacy-admin session token ───────────────────────────────────────────────
+// ─── Admin session token ──────────────────────────────────────────────────────
 // Dashboard admins who log in via system_admins have no Supabase Auth session,
-// so the student RPCs accept a short-lived token issued against their password.
+// so the student RPCs accept the dashboard session token (see adminSession.ts).
+// The server also checks that the admin has the 'mahaja' section.
 
-const TOKEN_KEY = 'mahaja_students_token';
-
-export const getStudentsToken = (): string | null => {
-  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
-};
-
-const setStudentsToken = (token: string | null) => {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch { /* storage unavailable */ }
-};
+export const getStudentsToken = getAdminToken;
 
 export const issueStudentsToken = async (username: string, password: string): Promise<boolean> => {
   const { data, error } = await supabase.rpc('mahaja_students_issue_token', { p_username: username.trim(), p_password: password });
   if (error || !data?.success) return false;
-  setStudentsToken(data.token);
+  setAdminToken(data.token);
   return true;
-};
-
-export const clearStudentsToken = async () => {
-  const token = getStudentsToken();
-  setStudentsToken(null);
-  if (token) await supabase.rpc('mahaja_students_revoke_token', { p_token: token }).then(() => undefined, () => undefined);
 };
 
 export const checkStudentsAccess = async (): Promise<boolean> => {
@@ -95,7 +156,9 @@ export class StudentsError extends Error {
 const toArabicError = (error: { message?: string; code?: string; details?: string } | null): StudentsError => {
   const msg = error?.message || '';
   const code = error?.code;
-  if (msg.includes('MAHAJA_UNAUTHORIZED') || code === '42501') return new StudentsError('انتهت صلاحية الجلسة أو ليست لديك صلاحية الوصول. يرجى تأكيد هويتك كمشرف.', 'unauthorized');
+  if (msg.includes('ADMIN_FORBIDDEN')) return new StudentsError('ليست لديك صلاحية الوصول إلى قسم المحجة البيضاء.', 'forbidden');
+  if (msg.includes('MAHAJA_BAD_DATE')) return new StudentsError('تاريخ الحضور غير صالح.', 'invalid');
+  if (msg.includes('MAHAJA_UNAUTHORIZED') || msg.includes('ADMIN_UNAUTHORIZED') || code === '42501') return new StudentsError('انتهت صلاحية الجلسة أو ليست لديك صلاحية الوصول. يرجى تأكيد هويتك كمشرف.', 'unauthorized');
   if (msg.includes('MAHAJA_NOT_FOUND')) return new StudentsError('لم يتم العثور على الطالب، ربما حُذف مسبقاً.', 'not_found');
   if (code === '23505') return new StudentsError('هذا الطالب مسجّل مسبقاً بنفس الاسم ورقم هاتف الولي.', 'duplicate');
   if (code === '23514') return new StudentsError('بعض البيانات غير صالحة، يرجى مراجعة الحقول.', 'invalid');
@@ -260,4 +323,55 @@ export const deleteStudent = async (student: MahajaStudent): Promise<void> => {
   const { data, error } = await supabase.rpc('mahaja_students_delete', { p_id: student.id, p_token: getStudentsToken() });
   if (error) throw toArabicError(error);
   await removeStudentPhoto((data as MahajaStudent | null)?.photo_path ?? student.photo_path);
+};
+
+// ─── Status, notes, history, attendance ───────────────────────────────────────
+
+const featureError = (error: { message?: string; code?: string }) => {
+  const e = toArabicError(error);
+  if (e.code === 'not_installed') {
+    return new StudentsError('ميزات الحضور والملاحظات تحتاج تشغيل ملف الترحيل 20261008000000 في Supabase.', 'not_installed');
+  }
+  return e;
+};
+
+export const setStudentStatus = async (id: string, status: StudentStatus, reason?: string): Promise<MahajaStudent> => {
+  const { data, error } = await supabase.rpc('mahaja_students_set_status', { p_id: id, p_status: status, p_reason: reason ?? null, p_token: getStudentsToken() });
+  if (error) throw featureError(error);
+  return data as MahajaStudent;
+};
+
+export const addStudentNote = async (id: string, note: string): Promise<StudentNote> => {
+  const text = note.trim();
+  if (!text) throw new StudentsError('اكتب الملاحظة أولاً', 'invalid');
+  if (text.length > 1000) throw new StudentsError('الملاحظة طويلة جداً (الحد 1000 حرف)', 'invalid');
+  const { data, error } = await supabase.rpc('mahaja_student_add_note', { p_id: id, p_note: text, p_token: getStudentsToken() });
+  if (error) throw featureError(error);
+  return data as StudentNote;
+};
+
+export const getStudentDetails = async (id: string): Promise<StudentDetails> => {
+  const { data, error } = await supabase.rpc('mahaja_student_details', { p_id: id, p_token: getStudentsToken() });
+  if (error) throw featureError(error);
+  return data as StudentDetails;
+};
+
+export const getAttendanceForDay = async (date: string): Promise<AttendanceRecord[]> => {
+  const { data, error } = await supabase.rpc('mahaja_attendance_day', { p_date: date, p_token: getStudentsToken() });
+  if (error) throw featureError(error);
+  return (data ?? []) as AttendanceRecord[];
+};
+
+export interface AttendanceChange {
+  student_id: string;
+  /** null removes the student's record for that day. */
+  status: AttendanceStatus | null;
+  note: string;
+}
+
+export const saveAttendance = async (date: string, changes: AttendanceChange[]): Promise<AttendanceRecord[]> => {
+  if (changes.some(c => c.note.trim().length > 300)) throw new StudentsError('الملاحظة يجب ألا تتجاوز 300 حرف', 'invalid');
+  const { data, error } = await supabase.rpc('mahaja_attendance_save', { p_date: date, p_records: changes, p_token: getStudentsToken() });
+  if (error) throw featureError(error);
+  return (data ?? []) as AttendanceRecord[];
 };
