@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon, FileText, LayoutList, List, PlayCircle, Headphones } from 'lucide-react';
+import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon, FileText, LayoutList, List, PlayCircle, Headphones, GraduationCap } from 'lucide-react';
+import { MahajaStudentsSection } from './mahaja/MahajaStudentsSection';
 
 export const MahajaTab = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   
-  const [activeTab, setActiveTab] = useState<'courses' | 'lessons'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'lessons' | 'students'>('courses');
   const [courses, setCourses] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,15 +144,20 @@ export const MahajaTab = () => {
             {isRTL ? 'إدارة المحجة البيضاء' : 'Mahaja Management'}
           </h2>
         </div>
-        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 max-w-full overflow-x-auto [&>button]:whitespace-nowrap">
           <button onClick={() => { setActiveTab('courses'); setIsEditing(null); }} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${activeTab === 'courses' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-500'}`}>
             <LayoutList className="w-4 h-4" /> {isRTL ? 'الدورات' : 'Courses'}
           </button>
           <button onClick={() => { setActiveTab('lessons'); setIsEditing(null); }} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${activeTab === 'lessons' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>
             <List className="w-4 h-4" /> {isRTL ? 'الدروس' : 'Lessons'}
           </button>
+          <button onClick={() => { setActiveTab('students'); setIsEditing(null); }} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${activeTab === 'students' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
+            <GraduationCap className="w-4 h-4" /> {isRTL ? 'طلاب المحجة البيضاء' : 'Students'}
+          </button>
         </div>
       </div>
+
+      {activeTab === 'students' ? <MahajaStudentsSection /> : (<>
 
       <div className="flex gap-4 mb-6">
         <input 
@@ -233,6 +239,7 @@ export const MahajaTab = () => {
           {((activeTab === 'courses' ? filteredCourses : filteredLessons).length === 0) && <div className="text-center py-8 text-slate-500">لا يوجد بيانات</div>}
         </div>
       )}
+      </>)}
     </motion.div>
   );
 };

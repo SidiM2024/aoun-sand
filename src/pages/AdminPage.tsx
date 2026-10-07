@@ -20,6 +20,7 @@ import { CompetitionsManagementTab } from '../components/admin/CompetitionsManag
 import { MembershipsTab } from '../components/admin/MembershipsTab';
 import { UserDonationsTab } from '../components/admin/UserDonationsTab';
 import { useAuth } from '../contexts/AuthContext';
+import { clearStudentsToken, issueStudentsToken } from '../lib/mahajaStudents';
 
 export const AdminPage = () => {
   const { language } = useLanguage();
@@ -162,6 +163,8 @@ export const AdminPage = () => {
         }
       } else {
         if (data && data.success) {
+          // Session token for the protected Mahaja students RPCs (legacy logins have no Supabase Auth session).
+          await issueStudentsToken(username, password).catch(() => false);
           sessionStorage.setItem('admin_auth', 'true');
           sessionStorage.setItem('admin_role', data.admin.role);
           localStorage.setItem('admin_auth', 'true');
@@ -186,6 +189,7 @@ export const AdminPage = () => {
     sessionStorage.removeItem('admin_role');
     localStorage.removeItem('admin_auth');
     localStorage.removeItem('admin_role');
+    await clearStudentsToken();
     try { await logout(); } catch { toast.error(isRTL ? 'تعذر تسجيل الخروج' : 'Unable to sign out.'); return; }
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
     if (checkLegacyAdmin) checkLegacyAdmin();
