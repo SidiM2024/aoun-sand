@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -20,12 +21,14 @@ import { CompetitionsManagementTab } from '../components/admin/CompetitionsManag
 import { MembershipsTab } from '../components/admin/MembershipsTab';
 import { UserDonationsTab } from '../components/admin/UserDonationsTab';
 import { useAuth } from '../contexts/AuthContext';
-import { clearStudentsToken, issueStudentsToken } from '../lib/mahajaStudents';
+import { adminLogin, adminLogout } from '../lib/adminSession';
+
+type TabId = 'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations';
 
 export const AdminPage = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
-  const { isAdmin, adminRole, loading: authLoading, logout, checkLegacyAdmin } = useAuth() as any;
+  const { isAdmin, adminRole, adminSections, isSuperAdmin, adminLabel, loading: authLoading, logout, checkLegacyAdmin } = useAuth();
 
   const isAuthenticated = isAdmin;
   const [username, setUsername] = useState('');
@@ -33,7 +36,21 @@ export const AdminPage = () => {
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations'>('users');
+  // The open section is kept in the URL (?tab=finance) so it can be linked to;
+  // a section the admin is not allowed to open is never rendered.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const allowedTabs = useMemo(() => {
+    const set = new Set<string>(adminSections);
+    if (isSuperAdmin) set.add('admins');
+    return set;
+  }, [adminSections, isSuperAdmin]);
+  const can = (tab: string) => allowedTabs.has(tab);
+  const requestedTab = searchParams.get('tab') as TabId | null;
+  const activeTab: TabId | null = requestedTab && allowedTabs.has(requestedTab)
+    ? requestedTab
+    : ((['users', 'approvals', 'memberships', 'finance', 'user_donations', 'donations', 'patients', 'mahaja', 'requests', 'notifications', 'voting', 'competitions', 'media', 'admins'] as TabId[]).find(t => allowedTabs.has(t)) ?? null);
+  const blockedTab = requestedTab && !allowedTabs.has(requestedTab) ? requestedTab : null;
+  const setActiveTab = (tab: TabId) => setSearchParams({ tab }, { replace: true });
 
   // Dashboard state
   const [usersCount, setUsersCount] = useState(0);
@@ -44,17 +61,24 @@ export const AdminPage = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
 
+  // Only load / subscribe to the data of sections this admin may open.
+  const needsUsers = can('users') || can('approvals');
+  const needsPolls = can('voting');
+  const needsNotifications = can('notifications');
+  const needsMedia = can('media');
+
   useEffect(() => {
     if (!isAdmin) return;
     void fetchDashboardData();
-    const channel = supabase.channel('admin-dashboard')
+    const channel = supabase.channel('admin-dashboard');
+    if (needsPolls) channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => fetchPolls())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => fetchPolls())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUsers())
-      .subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => fetchPolls());
+    if (needsNotifications) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications());
+    if (needsUsers) channel.on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUsers());
+    channel.subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [isAdmin]);
+  }, [isAdmin, needsUsers, needsPolls, needsNotifications, needsMedia]);
 
   const fetchUsers = async () => {
     let allUsers: any[] = [];
@@ -116,10 +140,10 @@ export const AdminPage = () => {
     setIsLoading(true);
     try {
       const fetchPromise = Promise.all([
-        fetchUsers().catch(err => console.error("Error fetching users:", err)),
-        fetchPolls().catch(err => console.error("Error fetching polls:", err)),
-        fetchNotifications().catch(err => console.error("Error fetching notifications:", err)),
-        fetchMedia().catch(err => console.error("Error fetching media:", err))
+        needsUsers && fetchUsers().catch(err => console.error("Error fetching users:", err)),
+        needsPolls && fetchPolls().catch(err => console.error("Error fetching polls:", err)),
+        needsNotifications && fetchNotifications().catch(err => console.error("Error fetching notifications:", err)),
+        needsMedia && fetchMedia().catch(err => console.error("Error fetching media:", err))
       ]);
 
       const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
@@ -137,18 +161,27 @@ export const AdminPage = () => {
     setIsLoggingIn(true);
 
     try {
-      const { data, error } = await supabase.rpc('verify_admin_login', {
-        p_username: username.trim(),
-        p_password: password
-      });
+      // 1. Dashboard administrators (system_admins) → server-side session with sections.
+      const result = await adminLogin(username, password);
+      if (result.ok) {
+        setPassword('');
+        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
+        checkLegacyAdmin();
+        return;
+      }
+      if (!result.notFound) { toast.error(result.message); return; }
 
-      if (error) {
+      // 2. Supabase Auth administrators (public.admins), signing in with their email.
+      {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: username.trim(),
           password: password
         });
 
-        if (authError) throw authError;
+        if (authError) {
+          toast.error(result.message === 'legacy_error' ? (isRTL ? 'اسم المستخدم أو كلمة المرور غير صحيحة.' : 'Invalid credentials.') : result.message);
+          return;
+        }
 
         if (authData.user) {
           const { data: adminData, error: adminError } = await supabase.from('admins').select('id').eq('id', authData.user.id).single();
@@ -161,20 +194,6 @@ export const AdminPage = () => {
           setPassword('');
           toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
         }
-      } else {
-        if (data && data.success) {
-          // Session token for the protected Mahaja students RPCs (legacy logins have no Supabase Auth session).
-          await issueStudentsToken(username, password).catch(() => false);
-          sessionStorage.setItem('admin_auth', 'true');
-          sessionStorage.setItem('admin_role', data.admin.role);
-          localStorage.setItem('admin_auth', 'true');
-          localStorage.setItem('admin_role', data.admin.role);
-          setPassword('');
-          toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
-          if (checkLegacyAdmin) { checkLegacyAdmin(); } else { window.location.reload(); }
-        } else {
-          toast.error(data?.message || 'Invalid email or password.');
-        }
       }
     } catch (err: any) {
       console.error("Login error:", err);
@@ -185,11 +204,7 @@ export const AdminPage = () => {
   };
 
   const handleLogout = async () => {
-    sessionStorage.removeItem('admin_auth');
-    sessionStorage.removeItem('admin_role');
-    localStorage.removeItem('admin_auth');
-    localStorage.removeItem('admin_role');
-    await clearStudentsToken();
+    await adminLogout();
     try { await logout(); } catch { toast.error(isRTL ? 'تعذر تسجيل الخروج' : 'Unable to sign out.'); return; }
     toast.success(isRTL ? 'تم تسجيل الخروج' : 'Logged out');
     if (checkLegacyAdmin) checkLegacyAdmin();
@@ -290,9 +305,8 @@ export const AdminPage = () => {
     { id: 'user_donations',icon: Heart,       label: isRTL ? 'التبرعات الواردة' : 'User Donations', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
   ];
 
-  if (adminRole === 'Super Admin') {
-    tabs.push({ id: 'admins', icon: UserCog, label: isRTL ? 'المشرفين' : 'Admins', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' });
-  }
+  tabs.push({ id: 'admins', icon: UserCog, label: isRTL ? 'المشرفين' : 'Admins', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' });
+  const visibleTabs = tabs.filter(tab => can(tab.id));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -311,6 +325,14 @@ export const AdminPage = () => {
               <p className="text-slate-500 dark:text-slate-400 font-medium">
                 {isRTL ? 'إدارة شاملة للمحتوى والمستخدمين' : 'Comprehensive content and user management'}
               </p>
+              {(adminLabel || adminRole) && (
+                <div className="flex flex-wrap items-center gap-2 mt-2 text-sm">
+                  {adminLabel && <span className="font-bold text-slate-700 dark:text-slate-200">{adminLabel}</span>}
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isSuperAdmin ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300'}`}>
+                    {isSuperAdmin ? (isRTL ? 'المشرف الرئيسي' : 'Super Admin') : adminRole}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <button
@@ -326,7 +348,7 @@ export const AdminPage = () => {
           {/* Sidebar */}
           <div className="w-full lg:w-72 flex-shrink-0">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-3 flex lg:flex-col gap-2 overflow-x-auto sticky top-24">
-              {tabs.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
@@ -365,8 +387,24 @@ export const AdminPage = () => {
               </div>
             )}
 
+            {blockedTab && (
+              <div role="alert" className="mb-6 p-4 rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 font-bold flex items-center gap-3">
+                <ShieldAlert className="w-5 h-5 shrink-0" />
+                {isRTL ? 'ليست لديك صلاحية للوصول إلى هذا القسم. تم عرض أول قسم مسموح لك.' : 'You do not have access to that section.'}
+              </div>
+            )}
+
+            {!activeTab && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-10 text-center">
+                <ShieldAlert className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+                <h2 className="text-xl font-black text-slate-800 dark:text-white mb-2">{isRTL ? 'لا توجد أقسام مخصصة لحسابك' : 'No sections assigned'}</h2>
+                <p className="text-slate-500">{isRTL ? 'تواصل مع المشرف الرئيسي لمنحك صلاحية الوصول إلى الأقسام المطلوبة.' : 'Ask the Super Admin to grant you access.'}</p>
+              </div>
+            )}
+
+            {/* activeTab is always one of the sections this admin is allowed to open. */}
             <AnimatePresence mode="wait">
-              {activeTab === 'users'         && <UsersTab users={users} usersCount={usersCount} />}
+              {activeTab === 'users'        && <UsersTab users={users} usersCount={usersCount} />}
               {activeTab === 'approvals'     && <ApprovalsTab users={users} onRefresh={fetchUsers} />}
               {activeTab === 'notifications' && <NotificationsTab notifications={notifications} fetchDashboardData={fetchDashboardData} />}
               {activeTab === 'voting'        && <PollsTab polls={polls} fetchDashboardData={fetchDashboardData} />}

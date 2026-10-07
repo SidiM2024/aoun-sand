@@ -3,18 +3,20 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Plus, Search, MapPin, ArrowDownUp, Eye, Edit2, Trash2, Download, Users, Phone, Calendar, BookOpen, Home,
-  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap,
+  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap, CalendarCheck, Filter,
 } from 'lucide-react';
 import {
-  checkStudentsAccess, deleteStudent, formatAge, formatAhzab, formatStudentCode, issueStudentsToken, listStudents, StudentsError,
+  checkStudentsAccess, deleteStudent, formatAge, formatAhzab, formatStudentCode, isSuspended, issueStudentsToken, listStudents, StudentsError,
   type MahajaStudent,
 } from '../../../lib/mahajaStudents';
 import { downloadStudentCardPdf, downloadStudentCardPng } from '../../../utils/studentCard';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentProfileModal } from './StudentProfileModal';
+import { AttendanceModal } from './AttendanceModal';
 
-type AccessState = 'checking' | 'granted' | 'needs_verification' | 'not_installed' | 'error';
+type AccessState = 'checking' | 'granted' | 'needs_verification' | 'forbidden' | 'not_installed' | 'error';
 type SortOrder = 'newest' | 'oldest';
+type StatusFilter = 'all' | 'active' | 'suspended';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('ar-MA', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
@@ -149,6 +151,8 @@ export const MahajaStudentsSection = () => {
   const [search, setSearch] = useState('');
   const [addressFilter, setAddressFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   const [formStudent, setFormStudent] = useState<MahajaStudent | null | undefined>(undefined); // undefined = closed, null = new
   const [viewing, setViewing] = useState<MahajaStudent | null>(null);
@@ -156,6 +160,7 @@ export const MahajaStudentsSection = () => {
 
   const handleError = useCallback((err: unknown) => {
     if (err instanceof StudentsError && err.code === 'unauthorized') { setAccess('needs_verification'); return; }
+    if (err instanceof StudentsError && err.code === 'forbidden') { setAccess('forbidden'); return; }
     if (err instanceof StudentsError && err.code === 'not_installed') { setAccess('not_installed'); setErrorMessage(err.message); return; }
     toast.error(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
   }, []);
@@ -167,7 +172,7 @@ export const MahajaStudentsSection = () => {
       setAccess('granted');
     } catch (err) {
       handleError(err);
-      const handled = err instanceof StudentsError && (err.code === 'unauthorized' || err.code === 'not_installed');
+      const handled = err instanceof StudentsError && (err.code === 'unauthorized' || err.code === 'forbidden' || err.code === 'not_installed');
       if (!handled) {
         setErrorMessage(err instanceof Error ? err.message : '');
         setAccess(a => (a === 'checking' ? 'error' : a));
@@ -200,6 +205,7 @@ export const MahajaStudentsSection = () => {
     const q = search.trim().toLowerCase();
     const qDigits = q.replace(/[\s\-()+]/g, '');
     return students
+      .filter(s => statusFilter === 'all' || (statusFilter === 'suspended' ? isSuspended(s) : !isSuspended(s)))
       .filter(s => addressFilter === 'all' || s.address.trim().toLowerCase() === addressFilter.toLowerCase())
       .filter(s => !q
         || s.full_name.toLowerCase().includes(q)
@@ -210,7 +216,14 @@ export const MahajaStudentsSection = () => {
         const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         return sortOrder === 'newest' ? -diff : diff;
       });
-  }, [students, search, addressFilter, sortOrder]);
+  }, [students, search, addressFilter, sortOrder, statusFilter]);
+
+  const suspendedCount = useMemo(() => students.filter(isSuspended).length, [students]);
+
+  const onStudentUpdated = (updated: MahajaStudent) => {
+    setStudents(list => list.map(s => (s.id === updated.id ? updated : s)));
+    setViewing(v => (v && v.id === updated.id ? updated : v));
+  };
 
   const onSaved = (saved: MahajaStudent, isNew: boolean) => {
     setStudents(list => (isNew ? [saved, ...list] : list.map(s => (s.id === saved.id ? saved : s))));
@@ -241,6 +254,14 @@ export const MahajaStudentsSection = () => {
     return <div className="flex justify-center py-16"><Loader2 className="w-10 h-10 animate-spin text-indigo-500" /></div>;
   }
   if (access === 'needs_verification') return <VerifyAdminPanel onVerified={() => void verifyAndLoad()} />;
+  if (access === 'forbidden') {
+    return (
+      <div className="my-8 p-6 rounded-3xl border border-red-200 bg-red-50 dark:bg-red-900/10 text-center space-y-2">
+        <ShieldCheck className="w-10 h-10 mx-auto text-red-500" />
+        <p className="font-bold text-slate-800 dark:text-white">ليست لديك صلاحية الوصول إلى طلاب المحجة البيضاء.</p>
+      </div>
+    );
+  }
   if (access === 'not_installed' || access === 'error') {
     return (
       <div className="my-8 p-6 rounded-3xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 text-center space-y-3">
@@ -279,12 +300,16 @@ export const MahajaStudentsSection = () => {
           <button onClick={() => setFormStudent(null)} className="px-5 py-3 rounded-2xl font-black bg-pink-200 text-[#262150] hover:bg-pink-100 flex items-center gap-2 shadow-lg">
             <Plus className="w-5 h-5" /> تسجيل طالب جديد
           </button>
+          <button onClick={() => setAttendanceOpen(true)} disabled={students.length === 0}
+            className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
+            <CalendarCheck className="w-5 h-5" /> الحضور
+          </button>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
-        <div className="relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto] gap-3">
+        <div className="relative sm:col-span-2 lg:col-span-1">
           <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الطالب أو الولي أو رقم الهاتف أو المعرف…"
             className="w-full pr-11 pl-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-300" />
@@ -296,6 +321,15 @@ export const MahajaStudentsSection = () => {
             className="w-full pr-10 pl-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-medium">
             <option value="all">كل أماكن السكن</option>
             {addresses.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div className="relative">
+          <Filter className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)} aria-label="فلترة حسب حالة الطالب"
+            className="w-full pr-10 pl-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-medium">
+            <option value="all">كل الطلاب</option>
+            <option value="active">النشطون فقط</option>
+            <option value="suspended">الموقوفون ({suspendedCount})</option>
           </select>
         </div>
         <div className="relative">
@@ -311,7 +345,7 @@ export const MahajaStudentsSection = () => {
         </button>
       </div>
 
-      {(search || addressFilter !== 'all') && (
+      {(search || addressFilter !== 'all' || statusFilter !== 'all') && (
         <p className="text-sm text-slate-500 font-medium">عرض {visible.length} من أصل {students.length} طالب</p>
       )}
 
@@ -330,15 +364,16 @@ export const MahajaStudentsSection = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {visible.map(s => (
             <motion.article key={s.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden flex flex-col">
-              <div className="h-2 bg-gradient-to-l from-[#262150] via-pink-300 to-[#262150]" />
+              className={`rounded-3xl border bg-white dark:bg-slate-800 overflow-hidden flex flex-col ${isSuspended(s) ? 'border-red-200 dark:border-red-900/50' : 'border-slate-200 dark:border-slate-700'}`}>
+              <div className={`h-2 ${isSuspended(s) ? 'bg-red-300' : 'bg-gradient-to-l from-[#262150] via-pink-300 to-[#262150]'}`} />
               <div className="p-4 flex gap-4">
                 <button onClick={() => setViewing(s)} className="w-20 h-24 shrink-0 rounded-2xl overflow-hidden border-2 border-pink-200 bg-indigo-50 dark:bg-slate-900 flex items-center justify-center" aria-label={`عرض ملف ${s.full_name}`}>
-                  {s.photo_url ? <img src={s.photo_url} alt={s.full_name} loading="lazy" className="w-full h-full object-cover" /> : <ImageOff className="w-6 h-6 text-slate-300" />}
+                  {s.photo_url ? <img src={s.photo_url} alt={s.full_name} loading="lazy" className={`w-full h-full object-cover ${isSuspended(s) ? 'grayscale' : ''}`} /> : <ImageOff className="w-6 h-6 text-slate-300" />}
                 </button>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-black text-slate-800 dark:text-white leading-snug break-words">{s.full_name}</h4>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-pink-100 text-[#262150] text-xs font-bold" dir="ltr">{formatStudentCode(s)}</span>
+                  {isSuspended(s) && <span className="inline-block mt-1 ms-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">موقوف</span>}
                   <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> سُجّل في {formatDate(s.created_at)}</p>
                 </div>
               </div>
@@ -364,8 +399,9 @@ export const MahajaStudentsSection = () => {
         <StudentFormModal student={formStudent} onClose={() => setFormStudent(undefined)} onSaved={onSaved} />
       )}
       {viewing && formStudent === undefined && (
-        <StudentProfileModal student={viewing} onClose={() => setViewing(null)} onEdit={() => setFormStudent(viewing)} onDelete={() => setDeleting(viewing)} />
+        <StudentProfileModal student={viewing} onClose={() => setViewing(null)} onEdit={() => setFormStudent(viewing)} onDelete={() => setDeleting(viewing)} onUpdated={onStudentUpdated} />
       )}
+      {attendanceOpen && <AttendanceModal students={students} onClose={() => setAttendanceOpen(false)} />}
       {deleting && <ConfirmDelete student={deleting} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
     </div>
   );
