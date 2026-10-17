@@ -91,6 +91,38 @@ export const computeAttendanceStats = (records: AttendanceRecord[]): AttendanceS
   return { ...stats, rate: counted > 0 ? Math.round((attended / counted) * 100) : null };
 };
 
+export const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('ar-MA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+export const formatDay = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString('ar-MA', { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+export const FIELD_LABELS: Record<string, string> = {
+  full_name: 'الاسم', guardian_name: 'اسم الولي', guardian_phone: 'هاتف الولي', age: 'العمر',
+  address: 'مكان السكن', quran_ahzab: 'عدد الأحزاب', photo_path: 'الصورة', notes: 'الملاحظات العامة',
+};
+
+/** Human-readable Arabic description of a history entry. */
+export const describeLog = (e: StudentLogEntry): string => {
+  const d = e.details as Record<string, unknown>;
+  switch (e.action) {
+    case 'created': return 'تسجيل الطالب';
+    case 'updated': {
+      const fields = (d.fields as string[] | undefined)?.map(f => FIELD_LABELS[f] ?? f).join('، ');
+      const ahzab = d.old_ahzab !== d.new_ahzab && d.new_ahzab !== undefined ? ` (الأحزاب: ${d.old_ahzab} ← ${d.new_ahzab})` : '';
+      return `تعديل البيانات: ${fields ?? ''}${ahzab}`;
+    }
+    case 'suspended': return `إيقاف الطالب${d.reason ? ` — السبب: ${d.reason}` : ''}`;
+    case 'reactivated': return 'إعادة تفعيل الطالب';
+    case 'note_added': return `إضافة ملاحظة: ${d.note ?? ''}`;
+    case 'attendance': {
+      const prev = d.previous ? ` (كان: ${attendanceLabel(String(d.previous))})` : '';
+      return `حضور ${formatDay(String(d.date))}: ${attendanceLabel(String(d.status))}${prev}${d.note ? ` — ${d.note}` : ''}`;
+    }
+    case 'attendance_cleared': return `حذف تسجيل حضور يوم ${formatDay(String(d.date))}`;
+    default: return e.action;
+  }
+};
+
 /** Local calendar date as YYYY-MM-DD. */
 export const todayISO = () => {
   const d = new Date();

@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   X, Edit2, Trash2, User, Users, Phone, Calendar, Home, BookOpen, Hash, Clock, StickyNote, Loader2, ImageOff,
-  CreditCard as IdCard, CalendarCheck, History, Ban, PlayCircle, Send, AlertTriangle,
+  CreditCard as IdCard, CalendarCheck, History, Ban, PlayCircle, Send, AlertTriangle, FileDown,
 } from 'lucide-react';
 import {
-  ATTENDANCE_STATUSES, addStudentNote, attendanceLabel, computeAttendanceStats, formatAge, formatAhzab, formatStudentCode,
-  getStudentDetails, isSuspended, setStudentStatus,
-  type MahajaStudent, type StudentDetails, type StudentLogEntry,
+  ATTENDANCE_STATUSES, addStudentNote, computeAttendanceStats, formatAge, formatAhzab, formatStudentCode,
+  describeLog, formatDateTime, formatDay, getStudentDetails, isSuspended, setStudentStatus,
+  type MahajaStudent, type StudentDetails,
 } from '../../../lib/mahajaStudents';
 import { studentCardDataUrl } from '../../../utils/studentCard';
 import { CardDownloadButtons } from './CardDownloadButtons';
@@ -20,47 +20,19 @@ interface Props {
   onDelete: () => void;
   /** Called when the student record changes here (e.g. suspended / reactivated). */
   onUpdated: (student: MahajaStudent) => void;
+  /** Downloads this student's complete file as PDF. */
+  onExportPdf: () => void;
+  exportingPdf: boolean;
 }
 
 type Tab = 'info' | 'attendance' | 'notes' | 'history';
-
-const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('ar-MA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-const formatDay = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('ar-MA', { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit' });
-
-const FIELD_LABELS: Record<string, string> = {
-  full_name: 'الاسم', guardian_name: 'اسم الولي', guardian_phone: 'هاتف الولي', age: 'العمر',
-  address: 'مكان السكن', quran_ahzab: 'عدد الأحزاب', photo_path: 'الصورة', notes: 'الملاحظات العامة',
-};
-
-const describeLog = (e: StudentLogEntry): string => {
-  const d = e.details as Record<string, unknown>;
-  switch (e.action) {
-    case 'created': return 'تسجيل الطالب';
-    case 'updated': {
-      const fields = (d.fields as string[] | undefined)?.map(f => FIELD_LABELS[f] ?? f).join('، ');
-      const ahzab = d.old_ahzab !== d.new_ahzab && d.new_ahzab !== undefined ? ` (الأحزاب: ${d.old_ahzab} ← ${d.new_ahzab})` : '';
-      return `تعديل البيانات: ${fields ?? ''}${ahzab}`;
-    }
-    case 'suspended': return `إيقاف الطالب${d.reason ? ` — السبب: ${d.reason}` : ''}`;
-    case 'reactivated': return 'إعادة تفعيل الطالب';
-    case 'note_added': return `إضافة ملاحظة: ${d.note ?? ''}`;
-    case 'attendance': {
-      const prev = d.previous ? ` (كان: ${attendanceLabel(String(d.previous))})` : '';
-      return `حضور ${formatDay(String(d.date))}: ${attendanceLabel(String(d.status))}${prev}${d.note ? ` — ${d.note}` : ''}`;
-    }
-    case 'attendance_cleared': return `حذف تسجيل حضور يوم ${formatDay(String(d.date))}`;
-    default: return e.action;
-  }
-};
 
 const statusChip = (status: string) => {
   const a = ATTENDANCE_STATUSES.find(x => x.id === status);
   return <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${a?.active ?? 'bg-slate-200'}`}>{a?.label ?? status}</span>;
 };
 
-export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpdated }: Props) => {
+export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpdated, onExportPdf, exportingPdf }: Props) => {
   const [tab, setTab] = useState<Tab>('info');
   const [cardUrl, setCardUrl] = useState<string | null>(null);
   const [cardError, setCardError] = useState(false);
@@ -199,6 +171,10 @@ export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpda
               <button onClick={() => setStatusDialog(true)}
                 className={`col-span-2 px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 ${suspended ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}>
                 {suspended ? <><PlayCircle className="w-4 h-4" /> إعادة تفعيل الطالب</> : <><Ban className="w-4 h-4" /> إيقاف الطالب</>}
+              </button>
+              <button onClick={onExportPdf} disabled={exportingPdf}
+                className="col-span-2 px-4 py-2.5 rounded-xl font-bold bg-[#262150] text-white hover:bg-[#332c6b] disabled:opacity-60 flex items-center justify-center gap-2">
+                {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />} تحميل ملف الطالب PDF
               </button>
             </div>
 
