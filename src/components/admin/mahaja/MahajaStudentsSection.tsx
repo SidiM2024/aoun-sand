@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Plus, Search, MapPin, ArrowDownUp, Eye, Edit2, Trash2, Download, Users, Phone, Calendar, BookOpen, Home,
-  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap, CalendarCheck, Filter,
+  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap, CalendarCheck, Filter, FileDown,
 } from 'lucide-react';
 import {
   checkStudentsAccess, deleteStudent, formatAge, formatAhzab, formatStudentCode, isSuspended, issueStudentsToken, listStudents, StudentsError,
@@ -13,6 +13,7 @@ import { downloadStudentCardPdf, downloadStudentCardPng } from '../../../utils/s
 import { StudentFormModal } from './StudentFormModal';
 import { StudentProfileModal } from './StudentProfileModal';
 import { AttendanceModal } from './AttendanceModal';
+import { useStudentsPdfExport } from './useStudentsPdfExport';
 
 type AccessState = 'checking' | 'granted' | 'needs_verification' | 'forbidden' | 'not_installed' | 'error';
 type SortOrder = 'newest' | 'oldest';
@@ -66,7 +67,7 @@ const VerifyAdminPanel = ({ onVerified }: { onVerified: () => void }) => {
 
 // ─── Download menu used on each student card ──────────────────────────────────
 
-const DownloadMenu = ({ student }: { student: MahajaStudent }) => {
+const DownloadMenu = ({ student, onExportFile, exporting }: { student: MahajaStudent; onExportFile: () => void; exporting: boolean }) => {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -97,14 +98,15 @@ const DownloadMenu = ({ student }: { student: MahajaStudent }) => {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} disabled={busy} aria-expanded={open}
+      <button type="button" onClick={() => setOpen(o => !o)} disabled={busy || exporting} aria-expanded={open}
         className="w-full px-3 py-2 rounded-xl text-sm font-bold bg-pink-50 text-[#262150] hover:bg-pink-100 flex items-center justify-center gap-1.5 disabled:opacity-60">
-        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} تنزيل البطاقة
+        {busy || exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} تنزيل البطاقة
       </button>
       {open && (
         <div className="absolute z-20 bottom-full mb-2 inset-x-0 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button type="button" onClick={() => run('png')} className="w-full px-4 py-2.5 text-sm font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700"><Download className="w-4 h-4" /> صورة PNG</button>
-          <button type="button" onClick={() => run('pdf')} className="w-full px-4 py-2.5 text-sm font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700"><FileText className="w-4 h-4" /> ملف PDF</button>
+          <button type="button" onClick={() => run('pdf')} className="w-full px-4 py-2.5 text-sm font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700"><FileText className="w-4 h-4" /> البطاقة PDF</button>
+          <button type="button" onClick={() => { setOpen(false); onExportFile(); }} className="w-full px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"><FileDown className="w-4 h-4" /> ملف الطالب الكامل PDF</button>
         </div>
       )}
     </div>
@@ -153,6 +155,7 @@ export const MahajaStudentsSection = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const pdfExport = useStudentsPdfExport();
 
   const [formStudent, setFormStudent] = useState<MahajaStudent | null | undefined>(undefined); // undefined = closed, null = new
   const [viewing, setViewing] = useState<MahajaStudent | null>(null);
@@ -304,6 +307,10 @@ export const MahajaStudentsSection = () => {
             className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
             <CalendarCheck className="w-5 h-5" /> الحضور
           </button>
+          <button onClick={pdfExport.exportAll} disabled={students.length === 0 || pdfExport.busy !== null}
+            className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
+            {pdfExport.busy === 'all' ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileDown className="w-5 h-5" />} تحميل بيانات الطلاب PDF
+          </button>
         </div>
       </div>
 
@@ -387,7 +394,7 @@ export const MahajaStudentsSection = () => {
               <div className="mt-auto p-3 border-t border-slate-100 dark:border-slate-700 grid grid-cols-2 gap-2">
                 <button onClick={() => setViewing(s)} className="px-3 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-200 flex items-center justify-center gap-1.5"><Eye className="w-4 h-4" /> عرض</button>
                 <button onClick={() => setFormStudent(s)} className="px-3 py-2 rounded-xl text-sm font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center justify-center gap-1.5"><Edit2 className="w-4 h-4" /> تعديل</button>
-                <DownloadMenu student={s} />
+                <DownloadMenu student={s} onExportFile={() => pdfExport.exportOne(s.id)} exporting={pdfExport.busy === s.id} />
                 <button onClick={() => setDeleting(s)} className="px-3 py-2 rounded-xl text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center gap-1.5"><Trash2 className="w-4 h-4" /> حذف</button>
               </div>
             </motion.article>
@@ -399,7 +406,7 @@ export const MahajaStudentsSection = () => {
         <StudentFormModal student={formStudent} onClose={() => setFormStudent(undefined)} onSaved={onSaved} />
       )}
       {viewing && formStudent === undefined && (
-        <StudentProfileModal student={viewing} onClose={() => setViewing(null)} onEdit={() => setFormStudent(viewing)} onDelete={() => setDeleting(viewing)} onUpdated={onStudentUpdated} />
+        <StudentProfileModal student={viewing} onClose={() => setViewing(null)} onEdit={() => setFormStudent(viewing)} onDelete={() => setDeleting(viewing)} onUpdated={onStudentUpdated} onExportPdf={() => pdfExport.exportOne(viewing.id)} exportingPdf={pdfExport.busy === viewing.id} />
       )}
       {attendanceOpen && <AttendanceModal students={students} onClose={() => setAttendanceOpen(false)} />}
       {deleting && <ConfirmDelete student={deleting} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}

@@ -29,7 +29,7 @@ const ICONS: Record<string, string[]> = {
   book: ['M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z', 'M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'],
 };
 
-const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+export const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
   const img = new Image();
   img.onload = () => resolve(img);
   img.onerror = () => reject(new Error('image load failed: ' + src));
@@ -37,7 +37,7 @@ const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, rejec
 });
 
 /** Fetches the photo as a blob so the canvas is never tainted by a cross-origin image. */
-const loadRemoteImage = async (url: string): Promise<HTMLImageElement | null> => {
+export const loadRemoteImage = async (url: string): Promise<HTMLImageElement | null> => {
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) return null;
@@ -49,14 +49,14 @@ const loadRemoteImage = async (url: string): Promise<HTMLImageElement | null> =>
 };
 
 let emblemPromise: Promise<HTMLImageElement | null> | null = null;
-const loadEmblem = () => (emblemPromise ??= loadImage('/mahaja-emblem.png').catch(() => { emblemPromise = null; return null; }));
+export const loadEmblem = () => (emblemPromise ??= loadImage('/mahaja-emblem.png').catch(() => { emblemPromise = null; return null; }));
 
-const ensureFonts = async () => {
+export const ensureFonts = async () => {
   if (!('fonts' in document)) return;
   await Promise.all(['400', '600', '700', '800', '900'].map(w => document.fonts.load(`${w} 40px "Cairo"`, 'المحجة')).map(p => p.catch(() => undefined)));
 };
 
-const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+export const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -80,13 +80,13 @@ const drawIcon = (ctx: CanvasRenderingContext2D, name: string, cx: number, cy: n
 };
 
 /** Eight-pointed star lattice used as the faint Islamic pattern. */
-const drawStarPattern = (ctx: CanvasRenderingContext2D, color: string, alpha: number, cell = 92) => {
+export const drawStarPattern = (ctx: CanvasRenderingContext2D, color: string, alpha: number, cell = 92, width = W, height = H) => {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
-  for (let y = -cell; y < H + cell; y += cell) {
-    for (let x = -cell; x < W + cell; x += cell) {
+  for (let y = -cell; y < height + cell; y += cell) {
+    for (let x = -cell; x < width + cell; x += cell) {
       const cx = x + cell / 2, cy = y + cell / 2, r = cell * 0.36;
       ctx.beginPath();
       ctx.rect(cx - r * 0.72, cy - r * 0.72, r * 1.44, r * 1.44);
@@ -107,7 +107,7 @@ const drawStarPattern = (ctx: CanvasRenderingContext2D, color: string, alpha: nu
   ctx.restore();
 };
 
-const drawFlower = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, fill: string) => {
+export const drawFlower = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, fill: string) => {
   ctx.save();
   ctx.fillStyle = fill;
   for (let i = 0; i < 4; i++) {
@@ -446,8 +446,9 @@ export const renderStudentCard = async (student: MahajaStudent, scale = 2): Prom
 export const studentCardDataUrl = async (student: MahajaStudent, scale = 1) =>
   (await renderStudentCard(student, scale)).toDataURL('image/png');
 
-const fileBase = (student: MahajaStudent) =>
-  `Mahaja_Student_${formatStudentCode(student)}_${student.full_name.trim().replace(/\s+/g, '_').replace(/[\\/:*?"<>|]/g, '')}`;
+// Browsers drop non-Latin download names (the file is saved as "download"),
+// so file names use the student code only.
+const fileBase = (student: MahajaStudent) => `Mahaja_Student_Card_${formatStudentCode(student)}`;
 
 const triggerDownload = (href: string, filename: string) => {
   const a = document.createElement('a');
