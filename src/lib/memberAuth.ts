@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 // Historically members never chose a password: the account password is derived from
 // the phone number (`${phone}Awn1!`). That scheme is kept so every existing account
 // keeps working, with these fixes:
-//  * email is trimmed / lower-cased and the phone is normalised (spaces, +222, 00222);
+//  * email is trimmed / lower-cased; the phone must match ^[234][0-9]{7}$;
 //  * the same field also accepts a real password (set via "forgot password" / account page);
 //  * a failed login no longer sends existing members to the sign-up form;
 //  * unconfirmed emails get a clear message and a "resend" action;
@@ -14,11 +14,13 @@ import { supabase } from './supabase';
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-/** Last 8 digits of a Mauritanian number, e.g. "+222 36 12 34 56" → "36123456". */
-export const normalizePhone = (phone: string) => phone.replace(/\D/g, '').slice(-8);
-export const isValidPhone = (phone: string) => /^[234]\d{7}$/.test(normalizePhone(phone));
+/** Phone numbers must be exactly 8 digits starting with 2, 3 or 4 (same rule as the database). */
+export const PHONE_REGEX = /^[234][0-9]{7}$/;
+export const PHONE_RULE_AR = 'رقم الهاتف يجب أن يتكون من 8 أرقام بالضبط ويبدأ بـ 2 أو 3 أو 4.';
+export const normalizePhone = (phone: string) => phone.trim();
+export const isValidPhone = (phone: string) => PHONE_REGEX.test(phone.trim());
 
-export const derivedPassword = (phone: string) => `${normalizePhone(phone)}Awn1!`;
+export const derivedPassword = (phone: string) => `${phone.trim()}Awn1!`;
 
 const isMissingFunction = (error: { code?: string; message?: string } | null) =>
   !!error && (error.code === 'PGRST202' || error.code === '42883' || (error.message ?? '').includes('Could not find the function'));
@@ -38,7 +40,7 @@ export const memberLogin = async (emailInput: string, secretInput: string): Prom
   const candidates: string[] = [];
   if (isValidPhone(secret)) candidates.push(derivedPassword(secret));
   if (secret.length >= 6 && !candidates.includes(secret)) candidates.push(secret);
-  if (candidates.length === 0) return { status: 'error', message: 'أدخل رقم الهاتف المسجل (8 أرقام) أو كلمة المرور.' };
+  if (candidates.length === 0) return { status: 'error', message: `أدخل رقم الهاتف المسجل أو كلمة المرور. ${PHONE_RULE_AR}` };
 
   let unconfirmed = false;
   for (const password of candidates) {
@@ -92,11 +94,13 @@ export interface SignupData {
 export type SignupResult =
   | { status: 'ok'; userId: string; hasSession: boolean }
   | { status: 'taken'; fields: ('email' | 'phone' | 'national_id')[] }
+  | { status: 'confirm_required' }
   | { status: 'error'; message: string };
 
 export const memberSignup = async (input: SignupData): Promise<SignupResult> => {
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
+  if (!isValidPhone(phone)) return { status: 'error', message: PHONE_RULE_AR };
 
   const { data: avail, error: availError } = await supabase.rpc('member_check_available', {
     p_email: email, p_phone: phone, p_national_id: input.national_id ?? '', p_is_mahaja: input.is_mahaja,
@@ -115,15 +119,20 @@ export const memberSignup = async (input: SignupData): Promise<SignupResult> => 
     email, password: derivedPassword(phone), options: { data: metadata, emailRedirectTo: redirectUrl('/auth') },
   });
   if (error) {
-    if (error.message.toLowerCase().includes('already registered')) return { status: 'taken', fields: ['email'] };
+    const msg = error.message.toLowerCase();
+    if (msg.includes('already registered')) return { status: 'taken', fields: ['email'] };
+    if (msg.includes('phone_invalid')) return { status: 'error', message: PHONE_RULE_AR };
+    if (msg.includes('rate limit')) return { status: 'error', message: 'تعذّر إرسال بريد التأكيد (تجاوز الحد المسموح). يجب إيقاف خيار «Confirm email» في إعدادات Supabase، أو المحاولة بعد ساعة.' };
     return { status: 'error', message: error.message };
   }
   // With email confirmation on, Supabase returns an obfuscated user for existing emails.
   if (!data.user || (data.user.identities && data.user.identities.length === 0)) return { status: 'taken', fields: ['email'] };
 
+  // Accounts are confirmed automatically by the database, so sign in right away.
   let hasSession = !!data.session;
   if (!hasSession) {
     const signIn = await supabase.auth.signInWithPassword({ email, password: derivedPassword(phone) });
+    if (signIn.error?.message.toLowerCase().includes('email not confirmed')) return { status: 'confirm_required' };
     hasSession = !signIn.error;
   }
   return { status: 'ok', userId: data.user.id, hasSession };

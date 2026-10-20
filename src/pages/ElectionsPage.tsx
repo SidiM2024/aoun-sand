@@ -88,7 +88,8 @@ const ElectionCard = ({ e, loggedIn, onVoted }: { e: Election; loggedIn: boolean
   const [submitting, setSubmitting] = useState(false);
 
   const canVote = e.phase === 'open' && loggedIn && e.is_eligible && !e.has_voted;
-  const showVotes = e.results_visible && e.candidates.some(c => c.votes !== null);
+  // The server returns vote counts whenever results are visible to members (the default).
+  const showVotes = e.candidates.some(c => c.votes !== null && c.votes !== undefined);
   const total = e.ballots_count ?? e.candidates.reduce((s, c) => s + (c.votes ?? 0), 0);
   const maxVotes = Math.max(0, ...e.candidates.map(c => c.votes ?? 0));
 
@@ -152,10 +153,15 @@ const ElectionCard = ({ e, loggedIn, onVoted }: { e: Election; loggedIn: boolean
       {e.has_voted && e.phase !== 'open' && (
         <p className="mb-4 text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> شاركت في هذا الاقتراع</p>
       )}
-      {!e.results_visible && (e.phase === 'closed' || e.phase === 'ended') && (
-        <p className="mb-4 text-sm text-slate-500 flex items-center gap-1.5"><Lock className="w-4 h-4" /> ستُعلن النتائج بعد اعتمادها من إدارة الجمعية.</p>
+      {!showVotes && e.candidates.length > 0 && (
+        <p className="mb-4 text-sm text-slate-500 flex items-center gap-1.5"><Lock className="w-4 h-4" /> النتائج مخفية حالياً بقرار من إدارة الجمعية.</p>
       )}
-      {showVotes && <p className="mb-3 text-sm font-bold text-[#211d45] dark:text-white">النتائج — إجمالي الأصوات: {total}</p>}
+      {showVotes && (
+        <p className="mb-3 text-sm font-bold text-[#211d45] dark:text-white flex items-center gap-2">
+          {e.phase === 'open' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+          {e.phase === 'open' ? 'النتائج المباشرة' : 'النتائج'} — إجمالي الأصوات: {total}
+        </p>
+      )}
 
       {e.candidates.length === 0 ? (
         <p className="text-slate-500 text-center py-6">لم يُعلن عن المرشحين بعد.</p>
@@ -221,7 +227,7 @@ export const ElectionsPage = () => {
 
   useEffect(() => {
     void load();
-    const t = setInterval(() => void load(), 30000);
+    const t = setInterval(() => void load(), 15000); // live counts
     const onFocus = () => void load();
     window.addEventListener('focus', onFocus);
     return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
