@@ -18,6 +18,9 @@ export const ADMIN_SECTIONS = [
   { id: 'voting', label: 'التصويت' },
   { id: 'competitions', label: 'المسابقات' },
   { id: 'media', label: 'الوسائط' },
+  { id: 'elections', label: 'الانتخابات' },
+  { id: 'projects', label: 'المشاريع' },
+  { id: 'homepage', label: 'محتوى الصفحة الرئيسية' },
 ] as const;
 
 export type AdminSectionId = (typeof ADMIN_SECTIONS)[number]['id'];
@@ -30,7 +33,8 @@ export const SECTION_PRESETS: { label: string; sections: AdminSectionId[] }[] = 
   { label: 'إدارة المرضى فقط', sections: ['patients'] },
   { label: 'الأعضاء والمنتسبون', sections: ['users', 'approvals', 'memberships'] },
   { label: 'الطلبات', sections: ['requests'] },
-  { label: 'المحتوى والتواصل', sections: ['notifications', 'voting', 'competitions', 'media', 'donations'] },
+  { label: 'المحتوى والتواصل', sections: ['notifications', 'voting', 'competitions', 'media', 'donations', 'projects', 'homepage'] },
+  { label: 'الانتخابات فقط', sections: ['elections'] },
 ];
 
 export interface AdminSessionInfo {

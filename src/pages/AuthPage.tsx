@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar } from 'lucide-react';
+import { isValidPhone, memberLogin, memberSignup, normalizePhone, requestPasswordReset, resendConfirmation } from '../lib/memberAuth';
+import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar, KeyRound, MailCheck } from 'lucide-react';
 
 // Modern input field component
 const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
@@ -30,7 +31,10 @@ export const AuthPage = () => {
   const isRTL = language === 'ar';
 
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<'login' | 'select_signup' | 'signup_awn' | 'signup_mahaja'>('login');
+  const [step, setStep] = useState<'login' | 'select_signup' | 'signup_awn' | 'signup_mahaja' | 'forgot' | 'check_email'>('login');
+  // Extra guidance under the login form (unconfirmed email / wrong phone).
+  const [loginNotice, setLoginNotice] = useState<'unconfirmed' | 'wrong_secret' | null>(null);
+  const [checkEmailReason, setCheckEmailReason] = useState<'reset' | 'confirm'>('reset');
   const [errorMsg, setErrorMsg] = useState('');
   
   // Prevent redirect if we are in the middle of our own manual signup flow
@@ -70,68 +74,61 @@ export const AuthPage = () => {
     }
   };
 
-  const validatePhone = (p: string) => {
-    return /^[234]\d{7}$/.test(p);
-  };
+  const validatePhone = (p: string) => isValidPhone(p);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    
-    if (!email || !phone) {
-      setErrorMsg(isRTL ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف' : 'Please enter email and phone');
+    setLoginNotice(null);
+
+    if (!email.trim() || !phone.trim()) {
+      setErrorMsg(isRTL ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف أو كلمة المرور' : 'Please enter your email and phone or password');
       return;
     }
 
-    if (!validatePhone(phone)) {
-      setErrorMsg(isRTL ? 'رقم الهاتف غير صالح. يجب أن يتكون من 8 أرقام ويبدأ بـ 2، 3، أو 4.' : 'Invalid phone. Must be 8 digits and start with 2, 3, or 4.');
-      return;
-    }
-    
     setIsLoading(true);
-    const securePassword = `${phone}Awn1!`;
+    const result = await memberLogin(email, phone);
+    setIsLoading(false);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: securePassword,
-    });
-
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        setStep('select_signup');
-        setErrorMsg('');
-      } else {
-        setErrorMsg(error.message);
-      }
-    } else {
-      if (data.user) {
-        const { data: existingUser } = await supabase.from('users').select('id, full_name, is_mahaja').eq('id', data.user.id).single();
-        if (!existingUser) {
-          // If the auth user exists but the public profile doesn't, we insert a placeholder to avoid breaking the app
-          const { error: insertError } = await supabase.from('users').insert([{
-            id: data.user.id,
-            email: email,
-            phone: phone,
-            full_name: 'مستخدم جديد',
-            membership_type: 'عضو',
-            current_status: 'لا شيء',
-            location: '',
-            national_id: '',
-            approval_status: 'Pending Approval'
-          }]);
-          if (insertError) {
-            console.error('Insert error:', insertError);
-            toast.error(isRTL ? 'خطأ في قاعدة البيانات: ' + insertError.message : 'Database error: ' + insertError.message);
-          }
-          toast.success(isRTL ? 'مرحباً بك يا مستخدم جديد!' : 'Welcome, new user!');
-        } else {
-          toast.success(isRTL ? `مرحباً بك مجدداً، ${existingUser.full_name}!` : `Welcome back, ${existingUser.full_name}!`);
-        }
-      } else {
-        toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
-      }
-      
+    if (result.status === 'ok') {
+      toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       navigate(returnTo);
+    } else if (result.status === 'no_account') {
+      // No account with this email: offer registration (fields stay filled).
+      toast(isRTL ? 'لا يوجد حساب بهذا البريد. يمكنك إنشاء حساب جديد.' : 'No account with this email. You can create one.');
+      setStep('select_signup');
+    } else if (result.status === 'unconfirmed') {
+      setLoginNotice('unconfirmed');
+    } else if (result.status === 'wrong_secret') {
+      setLoginNotice('wrong_secret');
+    } else {
+      setErrorMsg(result.message);
+    }
+  };
+
+  const handleResend = async () => {
+    setIsLoading(true);
+    try {
+      await resendConfirmation(email);
+      setCheckEmailReason('confirm');
+      setStep('check_email');
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    }
+    setIsLoading(false);
+  };
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!email.trim()) { setErrorMsg(isRTL ? 'أدخل بريدك الإلكتروني' : 'Enter your email'); return; }
+    setIsLoading(true);
+    try {
+      await requestPasswordReset(email);
+      setCheckEmailReason('reset');
+      setStep('check_email');
+    } catch (err: any) {
+      setErrorMsg(err.message);
     }
     setIsLoading(false);
   };
@@ -156,73 +153,74 @@ export const AuthPage = () => {
 
     setIsLoading(true);
     setIsManualSignupInProgress(true); // Prevent AuthContext from redirecting prematurely
-    const securePassword = `${phone}Awn1!`;
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: securePassword,
+      const result = await memberSignup({
+        email, phone, full_name: fullName, location, is_mahaja: isMahaja,
+        membership_type: isMahaja ? 'محجة' : membershipType,
+        current_status: isMahaja ? 'طالب علم' : currentStatus,
+        national_id: isMahaja ? 'N/A' : nationalId,
+        date_of_birth: isMahaja ? dateOfBirth : undefined,
       });
 
-      if (error) {
-        throw new Error(error.message);
-      } 
-      
-      if (data.user) {
-        let avatar_url = null;
-        if (avatarFile) {
-          const fileExt = avatarFile.name.split('.').pop();
-          const fileName = `${data.user.id}-${Math.random()}.${fileExt}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, avatarFile);
-            
-          if (uploadData) {
-            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-            avatar_url = publicUrlData.publicUrl;
-          }
-        }
-
-        const userDataToUpsert: any = {
-          id: data.user.id,
-          full_name: fullName,
-          email: email,
-          phone: phone,
-          location: location,
-          avatar_url: avatar_url,
-          approval_status: isMahaja ? 'Approved' : 'Pending Approval', // Maybe auto-approve Mahaja users or wait for admin? Let's leave Awn as Pending
-          is_mahaja: isMahaja
-        };
-
-        if (isMahaja) {
-          userDataToUpsert.date_of_birth = dateOfBirth;
-          userDataToUpsert.membership_type = 'محجة';
-          userDataToUpsert.current_status = 'طالب علم';
-          userDataToUpsert.national_id = 'N/A';
-          userDataToUpsert.approval_status = 'Approved'; // Mahaja users get immediate access to courses
-        } else {
-          userDataToUpsert.membership_type = membershipType;
-          userDataToUpsert.current_status = currentStatus;
-          userDataToUpsert.national_id = nationalId;
-        }
-
-        const { error: upsertError } = await supabase.from('users').upsert([userDataToUpsert], { onConflict: 'id' });
-        
-        if (upsertError) {
-          console.error('Upsert error:', upsertError);
-          toast.error(isRTL ? 'حدث خطأ في حفظ بياناتك: ' + upsertError.message : 'Error saving data: ' + upsertError.message);
-        }
-        
-        if (!data.session) {
-          await supabase.auth.signInWithPassword({
-            email,
-            password: securePassword,
-          });
-        }
-        toast.success(isRTL ? `مرحباً بك يا ${fullName}!` : `Welcome, ${fullName}!`);
-        setIsManualSignupInProgress(false);
-        navigate(isMahaja ? '/mahaja' : '/');
+      if (result.status === 'taken') {
+        const names: Record<string, string> = isRTL
+          ? { email: 'البريد الإلكتروني', phone: 'رقم الهاتف', national_id: 'الرقم الوطني' }
+          : { email: 'email', phone: 'phone', national_id: 'national ID' };
+        throw new Error(isRTL
+          ? `يوجد حساب مسجل مسبقاً بنفس ${result.fields.map(f => names[f]).join(' و')}. سجّل الدخول بدلاً من إنشاء حساب جديد، أو استخدم «نسيت كلمة المرور».`
+          : `An account already exists with the same ${result.fields.map(f => names[f]).join(' and ')}. Please sign in instead.`);
       }
+      if (result.status === 'error') throw new Error(result.message);
+
+      if (!result.hasSession) {
+        // Email confirmation required: the profile was already created by the database.
+        toast.success(isRTL ? 'تم إنشاء حسابك! أكّد بريدك الإلكتروني ثم سجّل الدخول.' : 'Account created! Confirm your email, then sign in.');
+        setCheckEmailReason('confirm');
+        setStep('check_email');
+        setIsManualSignupInProgress(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Signed in: upload the avatar and complete the profile (as before).
+      let avatar_url = null;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${result.userId}-${Math.random()}.${fileExt}`;
+        const { data: uploadData } = await supabase.storage.from('avatars').upload(fileName, avatarFile);
+        if (uploadData) avatar_url = supabase.storage.from('avatars').getPublicUrl(fileName).data.publicUrl;
+      }
+
+      const userDataToUpsert: any = {
+        id: result.userId,
+        full_name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        phone: normalizePhone(phone),
+        location: location,
+        avatar_url: avatar_url,
+        is_mahaja: isMahaja,
+      };
+      if (isMahaja) {
+        userDataToUpsert.date_of_birth = dateOfBirth;
+        userDataToUpsert.membership_type = 'محجة';
+        userDataToUpsert.current_status = 'طالب علم';
+        userDataToUpsert.national_id = 'N/A';
+      } else {
+        userDataToUpsert.membership_type = membershipType;
+        userDataToUpsert.current_status = currentStatus;
+        userDataToUpsert.national_id = nationalId;
+      }
+
+      const { error: upsertError } = await supabase.from('users').upsert([userDataToUpsert], { onConflict: 'id' });
+      if (upsertError) {
+        console.error('Upsert error:', upsertError);
+        toast.error(isRTL ? 'تم إنشاء الحساب، لكن تعذّر حفظ بعض البيانات: ' + upsertError.message : 'Account created, but some data could not be saved: ' + upsertError.message);
+      }
+
+      toast.success(isRTL ? `مرحباً بك يا ${fullName}!` : `Welcome, ${fullName}!`);
+      setIsManualSignupInProgress(false);
+      navigate(isMahaja ? '/mahaja' : '/');
     } catch (err: any) {
       setErrorMsg(err.message || (isRTL ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred'));
       setIsManualSignupInProgress(false);
@@ -361,9 +359,28 @@ export const AuthPage = () => {
                       required
                       value={phone}
                       onChange={(e: any) => setPhone(e.target.value)}
-                      placeholder={isRTL ? 'رقم الهاتف (8 أرقام)' : 'Phone Number (8 digits)'}
+                      placeholder={isRTL ? 'رقم الهاتف المسجل أو كلمة المرور' : 'Registered phone or password'}
                       dir="ltr"
+                      autoComplete="current-password"
                     />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2 px-1">
+                      {isRTL ? 'أدخل رقم الهاتف الذي سجّلت به (8 أرقام)، أو كلمة المرور إن كنت قد عيّنتها.' : 'Use the phone number you registered with, or your password if you set one.'}
+                    </p>
+
+                    {loginNotice === 'unconfirmed' && (
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200 space-y-2">
+                        <p className="font-bold">{isRTL ? 'لم يتم تأكيد بريدك الإلكتروني بعد.' : 'Your email is not confirmed yet.'}</p>
+                        <p>{isRTL ? 'افتح رسالة التأكيد في بريدك، أو اطلب رسالة جديدة.' : 'Open the confirmation email or request a new one.'}</p>
+                        <button type="button" onClick={handleResend} disabled={isLoading} className="font-bold underline">{isRTL ? 'إعادة إرسال رسالة التأكيد' : 'Resend confirmation email'}</button>
+                      </div>
+                    )}
+                    {loginNotice === 'wrong_secret' && (
+                      <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 space-y-2">
+                        <p className="font-bold">{isRTL ? 'هذا البريد مسجل لدينا، لكن رقم الهاتف أو كلمة المرور غير مطابق.' : 'This email is registered, but the phone or password does not match.'}</p>
+                        <p>{isRTL ? 'تأكد من رقم الهاتف الذي سجّلت به أول مرة، أو أعد تعيين كلمة المرور عبر بريدك.' : 'Check the phone you first registered with, or reset your password by email.'}</p>
+                        <button type="button" onClick={() => { setLoginNotice(null); setStep('forgot'); }} className="font-bold underline">{isRTL ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</button>
+                      </div>
+                    )}
 
                     <button 
                       type="submit" 
@@ -380,12 +397,46 @@ export const AuthPage = () => {
                       )}
                     </button>
                     
-                    <div className="mt-6 text-center">
+                    <div className="mt-6 flex flex-col items-center gap-3 text-center">
+                      <button type="button" onClick={() => { setErrorMsg(''); setLoginNotice(null); setStep('forgot'); }} className="text-slate-600 dark:text-slate-300 font-medium hover:underline flex items-center gap-1.5">
+                        <KeyRound className="w-4 h-4" /> {isRTL ? 'نسيت كلمة المرور / لا أستطيع الدخول' : 'Forgot password / can\'t sign in'}
+                      </button>
                       <button type="button" onClick={() => setStep('select_signup')} className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
                         {isRTL ? 'لا تملك حساباً؟ أنشئ حساباً جديداً' : 'Don\'t have an account? Create one'}
                       </button>
                     </div>
                   </form>
+                </motion.div>
+              )}
+
+              {step === 'forgot' && (
+                <motion.div key="forgot" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                  <div className="mb-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center"><KeyRound className="w-8 h-8" /></div>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{isRTL ? 'استعادة الدخول' : 'Recover access'}</h2>
+                    <p className="text-slate-500 dark:text-slate-400">{isRTL ? 'سنرسل إلى بريدك رابطاً لتعيين كلمة مرور جديدة. بعدها تدخل بالبريد وكلمة المرور.' : 'We will email you a link to set a new password.'}</p>
+                  </div>
+                  <form onSubmit={handleForgot} className="space-y-5">
+                    <PremiumInput icon={Mail} type="email" required value={email} onChange={(e: any) => setEmail(e.target.value)} placeholder={isRTL ? 'البريد الإلكتروني المسجل' : 'Registered email'} dir="ltr" />
+                    <button type="submit" disabled={isLoading} className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-lg disabled:opacity-70 flex items-center justify-center gap-2">
+                      {isLoading ? <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : (isRTL ? 'إرسال رابط الاستعادة' : 'Send reset link')}
+                    </button>
+                    <button type="button" onClick={() => setStep('login')} className="w-full text-slate-500 hover:text-slate-700 font-medium">{isRTL ? 'العودة لتسجيل الدخول' : 'Back to sign in'}</button>
+                  </form>
+                </motion.div>
+              )}
+
+              {step === 'check_email' && (
+                <motion.div key="check_email" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-center py-6 space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center"><MailCheck className="w-8 h-8" /></div>
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{isRTL ? 'تحقق من بريدك الإلكتروني' : 'Check your email'}</h2>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    {checkEmailReason === 'reset'
+                      ? (isRTL ? `إن كان البريد ${email.trim()} مسجلاً لدينا فستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة.` : `If ${email.trim()} is registered, you will receive a reset link.`)
+                      : (isRTL ? `أرسلنا رسالة تأكيد إلى ${email.trim()}. افتح الرابط ثم سجّل الدخول.` : `We sent a confirmation email to ${email.trim()}.`)}
+                  </p>
+                  <p className="text-xs text-slate-500">{isRTL ? 'لم تصلك الرسالة؟ تفقد مجلد الرسائل غير المرغوب فيها (Spam).' : 'Not received? Check your spam folder.'}</p>
+                  <button onClick={() => setStep('login')} className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-bold">{isRTL ? 'العودة لتسجيل الدخول' : 'Back to sign in'}</button>
                 </motion.div>
               )}
 

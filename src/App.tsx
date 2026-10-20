@@ -6,6 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { BottomNav } from './components/BottomNav';
 import { HomePage } from './pages/HomePage';
 const AboutPage = lazy(() => import('./pages/AboutPage').then(module => ({ default: module.AboutPage })));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then(module => ({ default: module.ProjectsPage })));
@@ -19,6 +20,7 @@ const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({ d
 const UserRequestsPage = lazy(() => import('./pages/UserRequestsPage').then(module => ({ default: module.UserRequestsPage })));
 const MahajaDashboard = lazy(() => import('./pages/MahajaDashboard').then(module => ({ default: module.MahajaDashboard })));
 const MahajaCoursePage = lazy(() => import('./pages/MahajaCoursePage').then(module => ({ default: module.MahajaCoursePage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })));
 const ElectionsPage = lazy(() => import('./pages/ElectionsPage').then(module => ({ default: module.ElectionsPage })));
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -143,7 +145,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const location = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
-  const isAuthPage = location.pathname === '/auth';
+  const isAuthPage = location.pathname === '/auth' || location.pathname === '/reset-password';
   // Admin page also hides all user-facing chrome (Header, Nav, Notifications)
   // to prevent context leakage and unnecessary queries during admin sessions
   const isAdminPage = location.pathname === '/admin';
@@ -155,7 +157,7 @@ const AppContent = () => {
   // Push notifications removed to revert back to standard website behavior
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+    <div className={`min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300 ${!isShellHidden ? 'website-shell' : ''}`}>
       {!isShellHidden && <Header />}
       {!isShellHidden && <NotificationsModal />}
       <Toaster position="top-center" />
@@ -165,6 +167,7 @@ const AppContent = () => {
           <Route path="/volunteer" element={<Navigate to="/contact" replace />} />
           <Route path="/membership" element={<Navigate to="/account" replace />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -186,6 +189,7 @@ const AppContent = () => {
         </Suspense>
       </main>
       {!isShellHidden && <Footer />}
+      {!isShellHidden && <BottomNav />}
     </div>
   );
 };
