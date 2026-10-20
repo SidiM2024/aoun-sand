@@ -5,7 +5,7 @@ import {
   Landmark, Plus, Edit2, Trash2, Play, Square, Eye, EyeOff, Users, Loader2, X, Save, UserPlus, Camera, UserRound, RefreshCw, RotateCcw, Vote,
 } from 'lucide-react';
 import {
-  adminDeleteCandidate, adminDeleteElection, adminListElections, adminSaveCandidate, adminSaveElection, adminSetElectionStatus,
+  adminDeleteCandidate, adminDeleteElection, adminListElections, adminSaveCandidate, adminSaveElection, adminSetElectionPublished, adminSetElectionStatus,
   adminSetResultsVisible, PHASE_LABELS, removeSiteImage, uploadSiteImage, type Candidate, type Election,
 } from '../../lib/siteApi';
 
@@ -55,7 +55,7 @@ const ElectionForm = ({ election, onClose, onSaved }: { election: Election | nul
         title: title.trim(), description: description.trim(), starts_at: fromLocalInput(startsAt), ends_at: fromLocalInput(endsAt),
         max_choices: max, eligibility,
       });
-      toast.success(election ? 'تم تحديث الاقتراع' : 'تم إنشاء الاقتراع كمسودة. أضف المرشحين ثم افتح التصويت.');
+      toast.success(election ? 'تم تحديث الاقتراع' : 'تم إنشاء الاقتراع وهو ظاهر للأعضاء الآن. أضف المرشحين ثم افتح التصويت.');
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'تعذّر الحفظ');
@@ -208,7 +208,11 @@ export const ElectionsAdminTab = () => {
                 <h3 className="text-xl font-black text-slate-800 dark:text-white">{e.title}</h3>
                 <p className="text-sm text-slate-500 mt-1">من {fmt(e.starts_at)} إلى {fmt(e.ends_at)} • {e.max_choices === 1 ? 'مرشح واحد' : `حتى ${e.max_choices} مرشحين`} • {e.eligibility === 'approved' ? 'الأعضاء المعتمدون' : 'كل المسجلين'}</p>
               </div>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-black ${e.phase === 'open' ? 'bg-emerald-100 text-emerald-700' : e.phase === 'draft' ? 'bg-slate-100 text-slate-600' : e.phase === 'upcoming' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'}`}>{PHASE_LABELS[e.phase]}</span>
+              <span className="flex flex-wrap gap-2">
+                {e.is_published === false && <span className="px-3 py-1.5 rounded-full text-xs font-black bg-red-50 text-red-600 flex items-center gap-1"><EyeOff className="w-3.5 h-3.5" /> مخفي عن الأعضاء</span>}
+                {e.is_published === true && <span className="px-3 py-1.5 rounded-full text-xs font-black bg-sky-50 text-sky-700 flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> ظاهر للأعضاء</span>}
+                <span className={`px-3 py-1.5 rounded-full text-xs font-black ${e.phase === 'open' ? 'bg-emerald-100 text-emerald-700' : e.phase === 'draft' ? 'bg-slate-100 text-slate-600' : e.phase === 'upcoming' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'}`}>{PHASE_LABELS[e.phase]}</span>
+              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -232,8 +236,14 @@ export const ElectionsAdminTab = () => {
                   className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 text-white flex items-center gap-1.5 disabled:opacity-60"><Square className="w-4 h-4" /> إغلاق التصويت</button>
               )}
               {e.status !== 'draft' && e.voters_count === 0 && (
-                <button disabled={!!busy} onClick={() => act(e.id + 'draft', () => adminSetElectionStatus(e.id, 'draft'), 'أُعيد إلى مسودة (مخفي عن الأعضاء)')}
-                  className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 flex items-center gap-1.5"><RotateCcw className="w-4 h-4" /> إرجاع لمسودة</button>
+                <button disabled={!!busy} onClick={() => act(e.id + 'draft', () => adminSetElectionStatus(e.id, 'draft'), 'تم إيقاف فتح التصويت (يبقى الاقتراع ظاهراً للأعضاء)')}
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 flex items-center gap-1.5"><RotateCcw className="w-4 h-4" /> إلغاء فتح التصويت</button>
+              )}
+              {e.is_published !== undefined && (
+                <button disabled={!!busy} onClick={() => act(e.id + 'pub', () => adminSetElectionPublished(e.id, !e.is_published), e.is_published ? 'تم إخفاء الاقتراع عن الأعضاء' : 'الاقتراع ظاهر للأعضاء الآن')}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 ${e.is_published ? 'bg-sky-50 text-sky-700' : 'bg-sky-600 text-white'}`}>
+                  {e.is_published ? <><EyeOff className="w-4 h-4" /> إخفاء عن الأعضاء</> : <><Eye className="w-4 h-4" /> نشر للأعضاء</>}
+                </button>
               )}
               <button disabled={!!busy} onClick={() => act(e.id + 'res', () => adminSetResultsVisible(e.id, !e.results_visible), e.results_visible ? 'تم إخفاء النتائج عن الزوار' : 'النتائج ظاهرة للزوار الآن')}
                 className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 ${e.results_visible ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700'}`}>
