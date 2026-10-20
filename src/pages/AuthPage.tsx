@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { isValidPhone, memberLogin, memberSignup, normalizePhone, requestPasswordReset, resendConfirmation } from '../lib/memberAuth';
+import { PHONE_RULE_AR, isValidPhone, memberLogin, memberSignup, normalizePhone, requestPasswordReset, resendConfirmation } from '../lib/memberAuth';
 import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar, KeyRound, MailCheck } from 'lucide-react';
 
 // Modern input field component
@@ -142,7 +142,7 @@ export const AuthPage = () => {
     }
 
     if (!validatePhone(phone)) {
-      setErrorMsg(isRTL ? 'رقم الهاتف غير صالح' : 'Invalid phone');
+      setErrorMsg(isRTL ? PHONE_RULE_AR : 'Phone must be exactly 8 digits starting with 2, 3 or 4.');
       return;
     }
 
@@ -173,11 +173,19 @@ export const AuthPage = () => {
       }
       if (result.status === 'error') throw new Error(result.message);
 
-      if (!result.hasSession) {
-        // Email confirmation required: the profile was already created by the database.
+      if (result.status === 'confirm_required') {
+        // Only if the database update that auto-confirms accounts is not installed yet.
         toast.success(isRTL ? 'تم إنشاء حسابك! أكّد بريدك الإلكتروني ثم سجّل الدخول.' : 'Account created! Confirm your email, then sign in.');
         setCheckEmailReason('confirm');
         setStep('check_email');
+        setIsManualSignupInProgress(false);
+        setIsLoading(false);
+        return;
+      }
+      if (!result.hasSession) {
+        // Account and profile were created; the member can sign in right away.
+        toast.success(isRTL ? 'تم إنشاء حسابك! سجّل الدخول بالبريد ورقم الهاتف.' : 'Account created! Please sign in.');
+        setStep('login');
         setIsManualSignupInProgress(false);
         setIsLoading(false);
         return;
@@ -560,11 +568,18 @@ export const AuthPage = () => {
                       icon={Phone}
                       type="tel" 
                       required
+                      inputMode="numeric"
+                      maxLength={8}
+                      pattern="[234][0-9]{7}"
+                      title={isRTL ? PHONE_RULE_AR : '8 digits starting with 2, 3 or 4'}
                       value={phone}
                       onChange={(e: any) => setPhone(e.target.value)}
-                      placeholder={isRTL ? 'رقم الهاتف (8 أرقام)' : 'Phone Number'}
+                      placeholder={isRTL ? 'رقم الهاتف (8 أرقام يبدأ بـ 2 أو 3 أو 4)' : 'Phone (8 digits, starts with 2/3/4)'}
                       dir="ltr"
                     />
+                    {phone.trim() !== '' && !isValidPhone(phone) && (
+                      <p className="text-xs font-bold text-red-600 -mt-2 px-1">{isRTL ? PHONE_RULE_AR : 'Phone must be exactly 8 digits starting with 2, 3 or 4.'}</p>
+                    )}
 
                     {step === 'signup_awn' && (
                       <div className="grid grid-cols-2 gap-4">
