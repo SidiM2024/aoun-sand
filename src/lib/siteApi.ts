@@ -231,6 +231,8 @@ export interface Election {
   status: 'draft' | 'open' | 'closed';
   phase: ElectionPhase;
   results_visible: boolean;
+  /** Listed on the members' elections page (independent of whether voting is open). */
+  is_published?: boolean;
   max_choices: number;
   eligibility: 'approved' | 'registered';
   voters_count: number;
@@ -242,7 +244,7 @@ export interface Election {
 }
 
 export const PHASE_LABELS: Record<ElectionPhase, string> = {
-  draft: 'مسودة', upcoming: 'لم يبدأ بعد', open: 'التصويت مفتوح', ended: 'انتهى الوقت', closed: 'مغلق',
+  draft: 'لم يُفتح التصويت بعد', upcoming: 'لم يبدأ بعد', open: 'التصويت مفتوح', ended: 'انتهى الوقت', closed: 'مغلق',
 };
 
 export const fetchPublicElections = () => rpc<Election[]>('elections_public');
@@ -256,6 +258,8 @@ export const adminSetElectionStatus = (id: string, status: Election['status']) =
   rpc<Election>('election_set_status', { p_id: id, p_status: status, p_token: getAdminToken() });
 export const adminSetResultsVisible = (id: string, visible: boolean) =>
   rpc<Election>('election_set_results_visible', { p_id: id, p_visible: visible, p_token: getAdminToken() });
+export const adminSetElectionPublished = (id: string, published: boolean) =>
+  rpc<Election>('election_set_published', { p_id: id, p_published: published, p_token: getAdminToken() });
 export const adminDeleteElection = async (id: string) => {
   const paths = await rpc<string[]>('election_delete', { p_id: id, p_token: getAdminToken() });
   await Promise.all((paths ?? []).map(p => removeSiteImage(p)));

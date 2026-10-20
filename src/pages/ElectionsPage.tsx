@@ -89,7 +89,8 @@ const ElectionCard = ({ e, loggedIn, onVoted }: { e: Election; loggedIn: boolean
 
   const canVote = e.phase === 'open' && loggedIn && e.is_eligible && !e.has_voted;
   // The server returns vote counts whenever results are visible to members (the default).
-  const showVotes = e.candidates.some(c => c.votes !== null && c.votes !== undefined);
+  // (Not before voting has been opened: there is nothing to count yet.)
+  const showVotes = e.phase !== 'draft' && e.candidates.some(c => c.votes !== null && c.votes !== undefined);
   const total = e.ballots_count ?? e.candidates.reduce((s, c) => s + (c.votes ?? 0), 0);
   const maxVotes = Math.max(0, ...e.candidates.map(c => c.votes ?? 0));
 
@@ -135,7 +136,12 @@ const ElectionCard = ({ e, loggedIn, onVoted }: { e: Election; loggedIn: boolean
       </div>
 
       {e.phase === 'upcoming' && e.starts_at && <div className="mb-4"><Countdown to={e.starts_at} label="يبدأ التصويت بعد" /></div>}
-      {e.phase === 'open' && e.ends_at && <div className="mb-4"><Countdown to={e.ends_at} label="ينتهي التصويت بعد" /></div>}
+      {e.phase === 'draft' && (
+        <div className="mb-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 text-sm font-bold flex items-center gap-2">
+          <CalendarClock className="w-5 h-5 shrink-0" /> تعرّف على المرشحين. سيُفتح التصويت من طرف إدارة الجمعية قريباً.
+        </div>
+      )}
+      {e.phase === 'open' && e.ends_at &&<div className="mb-4"><Countdown to={e.ends_at} label="ينتهي التصويت بعد" /></div>}
 
       {/* Voter status */}
       {e.phase === 'open' && (
@@ -153,7 +159,7 @@ const ElectionCard = ({ e, loggedIn, onVoted }: { e: Election; loggedIn: boolean
       {e.has_voted && e.phase !== 'open' && (
         <p className="mb-4 text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> شاركت في هذا الاقتراع</p>
       )}
-      {!showVotes && e.candidates.length > 0 && (
+      {!showVotes && e.phase !== 'draft' && e.candidates.length > 0 && (
         <p className="mb-4 text-sm text-slate-500 flex items-center gap-1.5"><Lock className="w-4 h-4" /> النتائج مخفية حالياً بقرار من إدارة الجمعية.</p>
       )}
       {showVotes && (
