@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen, UserCog, FileText, CreditCard, Heart } from 'lucide-react';
+import { Users, Bell, Vote, Upload, LogOut, ShieldAlert, LayoutDashboard, HandHeart, ShieldCheck, DollarSign, HeartPulse, BookOpen, UserCog, FileText, CreditCard, Heart, Landmark, FolderHeart, Home } from 'lucide-react';
 
 import { UsersTab } from '../components/admin/UsersTab';
 import { NotificationsTab } from '../components/admin/NotificationsTab';
@@ -20,10 +20,13 @@ import { RequestsManagementTab } from '../components/admin/RequestsManagementTab
 import { CompetitionsManagementTab } from '../components/admin/CompetitionsManagementTab';
 import { MembershipsTab } from '../components/admin/MembershipsTab';
 import { UserDonationsTab } from '../components/admin/UserDonationsTab';
+import { ElectionsAdminTab } from '../components/admin/ElectionsAdminTab';
+import { ProjectsAdminTab } from '../components/admin/ProjectsAdminTab';
+import { HomepageAdminTab } from '../components/admin/HomepageAdminTab';
 import { useAuth } from '../contexts/AuthContext';
 import { adminLogin, adminLogout } from '../lib/adminSession';
 
-type TabId = 'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations';
+type TabId = 'users' | 'approvals' | 'notifications' | 'voting' | 'media' | 'donations' | 'finance' | 'patients' | 'mahaja' | 'admins' | 'requests' | 'competitions' | 'memberships' | 'user_donations' | 'elections' | 'projects' | 'homepage';
 
 export const AdminPage = () => {
   const { language } = useLanguage();
@@ -48,7 +51,7 @@ export const AdminPage = () => {
   const requestedTab = searchParams.get('tab') as TabId | null;
   const activeTab: TabId | null = requestedTab && allowedTabs.has(requestedTab)
     ? requestedTab
-    : ((['users', 'approvals', 'memberships', 'finance', 'user_donations', 'donations', 'patients', 'mahaja', 'requests', 'notifications', 'voting', 'competitions', 'media', 'admins'] as TabId[]).find(t => allowedTabs.has(t)) ?? null);
+    : ((['users', 'approvals', 'memberships', 'finance', 'user_donations', 'donations', 'patients', 'mahaja', 'requests', 'notifications', 'voting', 'elections', 'competitions', 'media', 'projects', 'homepage', 'admins'] as TabId[]).find(t => allowedTabs.has(t)) ?? null);
   const blockedTab = requestedTab && !allowedTabs.has(requestedTab) ? requestedTab : null;
   const setActiveTab = (tab: TabId) => setSearchParams({ tab }, { replace: true });
 
@@ -303,6 +306,9 @@ export const AdminPage = () => {
     { id: 'mahaja',        icon: BookOpen,   label: isRTL ? 'المحجة البيضاء' : 'Al-Mahaja',    color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
     { id: 'memberships',   icon: CreditCard,  label: isRTL ? 'رسوم الانتساب' : 'Memberships',   color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { id: 'user_donations',icon: Heart,       label: isRTL ? 'التبرعات الواردة' : 'User Donations', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+    { id: 'elections',     icon: Landmark,    label: isRTL ? 'الانتخابات' : 'Elections',     color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { id: 'projects',      icon: FolderHeart, label: isRTL ? 'المشاريع' : 'Projects',        color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
+    { id: 'homepage',      icon: Home,        label: isRTL ? 'الصفحة الرئيسية' : 'Homepage',  color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
   ];
 
   tabs.push({ id: 'admins', icon: UserCog, label: isRTL ? 'المشرفين' : 'Admins', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' });
@@ -418,6 +424,9 @@ export const AdminPage = () => {
               {activeTab === 'admins'        && <AdminsTab />}
               {activeTab === 'memberships'   && <MembershipsTab />}
               {activeTab === 'user_donations'&& <UserDonationsTab />}
+              {activeTab === 'elections'     && <ElectionsAdminTab />}
+              {activeTab === 'projects'      && <ProjectsAdminTab />}
+              {activeTab === 'homepage'      && <HomepageAdminTab />}
             </AnimatePresence>
           </div>
         </div>

@@ -41,7 +41,7 @@ export const Footer = () => {
   ];
 
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 border-t border-slate-800">
+    <footer className="bg-[#211d45] text-slate-300 pt-16 pb-8 border-t border-slate-800">
       <div className="container-custom">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* Brand Section */}
@@ -56,7 +56,7 @@ export const Footer = () => {
                 <h3 className="text-2xl font-bold text-white">
                   {language === 'ar' ? 'عون وسند' : language === 'fr' ? 'Aide et Soutien' : 'Aid & Support'}
                 </h3>
-                <p className="text-teal-500 text-sm font-medium">
+                <p className="text-[#f7b2b0] text-sm font-medium">
                   {language === 'ar' ? 'معاً نصنع الأمل' : 'Together Creating Hope'}
                 </p>
               </div>
@@ -73,7 +73,7 @@ export const Footer = () => {
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-2 bg-slate-800 rounded-full transition-all duration-300 ${social.color}`}
+                    className={`p-2 bg-white/10 rounded-full transition-all duration-300 ${social.color}`}
                     aria-label={social.name}
                   >
                     <Icon className="w-5 h-5" />
@@ -85,41 +85,41 @@ export const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-teal-500 after:-bottom-2 after:left-0">
+            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-[#f7b2b0] after:-bottom-2 after:left-0">
               {language === 'ar' ? 'روابط سريعة' : 'Quick Links'}
             </h4>
             <ul className="space-y-3">
-              <li><Link to="/about" className="hover:text-teal-400 transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>{t.nav.about}</Link></li>
-              <li><Link to="/projects" className="hover:text-teal-400 transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>{t.nav.projects}</Link></li>
-              <li><Link to="/volunteer" className="hover:text-teal-400 transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>{t.nav.volunteer}</Link></li>
-              <li><Link to="/membership" className="hover:text-teal-400 transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>{t.nav.membership}</Link></li>
+              <li><Link to="/about" className="hover:text-[#f7b2b0] transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#f7b2b0] rounded-full"></span>{t.nav.about}</Link></li>
+              <li><Link to="/projects" className="hover:text-[#f7b2b0] transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#f7b2b0] rounded-full"></span>{t.nav.projects}</Link></li>
+              <li><Link to="/volunteer" className="hover:text-[#f7b2b0] transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#f7b2b0] rounded-full"></span>{t.nav.volunteer}</Link></li>
+              <li><Link to="/membership" className="hover:text-[#f7b2b0] transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#f7b2b0] rounded-full"></span>{t.nav.membership}</Link></li>
             </ul>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-teal-500 after:-bottom-2 after:left-0">
+            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-[#f7b2b0] after:-bottom-2 after:left-0">
               {language === 'ar' ? 'تواصل معنا' : 'Contact Us'}
             </h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-teal-500 mt-1 shrink-0" />
+                <MapPin className="w-5 h-5 text-[#f7b2b0] mt-1 shrink-0" />
                 <span>Nouakchott, Mauritania</span>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-teal-500 shrink-0" />
-                <a href="tel:32203250" className="hover:text-teal-400 transition-colors" dir="ltr">32203250</a>
+                <Phone className="w-5 h-5 text-[#f7b2b0] shrink-0" />
+                <a href="tel:32203250" className="hover:text-[#f7b2b0] transition-colors" dir="ltr">32203250</a>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-teal-500 shrink-0" />
-                <a href="mailto:associationaidesoutien@gmail.com" className="hover:text-teal-400 transition-colors break-all">associationaidesoutien@gmail.com</a>
+                <Mail className="w-5 h-5 text-[#f7b2b0] shrink-0" />
+                <a href="mailto:associationaidesoutien@gmail.com" className="hover:text-[#f7b2b0] transition-colors break-all">associationaidesoutien@gmail.com</a>
               </li>
             </ul>
           </div>
 
           {/* Newsletter */}
           <div>
-            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-teal-500 after:-bottom-2 after:left-0">
+            <h4 className="text-white font-bold text-lg mb-6 relative inline-block after:content-[''] after:absolute after:w-1/2 after:h-1 after:bg-[#f7b2b0] after:-bottom-2 after:left-0">
               {language === 'ar' ? 'النشرة البريدية' : 'Newsletter'}
             </h4>
             <p className="text-slate-400 mb-4 text-sm">
@@ -129,9 +129,9 @@ export const Footer = () => {
               <input
                 type="email" name="email" required aria-label={language === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
                 placeholder={language === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-teal-500 text-white placeholder-slate-500"
+                className="w-full px-4 py-2 bg-white/10 border border-slate-700 rounded-lg focus:outline-none focus:border-[#f7b2b0] text-white placeholder-slate-500"
               />
-              <button className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-medium transition-colors">
+              <button className="w-full px-4 py-2 bg-[#f7b2b0] text-[#211d45] hover:bg-[#fac6c3] font-bold rounded-lg font-medium transition-colors">
                 {language === 'ar' ? 'اشترك' : 'Subscribe'}
               </button>
             </form>

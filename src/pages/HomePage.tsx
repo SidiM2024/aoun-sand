@@ -1,16 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
-  Users, TrendingUp, HandHeart, Sparkles,
-  BookOpen, Info, Heart, ArrowLeft, ArrowRight,
-  Target, CheckCircle2, Trophy, CreditCard, ChevronLeft, ChevronRight, Vote, MessageCircle, Map, DollarSign, Globe, PlayCircle, Clock
+  Users, HandHeart, Heart, ArrowLeft, ArrowRight, Target, CheckCircle2, GraduationCap, HandCoins,
+  User, Vote, FileText, ChevronLeft, ChevronRight, TrendingUp, Wallet, BarChart3, Play,
 } from 'lucide-react';
-import { Projects } from '../components/Projects';
-import { PollsSection } from '../components/PollsSection';
+import {
+  CURRENCY, DEFAULT_HOMEPAGE, fetchHomeStats, fetchHomepageSettings, fetchPublicProjects, formatMoney,
+  type HomeStats, type HomepageSettings, type Project,
+} from '../lib/siteApi';
 
 /* ── Animated Counter ── */
 const useCounter = (target: number, duration = 2000) => {
@@ -203,255 +204,317 @@ const DonationBanner = ({ campaigns, settings, isRTL, language }: { campaigns: a
 };
 
 /* ── Main Component ── */
-export const HomePage = () => {
-  const { userProfile } = useAuth();
-  const { t, language } = useLanguage();
-  const isRTL = language === 'ar';
-  const hp = (t as any).homePage || {};
+const NAVY = '#211d45';
 
-  const [usersCount, setUsersCount] = useState(0);
-  const [settings, setSettings] = useState<any>(null);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+/** Hero slider (content managed from the dashboard → «الصفحة الرئيسية»). */
+const HeroSlider = ({ settings, greeting }: { settings: HomepageSettings; greeting: string | null }) => {
+  const slides = settings.slides;
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const touchX = useRef<number | null>(null);
 
-  /* ── Fetch accurate user count via RPC (reads auth.users) ── */
-  const fetchUsersCount = async () => {
-    // Primary: RPC reads directly from auth.users (most accurate)
-    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_registered_count');
-    if (!rpcErr && rpcData !== null) {
-      setUsersCount(Number(rpcData));
-      return;
-    }
-    // Fallback: count from public.users
-    const { count } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true });
-    if (count !== null) setUsersCount(count);
-  };
-
-  /* ── Fetch donation settings ── */
-  const fetchSettings = async () => {
-    const { data } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('id', 'donation_section')
-      .maybeSingle();
-    if (data?.value) setSettings(data.value);
-    else setSettings(null);
-    setSettingsLoaded(true);
-  };
-
+  useEffect(() => { setIndex(i => (i >= slides.length ? 0 : i)); }, [slides.length]);
   useEffect(() => {
-    // Initial load
-    fetchUsersCount();
-    fetchSettings();
+    if (paused || slides.length < 2) return;
+    const t = setInterval(() => setIndex(i => (i + 1) % slides.length), 6500);
+    return () => clearInterval(t);
+  }, [paused, slides.length]);
 
-    // Periodic refresh — safety net for missed realtime events
-    const interval = setInterval(() => {
-      fetchUsersCount();
-      fetchSettings(); // ✅ also refresh settings so donations always stay current
-    }, 30000);
-
-    // Realtime: user joins → re-fetch accurate count from auth.users
-    const ch1 = supabase.channel('hp:users:v4')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' },
-        () => fetchUsersCount())
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'users' },
-        () => fetchUsersCount())
-      .subscribe();
-
-    // Realtime: donation settings change — always re-fetch for reliability
-    // (payload.new only works if REPLICA IDENTITY FULL is set on the table)
-    const ch2 = supabase.channel('hp:settings:v5')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
-        () => fetchSettings())
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
-        () => fetchSettings())
-      .on('postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'site_settings', filter: 'id=eq.donation_section' },
-        () => { setSettings(null); setSettingsLoaded(true); })
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(ch1);
-      supabase.removeChannel(ch2);
-    };
-  }, []);
-
-  const animatedMembers = useCounter(usersCount, 2000);
-
-  // Only show donation section if admin has published public campaigns
-  const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true && c.status === 'active');
-  const showDonationsSection = settingsLoaded && settings?.is_visible === true && publicCampaigns.length > 0;
+  const go = (d: number) => setIndex(i => (i + d + slides.length) % slides.length);
+  const slide = slides[index] ?? DEFAULT_HOMEPAGE.slides[0];
+  const internal = slide.cta_link?.startsWith('/');
 
   return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+    <section
+      aria-roledescription="carousel"
+      aria-label="أبرز رسائل الجمعية"
+      className="relative overflow-hidden text-white"
+      style={{ background: NAVY }}
+      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+      onTouchStart={e => { touchX.current = e.touches[0].clientX; }}
+      onTouchEnd={e => {
+        if (touchX.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        if (Math.abs(dx) > 50) go(dx > 0 ? 1 : -1); // RTL: swipe right = next
+        touchX.current = null;
+      }}
+    >
+      {/* Image on the left, fading into navy */}
+      <AnimatePresence mode="wait">
+        <motion.div key={slide.image_url + index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}
+          className="absolute inset-y-0 left-0 w-[62%] sm:w-[55%]">
+          {slide.image_url && <img src={slide.image_url} alt="" className="w-full h-full object-cover" />}
+          <div className="absolute inset-0" style={{ background: `linear-gradient(to left, ${NAVY} 2%, rgba(33,29,69,0.55) 45%, rgba(33,29,69,0.15) 100%)` }} />
+        </motion.div>
+      </AnimatePresence>
 
-      {/* ── Background Hero & Wave ── */}
-      <div aria-hidden className="absolute top-0 left-0 right-0 h-[620px] sm:h-[660px] bg-[#1a1c2e] z-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #1b1935 0%, #291d38 100%)' }}>
-        {/* Soft glows in background */}
-        <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-20 right-10 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-0 right-0 bottom-0 left-0 opacity-20" style={{ backgroundImage: 'url(/Gaza.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-        
-        {/* Wave SVG matching the mockup */}
-        <svg className="absolute bottom-0 left-0 right-0 w-full h-[60px] sm:h-[100px] text-slate-50 dark:text-slate-950 preserve-3d" preserveAspectRatio="none" viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 50C240 100 480 0 720 50C960 100 1200 0 1440 50V100H0V50Z" fill="currentColor" />
-        </svg>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-44 sm:pt-48 pb-20">
-        {/* ═══ HERO TEXT ═══ */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="website-hero mb-16 relative flex flex-col items-center sm:items-start text-center sm:text-start"
-        >
-          <p className="text-sm sm:text-base text-rose-200/90 font-medium mb-1">
-            {isRTL ? 'جمعية عون وسند الخيرية ترحب بكم' : 'Aoun & Sanad Charity welcomes you'}
-          </p>
-
-          <h1 className="text-4xl sm:text-6xl font-black text-white leading-tight max-w-2xl mb-6">
-            {isRTL ? 'معاً نصنع الأمل،' : 'Together, we create hope,'}<br/>
-            {isRTL ? 'ونترك أثراً يدوم.' : 'and leave a lasting impact.'}
-          </h1>
-          <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-xl mb-8">
-            {isRTL 
-              ? 'جمعية تطوعية تجمعنا على الخير، ندعم المحتاجين، ونفتح أبواب العلم، ونحول عطائكم إلى مبادرات تمس حياة الناس.' 
-              : 'A volunteer association supporting people in need, opening doors to education, and turning your generosity into meaningful action.'}
-          </p>
-          <div className="flex flex-wrap justify-center sm:justify-start gap-3">
-            <Link to="/donate" className="btn bg-rose-200 hover:bg-rose-300 text-slate-900 font-bold px-8 shadow-lg shadow-rose-200/20">
-              {isRTL ? 'كن عوناً وسنداً' : 'Make a difference'} <Heart className="w-4 h-4 text-rose-600" />
-            </Link>
-          </div>
-          {userProfile?.full_name && <p className="text-indigo-200 mt-5 font-medium">{isRTL ? 'أهلًا بك، ' : 'Welcome, '}{userProfile.full_name}</p>}
-        </motion.section>
-
-        {/* ═══ QUICK LINKS ═══ */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="mb-12 relative z-20"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[
-              { to: '/about', icon: Info, title: isRTL ? 'عن الجمعية' : 'About Us', desc: isRTL ? 'تعرف على رؤيتنا وأهدافنا وقيمنا ورسالتنا' : 'Our vision and mission' },
-              { to: '/projects', icon: Heart, title: isRTL ? 'مشاريعنا' : 'Projects', desc: isRTL ? 'مبادرات نوعية تصنع فرقاً في المجتمع' : 'Qualitative initiatives' },
-              { to: '/lessons', icon: BookOpen, title: isRTL ? 'الدروس والمحاضرات' : 'Lessons', desc: isRTL ? 'مجتمع معرفي .. لعلم ينتفع به' : 'Knowledge society' },
-              { to: '/contact', icon: MessageCircle, title: isRTL ? 'تواصل معنا' : 'Contact Us', desc: isRTL ? 'نحن هنا لخدمتكم واستقبال استفساراتكم' : 'We are here to serve you' },
-              { to: '/donate', icon: HandHeart, title: isRTL ? 'التبرع' : 'Donate', desc: isRTL ? 'مساهمتكم يستمر الأثر' : 'Your contribution matters' },
-              { to: '/elections', icon: Vote, title: isRTL ? 'الانتخابات' : 'Elections', desc: isRTL ? 'شارك في انتخابات الجمعية' : 'Participate in elections' },
-            ].map((link, idx) => (
-              <Link key={idx} to={link.to} className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 transition-all flex flex-col items-center text-center group">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <link.icon className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-slate-800 dark:text-white text-sm mb-1">{link.title}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mb-3">{link.desc}</p>
-                <div className="mt-auto w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors">
-                  {isRTL ? <ArrowLeft className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
-                </div>
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-24 sm:pt-16 sm:pb-28 min-h-[440px] sm:min-h-[480px] flex flex-col justify-center" dir="rtl">
+        <AnimatePresence mode="wait">
+          <motion.div key={index} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.45 }}
+            className="max-w-[70%] sm:max-w-md md:max-w-lg ms-0" aria-live="polite">
+            {greeting && <p className="text-[#f7b2b0] text-sm font-bold mb-2">{greeting}</p>}
+            <p className="text-2xl sm:text-3xl font-medium text-white/95 mb-2">{slide.kicker}</p>
+            <h1 className="text-4xl sm:text-6xl font-black leading-tight mb-4">
+              {slide.title}{' '}
+              <span className="text-[#f7b2b0]">{slide.highlight}</span>
+            </h1>
+            <p className="text-white/85 text-base sm:text-xl leading-relaxed mb-7">{slide.description}</p>
+            {slide.cta_label && (internal ? (
+              <Link to={slide.cta_link} className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#f7b2b0] text-[#211d45] font-black text-base sm:text-lg shadow-lg shadow-[#f7b2b0]/25 hover:bg-[#fac6c3] active:scale-95 transition-all">
+                {slide.cta_label} <Heart className="w-5 h-5" />
               </Link>
+            ) : (
+              <a href={slide.cta_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#f7b2b0] text-[#211d45] font-black text-base sm:text-lg shadow-lg hover:bg-[#fac6c3] active:scale-95 transition-all">
+                {slide.cta_label} <Heart className="w-5 h-5" />
+              </a>
             ))}
-          </div>
-        </motion.section>
+          </motion.div>
+        </AnimatePresence>
 
-        {/* ═══ ELECTIONS SECTION (From Design) ═══ */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="mb-12 grid lg:grid-cols-[1fr_400px] gap-6"
-        >
-          {/* Left Side: Elections Promo */}
-          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl p-8 sm:p-12 border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center text-center sm:items-start sm:text-start relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-200/40 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
-            
-            <div className="relative z-10 w-full flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-white shadow-xl flex items-center justify-center shrink-0">
-                <Vote className="w-12 h-12 text-indigo-900" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 dark:text-white mb-4">
-                  {isRTL ? 'صفحة الانتخابات' : 'Elections Page'}
-                </h2>
-                <p className="text-slate-600 dark:text-slate-300 text-lg mb-8 max-w-md">
-                  {isRTL 
-                    ? 'شارك في صناعة القرار ودعم مسيرة الجمعية. تظهر جميع الأصوات والمرشحين الذين يتم إضافتهم من قبل الإدارة مباشرة في صفحة الانتخابات.' 
-                    : 'Participate in decision making. View all polls and candidates added by the administration directly.'}
-                </p>
-                <Link to="/elections" className="inline-flex items-center gap-2 bg-indigo-950 hover:bg-indigo-900 text-white px-6 py-3 rounded-xl font-bold transition-colors">
-                  {isRTL ? 'الانتقال إلى صفحة الانتخابات' : 'Go to Elections Page'}
-                  {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </Link>
-              </div>
-            </div>
+        {slides.length > 1 && (
+          <div className="absolute bottom-14 sm:bottom-16 inset-x-0 flex items-center justify-center gap-3">
+            <button onClick={() => go(-1)} className="hidden sm:flex w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center" aria-label="الشريحة السابقة"><ChevronRight className="w-5 h-5" /></button>
+            {slides.map((_, i) => (
+              <button key={i} onClick={() => setIndex(i)} aria-label={`الشريحة ${i + 1}`} aria-current={i === index}
+                className={`h-3 rounded-full transition-all ${i === index ? 'w-3 bg-[#f7b2b0]' : 'w-3 bg-white/40 hover:bg-white/60'}`} />
+            ))}
+            <button onClick={() => go(1)} className="hidden sm:flex w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center" aria-label="الشريحة التالية"><ChevronLeft className="w-5 h-5" /></button>
           </div>
+        )}
+      </div>
+    </section>
+  );
+};
 
-          {/* Right Side: Recent Elections List / Polls */}
-          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
-            <div className="flex items-center gap-2 mb-6">
-              <Clock className="w-5 h-5 text-slate-400" />
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">{isRTL ? 'أحدث الانتخابات' : 'Recent Elections'}</h3>
-            </div>
-            
-            {/* Real Polls logic mixed with custom layout */}
-            <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: '350px' }}>
-               <PollsSection />
-            </div>
-          </div>
-        </motion.section>
+const StatCounter = ({ value }: { value: number }) => {
+  const animated = useCounter(value, 1600);
+  return <>{formatMoney(animated)}</>;
+};
 
-        {/* ═══ SECONDARY ACTION BAR ═══ */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700 shadow-sm mb-16 flex flex-wrap justify-between items-center gap-4 text-center sm:text-start">
-          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
-            <Globe className="w-5 h-5 text-rose-400" />
-            <span>{isRTL ? 'مبادرات مستدامة' : 'Sustainable Initiatives'}</span>
+const StatsCard = ({ stats }: { stats: HomeStats | null }) => {
+  const items = [
+    { icon: Users, value: stats?.members, unit: 'عضو', label: 'في الجمعية', strong: false },
+    { icon: GraduationCap, value: stats?.mahaja_students, unit: 'طالب وطالبة', label: 'في معهد المحجة البيضاء', strong: false },
+    { icon: HandHeart, value: stats?.donations_total, unit: CURRENCY, label: 'إجمالي التبرعات', strong: true },
+    { icon: HandCoins, value: stats?.expenses_total, unit: CURRENCY, label: 'مصاريف التبرعات', strong: true },
+  ];
+  return (
+    <section aria-label="إحصائيات الجمعية" className="relative z-10 -mt-12 sm:-mt-14 mx-3 sm:mx-auto max-w-5xl bg-white dark:bg-slate-900 rounded-[28px] shadow-xl shadow-[#211d45]/10 border border-slate-100 dark:border-slate-800">
+      <div className="grid grid-cols-4 divide-x divide-x-reverse divide-slate-100 dark:divide-slate-800 py-5 sm:py-7">
+        {items.map(it => (
+          <div key={it.label} className="flex flex-col items-center text-center px-1.5 sm:px-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#fde3e1] dark:bg-[#f7b2b0]/15 flex items-center justify-center mb-2 sm:mb-3">
+              <it.icon className="w-6 h-6 sm:w-8 sm:h-8 text-[#211d45] dark:text-[#f7b2b0]" />
+            </div>
+            <p className="text-base sm:text-2xl font-black text-[#211d45] dark:text-white tabular-nums leading-tight" dir="ltr">
+              {stats ? <StatCounter value={it.value ?? 0} /> : <span className="inline-block w-12 h-5 rounded bg-slate-100 dark:bg-slate-800 animate-pulse" />}
+            </p>
+            <p className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{it.unit}</p>
+            <p className={`text-[10px] sm:text-sm mt-1 leading-tight ${it.strong ? 'font-black text-[#211d45] dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{it.label}</p>
+            <span className="mt-2 w-8 h-1 rounded-full bg-[#ef8f88]" />
           </div>
-          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
-          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
-            <HandHeart className="w-5 h-5 text-rose-400" />
-            <span>{isRTL ? 'خدمة المجتمع' : 'Community Service'}</span>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const QuickCards = () => {
+  const cards = [
+    { to: '/account', icon: User, title: 'حسابي', desc: 'إدارة بياناتك ومساهماتك' },
+    { to: '/elections', icon: FileText, title: 'الانتخابات', desc: 'شارك في صناعة مستقبل الجمعية' },
+    { to: '/projects', icon: HandHeart, title: 'مشاريعنا', desc: 'تعرّف على مبادراتنا وإنجازاتنا' },
+    { to: '/about', icon: Users, title: 'عن الجمعية', desc: 'رؤيتنا ورسالتنا وأهدافنا' },
+  ];
+  return (
+    <section aria-label="روابط سريعة" className="grid grid-cols-4 gap-2.5 sm:gap-5">
+      {cards.map(c => (
+        <Link key={c.to} to={c.to} className="group bg-white dark:bg-slate-900 rounded-3xl p-3 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col items-center text-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#fde3e1] dark:bg-[#f7b2b0]/15 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-105 transition-transform">
+            <c.icon className="w-6 h-6 sm:w-8 sm:h-8 text-[#211d45] dark:text-[#f7b2b0]" />
           </div>
-          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
-          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
-            <BookOpen className="w-5 h-5 text-rose-400" />
-            <span>{isRTL ? 'نشر العلم' : 'Spreading Knowledge'}</span>
-          </div>
-          <div className="hidden sm:block w-px h-8 bg-slate-200 dark:bg-slate-700" />
-          <div className="flex items-center justify-center gap-2 text-indigo-950 dark:text-white font-bold w-full sm:w-auto">
-            <Users className="w-5 h-5 text-rose-400" />
-            <span>{isRTL ? 'دعم المحتاجين' : 'Supporting the Needy'}</span>
-          </div>
+          <h3 className="font-black text-sm sm:text-lg text-[#211d45] dark:text-white">{c.title}</h3>
+          <p className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 leading-snug mt-1">{c.desc}</p>
+        </Link>
+      ))}
+    </section>
+  );
+};
+
+const SectionTitle = ({ title, action }: { title: string; action?: { to: string; label: string } }) => (
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-xl sm:text-2xl font-black text-[#211d45] dark:text-white flex items-center gap-2">
+      <span className="w-1.5 h-7 rounded-full bg-[#ef8f88]" /> {title}
+    </h2>
+    {action && (
+      <Link to={action.to} className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-[#211d45] dark:border-slate-600 text-[#211d45] dark:text-white text-sm font-bold hover:bg-[#211d45] hover:text-white transition-colors">
+        {action.label} <ChevronLeft className="w-4 h-4" />
+      </Link>
+    )}
+  </div>
+);
+
+const useFavorites = () => {
+  const [fav, setFav] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('fav_projects') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: string) => setFav(f => {
+    const next = f.includes(id) ? f.filter(x => x !== id) : [...f, id];
+    try { localStorage.setItem('fav_projects', JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
+  return { fav, toggle };
+};
+
+export const ProjectCard = ({ project, liked, onLike }: { project: Project; liked: boolean; onLike: () => void }) => (
+  <article className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg transition-shadow flex flex-col h-full">
+    <Link to={`/projects#${project.id}`} className="relative block aspect-[16/10] bg-slate-100 dark:bg-slate-800 overflow-hidden">
+      {project.image_url
+        ? <img src={project.image_url} alt={project.title} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+        : <div className="w-full h-full flex items-center justify-center"><HandHeart className="w-10 h-10 text-slate-300" /></div>}
+      {project.video_url && <span className="absolute bottom-2 start-2 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center"><Play className="w-4 h-4" /></span>}
+    </Link>
+    <div className="p-3.5 flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <h3 className="font-black text-[#211d45] dark:text-white text-sm sm:text-base leading-snug">{project.category || project.title}</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{project.category ? project.title : project.subtitle}</p>
+      </div>
+      <button onClick={onLike} aria-pressed={liked} aria-label={liked ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+        className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${liked ? 'bg-[#ef8f88] text-white' : 'bg-[#fde3e1] text-[#e2706a] hover:bg-[#fbd0cc]'}`}>
+        <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
+      </button>
+    </div>
+  </article>
+);
+
+const Transparency = ({ stats, settings }: { stats: HomeStats | null; settings: HomepageSettings }) => {
+  const tiles = [
+    { label: 'إجمالي التبرعات', value: stats?.donations_total, icon: HandHeart, box: 'bg-[#eef3ff] border-[#dbe4fb]', iconBg: 'bg-[#dbe6ff] text-[#211d45]', text: 'text-[#211d45]' },
+    { label: 'إجمالي المصروفات', value: stats?.expenses_total, icon: TrendingUp, box: 'bg-white border-[#f6d6d3]', iconBg: 'bg-[#fde3e1] text-[#e2504a]', text: 'text-[#211d45]' },
+    { label: 'الرصيد المتبقي', value: stats?.balance, icon: Wallet, box: 'bg-[#eaf8ef] border-[#cdeedb]', iconBg: 'bg-[#cfeedd] text-[#13834b]', text: 'text-[#13834b]' },
+  ];
+  return (
+    <section aria-label={settings.transparency_title} className="rounded-[28px] bg-[#fde8e6] dark:bg-[#f7b2b0]/10 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-[#211d45] dark:text-white flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-[#ef8f88]" /> {settings.transparency_title}
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{settings.transparency_subtitle}</p>
         </div>
+        <Link to="/donation-expenses" className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-[#211d45] dark:border-slate-500 text-[#211d45] dark:text-white text-sm font-bold hover:bg-[#211d45] hover:text-white transition-colors">
+          تفاصيل أكثر <ChevronLeft className="w-4 h-4" />
+        </Link>
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {tiles.map(t => (
+          <div key={t.label} className={`rounded-2xl border p-3 sm:p-4 ${t.box} dark:bg-slate-900 dark:border-slate-800`}>
+            <div className="flex flex-col sm:flex-row-reverse sm:items-center sm:justify-between gap-2">
+              <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shrink-0 ${t.iconBg}`}><t.icon className="w-5 h-5 sm:w-7 sm:h-7" /></div>
+              <div className="min-w-0">
+                <p className={`text-sm sm:text-2xl font-black tabular-nums ${t.text} dark:text-white`} dir="ltr" style={{ textAlign: 'right' }}>
+                  {stats ? <StatCounter value={t.value ?? 0} /> : '—'}
+                </p>
+                <p className="text-[10px] sm:text-xs text-slate-500">{CURRENCY}</p>
+              </div>
+            </div>
+            <p className={`mt-2 text-xs sm:text-base font-black ${t.text} dark:text-white`}>{t.label}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
 
-        {/* ═══ DONATION CAMPAIGNS (Preserved) ═══ */}
+export const HomePage = () => {
+  const { userProfile } = useAuth();
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
+
+  const [stats, setStats] = useState<HomeStats | null>(null);
+  const [home, setHome] = useState<HomepageSettings>(DEFAULT_HOMEPAGE);
+  const [projects, setProjects] = useState<Project[]>([]);
+   
+  const [settings, setSettings] = useState<any>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const { fav, toggle } = useFavorites();
+
+  const loadStats = useCallback(async () => { const s = await fetchHomeStats(); if (s) setStats(s); }, []);
+
+  /* ── Donation campaigns settings (existing feature) ── */
+  const fetchSettings = useCallback(async () => {
+    const { data } = await supabase.from('site_settings').select('value').eq('id', 'donation_section').maybeSingle();
+    setSettings(data?.value ?? null);
+    setSettingsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+    void fetchSettings();
+    void fetchHomepageSettings().then(setHome);
+    void fetchPublicProjects().then(setProjects);
+
+    // Live figures: refresh on a timer, when the tab regains focus and on realtime changes.
+    const interval = setInterval(() => { void loadStats(); void fetchSettings(); }, 60000);
+    const onFocus = () => { void loadStats(); };
+    window.addEventListener('focus', onFocus);
+    const channel = supabase.channel('home:live:v6')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => void loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_revenues' }, () => void loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_expenses' }, () => void loadStats())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => { void fetchSettings(); void fetchHomepageSettings().then(setHome); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => void fetchPublicProjects().then(setProjects))
+      .subscribe();
+    return () => { clearInterval(interval); window.removeEventListener('focus', onFocus); void supabase.removeChannel(channel); };
+  }, [loadStats, fetchSettings]);
+
+   
+  const publicCampaigns = (settings?.campaigns || []).filter((c: any) => c.is_public === true && c.status === 'active');
+  const showDonationsSection = home.show_campaigns && settingsLoaded && settings?.is_visible === true && publicCampaigns.length > 0;
+  const featured = projects.filter(p => p.is_featured).slice(0, 8);
+  const greeting = userProfile?.full_name ? `أهلاً بك، ${userProfile.full_name.split(' ')[0]}` : null;
+
+  return (
+    <div className="relative min-h-screen bg-[#f7f6fb] dark:bg-slate-950 overflow-x-hidden pt-[calc(76px+env(safe-area-inset-top))]" dir="rtl">
+      <HeroSlider settings={home} greeting={greeting} />
+
+      {home.show_stats && <StatsCard stats={stats} />}
+
+      <div className={`max-w-5xl mx-auto px-3 sm:px-6 pb-10 space-y-8 ${home.show_stats ? 'mt-6' : 'mt-8'}`}>
+        <QuickCards />
+
+        {home.show_projects && featured.length > 0 && (
+          <section aria-label="أبرز مشاريعنا">
+            <SectionTitle title="أبرز مشاريعنا" action={{ to: '/projects', label: 'عرض الكل' }} />
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
+              {featured.map(p => (
+                <div key={p.id} className="snap-start shrink-0 w-[64%] sm:w-auto">
+                  <ProjectCard project={p} liked={fav.includes(p.id)} onLike={() => toggle(p.id)} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {home.show_transparency && <Transparency stats={stats} settings={home} />}
+
+        {/* ═══ DONATION CAMPAIGNS (existing feature) ═══ */}
         <AnimatePresence>
           {showDonationsSection && (
-            <motion.div
-              key="donation-banner"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mt-12"
-            >
-              <DonationBanner
-                campaigns={publicCampaigns}
-                settings={settings}
-                isRTL={isRTL}
-                language={language}
-              />
+            <motion.div key="donation-banner" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.5 }}>
+              <DonationBanner campaigns={publicCampaigns} settings={settings} isRTL={isRTL} language={language} />
             </motion.div>
           )}
         </AnimatePresence>
 
-        <Projects />
-
+        <Link to="/elections" className="flex items-center gap-4 p-4 sm:p-5 rounded-3xl bg-[#211d45] text-white hover:bg-[#2c2760] transition-colors">
+          <div className="w-12 h-12 rounded-2xl bg-[#f7b2b0] text-[#211d45] flex items-center justify-center shrink-0"><Vote className="w-6 h-6" /></div>
+          <div className="flex-1">
+            <p className="font-black text-lg">الانتخابات الإلكترونية</p>
+            <p className="text-sm text-white/70">صوتك سري ومحمي، ومرة واحدة لكل اقتراع.</p>
+          </div>
+          {isRTL ? <ArrowLeft className="w-5 h-5 text-[#f7b2b0]" /> : <ArrowRight className="w-5 h-5 text-[#f7b2b0]" />}
+        </Link>
       </div>
     </div>
   );
