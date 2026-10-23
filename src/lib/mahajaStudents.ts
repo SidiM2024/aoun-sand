@@ -39,15 +39,48 @@ export const ATTENDANCE_STATUSES: { id: AttendanceStatus; label: string; short: 
 ];
 export const attendanceLabel = (s: string) => ATTENDANCE_STATUSES.find(a => a.id === s)?.label ?? s;
 
+/** Entry statuses a supervisor can record at the start of a session. */
+export type EntryStatus = 'present' | 'absent' | 'late' | 'excused';
+export const ENTRY_STATUSES = ATTENDANCE_STATUSES.filter(a => a.id !== 'left_early') as
+  { id: EntryStatus; label: string; short: string; tone: string; active: string }[];
+export const isCheckedIn = (status: string | null | undefined) => status === 'present' || status === 'late';
+
+/** Exit at the end of the session. No value = still inside the institute. */
+export type CheckoutStatus = 'left' | 'left_early';
+export const CHECKOUT_STATUSES: { id: CheckoutStatus; label: string; tone: string; active: string }[] = [
+  { id: 'left', label: 'خرج', tone: 'text-indigo-700 border-indigo-200 dark:text-indigo-300 dark:border-indigo-800', active: 'bg-indigo-600 text-white border-indigo-600' },
+  { id: 'left_early', label: 'خرج مبكرًا', tone: 'text-orange-700 border-orange-200 dark:text-orange-300 dark:border-orange-800', active: 'bg-orange-500 text-white border-orange-500' },
+];
+export const STILL_INSIDE_LABEL = 'لم يخرج بعد';
+export const checkoutLabel = (c: string | null | undefined) => CHECKOUT_STATUSES.find(x => x.id === c)?.label ?? STILL_INSIDE_LABEL;
+
+export type AttendancePeriod = 'morning' | 'evening';
+export const PERIODS: { id: AttendancePeriod; label: string }[] = [
+  { id: 'morning', label: 'الفترة الصباحية' },
+  { id: 'evening', label: 'الفترة المسائية' },
+];
+export const periodLabel = (p: string | null | undefined) => PERIODS.find(x => x.id === (p ?? 'morning'))?.label ?? String(p);
+/** Morning until 14:00, evening after. */
+export const currentPeriod = (): AttendancePeriod => (new Date().getHours() < 14 ? 'morning' : 'evening');
+
 export interface AttendanceRecord {
   id: string;
   student_id: string;
   attendance_date: string; // YYYY-MM-DD
+  /** Added by the 20261023 migration; older records are morning records. */
+  period?: AttendancePeriod;
   status: AttendanceStatus;
   note: string | null;
   recorded_by: string;
   recorded_at: string;
+  check_in_at?: string | null;
+  checkout_status?: CheckoutStatus | null;
+  check_out_at?: string | null;
+  checkout_by?: string | null;
 }
+
+export const formatTime = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' }) : '—';
 
 export interface StudentNote {
   id: string;
@@ -79,15 +112,17 @@ export interface AttendanceStats {
   late: number;
   left_early: number;
   excused: number;
-  /** % of recorded days (excluding excused absences) the student attended — present, late or left early. */
+  /** % of recorded sessions (excluding excused absences) the student attended — present or late. */
   rate: number | null;
 }
 
 export const computeAttendanceStats = (records: AttendanceRecord[]): AttendanceStats => {
   const count = (s: AttendanceStatus) => records.filter(r => r.status === s).length;
-  const stats = { total: records.length, present: count('present'), absent: count('absent'), late: count('late'), left_early: count('left_early'), excused: count('excused') };
+  // A late arrival that also left early counts in both.
+  const leftEarly = records.filter(r => r.status === 'left_early' || r.checkout_status === 'left_early').length;
+  const stats = { total: records.length, present: count('present'), absent: count('absent'), late: count('late'), left_early: leftEarly, excused: count('excused') };
   const counted = stats.total - stats.excused;
-  const attended = stats.present + stats.late + stats.left_early;
+  const attended = stats.present + stats.late + count('left_early');
   return { ...stats, rate: counted > 0 ? Math.round((attended / counted) * 100) : null };
 };
 
@@ -116,9 +151,11 @@ export const describeLog = (e: StudentLogEntry): string => {
     case 'note_added': return `إضافة ملاحظة: ${d.note ?? ''}`;
     case 'attendance': {
       const prev = d.previous ? ` (كان: ${attendanceLabel(String(d.previous))})` : '';
-      return `حضور ${formatDay(String(d.date))}: ${attendanceLabel(String(d.status))}${prev}${d.note ? ` — ${d.note}` : ''}`;
+      const period = d.period ? ` — ${periodLabel(String(d.period))}` : '';
+      return `حضور ${formatDay(String(d.date))}${period}: ${attendanceLabel(String(d.status))}${prev}${d.note ? ` — ${d.note}` : ''}`;
     }
-    case 'attendance_cleared': return `حذف تسجيل حضور يوم ${formatDay(String(d.date))}`;
+    case 'attendance_cleared': return `حذف تسجيل حضور يوم ${formatDay(String(d.date))}${d.period ? ` — ${periodLabel(String(d.period))}` : ''}`;
+    case 'checkout': return `خروج ${formatDay(String(d.date))} — ${periodLabel(String(d.period))}: ${d.checkout ? checkoutLabel(String(d.checkout)) : `إلغاء الخروج (${STILL_INSIDE_LABEL})`}`;
     default: return e.action;
   }
 };
@@ -190,6 +227,8 @@ const toArabicError = (error: { message?: string; code?: string; details?: strin
   const code = error?.code;
   if (msg.includes('ADMIN_FORBIDDEN')) return new StudentsError('ليست لديك صلاحية الوصول إلى قسم المحجة البيضاء.', 'forbidden');
   if (msg.includes('MAHAJA_BAD_DATE')) return new StudentsError('تاريخ الحضور غير صالح.', 'invalid');
+  if (msg.includes('MAHAJA_BAD_PERIOD') || msg.includes('MAHAJA_BAD_STATUS')) return new StudentsError('حالة أو فترة غير صالحة.', 'invalid');
+  if (msg.includes('MAHAJA_NOT_YOUR_STUDENT')) return new StudentsError('هذا الطالب ليس ضمن الحلقات المكلف بها في هذه الفترة.', 'forbidden');
   if (msg.includes('MAHAJA_UNAUTHORIZED') || msg.includes('ADMIN_UNAUTHORIZED') || code === '42501') return new StudentsError('انتهت صلاحية الجلسة أو ليست لديك صلاحية الوصول. يرجى تأكيد هويتك كمشرف.', 'unauthorized');
   if (msg.includes('MAHAJA_NOT_FOUND')) return new StudentsError('لم يتم العثور على الطالب، ربما حُذف مسبقاً.', 'not_found');
   if (code === '23505') return new StudentsError('هذا الطالب مسجّل مسبقاً بنفس الاسم ورقم هاتف الولي.', 'duplicate');
@@ -406,4 +445,84 @@ export const saveAttendance = async (date: string, changes: AttendanceChange[]):
   const { data, error } = await supabase.rpc('mahaja_attendance_save', { p_date: date, p_records: changes, p_token: getStudentsToken() });
   if (error) throw featureError(error);
   return (data ?? []) as AttendanceRecord[];
+};
+
+// ─── Attendance by period (entry / exit), classes, reports ────────────────────
+// Requires the 20261023 migration.
+
+const periodsError = (error: { message?: string; code?: string }) => {
+  const e = toArabicError(error);
+  if (e.code === 'not_installed') {
+    return new StudentsError('نظام الفترات والخروج يحتاج تشغيل ملف الترحيل 20261023000000 في Supabase.', 'not_installed');
+  }
+  return e;
+};
+
+const callRpc = async <T>(fn: string, args: Record<string, unknown>): Promise<T> => {
+  const { data, error } = await supabase.rpc(fn, { ...args, p_token: getStudentsToken() });
+  if (error) throw periodsError(error);
+  return data as T;
+};
+
+export interface MahajaClass {
+  id: string;
+  name: string;
+  periods: AttendancePeriod | 'both';
+  is_active: boolean;
+  student_ids: string[];
+  supervisors: { id: string; label: string }[];
+}
+
+export interface AttendanceContext {
+  me: { label: string; admin_id: string | null; is_super: boolean; is_manager: boolean };
+  classes: MahajaClass[];
+}
+
+export const CLASS_PERIOD_LABELS: Record<MahajaClass['periods'], string> = { morning: 'صباحية', evening: 'مسائية', both: 'صباحية ومسائية' };
+export const classHasPeriod = (c: MahajaClass, p: AttendancePeriod) => c.is_active && (c.periods === 'both' || c.periods === p);
+
+export const getAttendanceContext = () => callRpc<AttendanceContext>('mahaja_attendance_context', {});
+export const getAttendanceSheet = async (date: string) => (await callRpc<AttendanceRecord[] | null>('mahaja_attendance_sheet', { p_date: date })) ?? [];
+
+/** status null removes the record; note undefined keeps the current note. */
+export const markAttendance = async (date: string, period: AttendancePeriod, studentIds: string[], status: EntryStatus | null, note?: string) =>
+  (await callRpc<AttendanceRecord[] | null>('mahaja_attendance_mark', {
+    p_date: date, p_period: period, p_student_ids: studentIds, p_status: status, p_note: note ?? null,
+  })) ?? [];
+
+/** checkout null = still inside (removes the exit). Students not checked in are skipped by the server. */
+export const checkoutAttendance = async (date: string, period: AttendancePeriod, studentIds: string[], checkout: CheckoutStatus | null) =>
+  (await callRpc<AttendanceRecord[] | null>('mahaja_attendance_checkout', {
+    p_date: date, p_period: period, p_student_ids: studentIds, p_checkout: checkout,
+  })) ?? [];
+
+export interface ReportRow {
+  student_id: string;
+  period: AttendancePeriod;
+  sessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  left: number;
+  left_early: number;
+}
+export const getAttendanceReport = async (from: string, to: string) =>
+  (await callRpc<ReportRow[] | null>('mahaja_attendance_report', { p_from: from, p_to: to })) ?? [];
+
+export const saveClass = (id: string | null, data: { name: string; periods: MahajaClass['periods']; is_active: boolean }) =>
+  callRpc<MahajaClass>('mahaja_class_save', { p_id: id, p_data: data });
+export const deleteClass = (id: string) => callRpc<void>('mahaja_class_delete', { p_id: id });
+export const setClassStudents = (classId: string, studentIds: string[]) =>
+  callRpc<number>('mahaja_class_set_students', { p_class_id: classId, p_student_ids: studentIds });
+export const getSupervisorOptions = () =>
+  callRpc<{ id: string; label: string; username: string; is_active: boolean }[]>('mahaja_supervisor_options', {});
+export const setClassSupervisors = (classId: string, adminIds: string[]) =>
+  callRpc<number>('mahaja_class_set_supervisors', { p_class_id: classId, p_admin_ids: adminIds });
+
+/** Adds days to a YYYY-MM-DD date. */
+export const addDaysISO = (iso: string, days: number) => {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };

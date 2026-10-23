@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import {
-  ATTENDANCE_STATUSES, computeAttendanceStats, describeLog, formatAge, formatAhzab, formatDateTime, formatDay,
+  ATTENDANCE_STATUSES, checkoutLabel, computeAttendanceStats, formatTime, isCheckedIn, periodLabel, describeLog, formatAge, formatAhzab, formatDateTime, formatDay,
   formatStudentCode, getStudent, getStudentDetails, isSuspended, listStudents, StudentsError,
   type AttendanceStats, type MahajaStudent, type StudentDetails,
 } from '../lib/mahajaStudents';
@@ -21,7 +21,7 @@ const CONTENT_BOTTOM = PH - FOOTER_H - 30;
 const GAP = 22;
 const CW = PW - 2 * M; // content width
 
-const NAVY = '#262150';
+export const NAVY = '#262150';
 const NAVY_DEEP = '#1c1842';
 const PINK = '#f2b8c6';
 const PINK_SOFT = '#f9dfe6';
@@ -35,14 +35,14 @@ const FONT = '"Cairo", "Segoe UI", Tahoma, sans-serif';
 type Ctx = CanvasRenderingContext2D;
 type Drawable = CanvasImageSource & { width: number; height: number };
 
-interface Block {
+export interface Block {
   h: number;
   draw: (ctx: Ctx, top: number) => void;
   /** Keep on the same page as the following block (section titles, table headers). */
   keepWithNext?: boolean;
 }
 
-interface DocMeta {
+export interface DocMeta {
   title: string;
   subtitle: string;
   issuedAt: Date;
@@ -206,7 +206,7 @@ const drawFooter = (ctx: Ctx, page: number, total: number, meta: DocMeta) => {
 
 // ─── Blocks ───────────────────────────────────────────────────────────────────
 
-const sectionTitle = (label: string): Block => ({
+export const sectionTitle = (label: string): Block => ({
   h: 70,
   keepWithNext: true,
   draw: (ctx, top) => {
@@ -222,7 +222,7 @@ const sectionTitle = (label: string): Block => ({
   },
 });
 
-const statTiles = (tiles: { label: string; value: string; color?: string }[]): Block => {
+export const statTiles = (tiles: { label: string; value: string; color?: string }[]): Block => {
   const perRow = Math.min(tiles.length, 6);
   const gap = 18;
   const w = (CW - gap * (perRow - 1)) / perRow;
@@ -395,7 +395,7 @@ const studentBlock = ({ student: s, photo, stats, index }: StudentBlockData): Bl
 };
 
 /** Simple table (used for the single-student file). Each row is its own block so it can break across pages. */
-const table = (columns: { label: string; width: number }[], rows: { cells: string[]; chips?: (string | null)[] }[]): Block[] => {
+export const table = (columns: { label: string; width: number }[], rows: { cells: string[]; chips?: (string | null)[] }[]): Block[] => {
   const totalW = columns.reduce((a, c) => a + c.width, 0);
   const widths = columns.map(c => (c.width / totalW) * CW);
   const header: Block = {
@@ -435,7 +435,7 @@ const table = (columns: { label: string; width: number }[], rows: { cells: strin
   return [header, ...body];
 };
 
-const emptyLine = (message: string): Block => ({
+export const emptyLine = (message: string): Block => ({
   h: 60,
   draw: (ctx, top) => text(ctx, message, PW / 2, top + 30, 600, 24, MUTED, { align: 'center' }),
 });
@@ -468,7 +468,7 @@ const paginate = (blocks: Block[]): Block[][] => {
   return pages;
 };
 
-const buildPdf = async (blocks: Block[], meta: DocMeta, fileName: string, onProgress?: ExportProgress) => {
+export const buildPdf = async (blocks: Block[], meta: DocMeta, fileName: string, onProgress?: ExportProgress) => {
   const emblem = await loadEmblem();
   const pages = paginate(blocks);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
@@ -515,7 +515,7 @@ const loadPhoto = async (s: MahajaStudent): Promise<Drawable | null> => {
 };
 
 // Latin file names only: browsers save non-Latin download names as "download".
-const stamp = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const stamp = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -590,7 +590,7 @@ export const exportStudentPdf = async (studentId: string, onProgress?: ExportPro
 
   if (details) {
     blocks.push(sectionTitle('إحصائيات الحضور'), statTiles([
-      { label: 'الأيام المسجلة', value: String(stats!.total) },
+      { label: 'الحصص المسجلة', value: String(stats!.total) },
       { label: 'أيام الحضور', value: String(stats!.present), color: '#167a4a' },
       { label: 'أيام الغياب', value: String(stats!.absent), color: '#b42323' },
       { label: 'مرات التأخر', value: String(stats!.late), color: '#b7791f' },
@@ -603,11 +603,17 @@ export const exportStudentPdf = async (studentId: string, onProgress?: ExportPro
     else {
       const chipColor = (s: string) => ({ present: '#059669', absent: '#dc2626', late: '#f59e0b', left_early: '#f97316', excused: '#0284c7' } as Record<string, string>)[s] ?? NAVY;
       blocks.push(...table(
-        [{ label: 'التاريخ', width: 3 }, { label: 'الحالة', width: 2 }, { label: 'الملاحظة', width: 4 }, { label: 'المشرف ووقت التسجيل', width: 3 }],
-        details.attendance.map(r => ({
-          cells: [formatDay(r.attendance_date), ATTENDANCE_STATUSES.find(a => a.id === r.status)?.label ?? r.status, r.note || '—', `${r.recorded_by} — ${formatDateTime(r.recorded_at)}`],
-          chips: [null, chipColor(r.status), null, null],
-        })),
+        [{ label: 'التاريخ والفترة', width: 3 }, { label: 'الدخول', width: 1.8 }, { label: 'الخروج', width: 2.4 }, { label: 'الملاحظة', width: 3 }, { label: 'المشرف', width: 2.4 }],
+        details.attendance.map(r => {
+          const entry = r.status === 'left_early' ? 'present' : r.status;
+          const exit = r.status === 'left_early' ? 'left_early' : r.checkout_status;
+          const exitText = !isCheckedIn(entry) ? '—' : `${checkoutLabel(exit)}${r.check_out_at ? ` ${formatTime(r.check_out_at)}` : ''}`;
+          return {
+            cells: [`${formatDay(r.attendance_date)}\n${periodLabel(r.period)}`, ATTENDANCE_STATUSES.find(a => a.id === entry)?.label ?? entry, exitText, r.note || '—',
+                    r.checkout_by && r.checkout_by !== r.recorded_by ? `${r.recorded_by} / ${r.checkout_by}` : r.recorded_by],
+            chips: [null, chipColor(entry), null, null, null],
+          };
+        }),
       ));
     }
 
