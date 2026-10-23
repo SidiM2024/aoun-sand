@@ -8,6 +8,7 @@ import {
   Activity, Stethoscope, AlertCircle, CheckCircle, PauseCircle, Clock,
   Save, X, Filter, RefreshCw, ShieldCheck, Upload, ImageIcon, XCircle
 } from 'lucide-react';
+import { safeUrl } from '../../utils/safeUrl';
 
 type PatientStatus = 'قيد المتابعة' | 'مكتمل' | 'موقوف';
 type ServiceType = 'فحص' | 'عملية' | 'تأمين صحي' | 'أخرى';
@@ -706,7 +707,7 @@ export function PatientsTab() {
                       <p className="text-xs font-bold text-slate-500 mb-2">{isRTL ? 'التقارير الموجودة:' : 'Existing Reports:'}</p>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                         {editingPatient?.medical_report_urls?.map((url, i) => (
-                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                          <a key={i} href={safeUrl(url)} target="_blank" rel="noopener noreferrer"
                             className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-square block">
                             <img src={url} alt="" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
                           </a>
@@ -824,7 +825,7 @@ export function PatientsTab() {
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {selectedPatient.medical_report_urls.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        <a key={i} href={safeUrl(url)} target="_blank" rel="noopener noreferrer"
                           className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-square block hover:opacity-90 transition-opacity shadow-sm">
                           <img src={url} alt={`تقرير ${i + 1}`} className="w-full h-full object-cover" />
                         </a>

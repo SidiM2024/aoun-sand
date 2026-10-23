@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, Upload, ExternalLink, Wallet, AlertTriangle, Download
 } from 'lucide-react';
 import { generateFinancialPDF, formatPDFDate } from '../../../utils/pdfGenerator';
+import { safeUrl } from '../../../utils/safeUrl';
 
 interface DonationExpense {
   id: string;
@@ -386,7 +387,7 @@ export const DonationExpensesTab = () => {
                     </td>
                     <td className="px-5 py-4">
                       {rec.invoice_url ? (
-                        <a href={rec.invoice_url} target="_blank" rel="noreferrer"
+                        <a href={safeUrl(rec.invoice_url)} target="_blank" rel="noreferrer"
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 rounded-lg text-xs font-bold">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
@@ -394,7 +395,7 @@ export const DonationExpensesTab = () => {
                     </td>
                     <td className="px-5 py-4">
                       {rec.link_url ? (
-                        <a href={rec.link_url} target="_blank" rel="noreferrer"
+                        <a href={safeUrl(rec.link_url)} target="_blank" rel="noreferrer"
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg text-xs font-bold">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'رابط' : 'Link'}
                         </a>
@@ -489,7 +490,7 @@ export const DonationExpensesTab = () => {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'الفاتورة' : 'Invoice'}</label>
                   {editRecord.invoice_url ? (
                     <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
-                      <a href={editRecord.invoice_url} target="_blank" rel="noreferrer"
+                      <a href={safeUrl(editRecord.invoice_url)} target="_blank" rel="noreferrer"
                         className="flex-1 text-teal-600 text-sm font-bold flex items-center gap-2">
                         <ExternalLink className="w-4 h-4" />{isRTL ? 'عرض' : 'View'}
                       </a>

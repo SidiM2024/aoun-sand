@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'framer-motion';
 import { HandHeart, Calendar, FileText, ExternalLink, Activity } from 'lucide-react';
+import { safeUrl } from '../utils/safeUrl';
 
 interface DonationExpense {
   id: string;
@@ -124,7 +125,7 @@ export const DonationExpensesViewer = () => {
 
             {expense.invoice_url && (
               <a 
-                href={expense.invoice_url} 
+                href={safeUrl(expense.invoice_url)} 
                 target="_blank" 
                 rel="noreferrer"
                 className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold transition-colors"

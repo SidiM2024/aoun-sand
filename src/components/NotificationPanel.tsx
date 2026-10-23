@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
+import { safeUrl } from '../utils/safeUrl';
 
 // Notifications list panel (moved unchanged from Header.tsx).
 export const NotificationPanel = ({ isNotifOpen, setIsNotifOpen, notifications, isRTL }: {
@@ -85,7 +86,7 @@ export const NotificationPanel = ({ isNotifOpen, setIsNotifOpen, notifications, 
                                 <h4 className="font-bold text-white text-sm leading-snug mb-1">{notif.title}</h4>
                                 <p className="text-sm text-white/60 leading-relaxed">{notif.message}</p>
                                 {notif.link && (
-                                  <a href={notif.link} target="_blank" rel="noopener noreferrer"
+                                  <a href={safeUrl(notif.link)} target="_blank" rel="noopener noreferrer"
                                     className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-indigo-300 hover:text-indigo-200 transition-colors">
                                     {isRTL ? 'عرض الرابط ↗' : 'View Link ↗'}
                                   </a>

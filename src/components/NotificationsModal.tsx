@@ -8,6 +8,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { safeUrl } from '../utils/safeUrl';
 
 interface Notification {
   id: string;
@@ -93,14 +94,14 @@ const NotifCard = ({
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {notif.media_url && (
-            <a href={notif.media_url} target="_blank" rel="noreferrer"
+            <a href={safeUrl(notif.media_url)} target="_blank" rel="noreferrer"
                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors">
               {isVideo ? <VideoIcon className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
               {isRTL ? 'الوسيط' : 'Media'}
             </a>
           )}
           {notif.link && (
-            <a href={notif.link} target="_blank" rel="noreferrer"
+            <a href={safeUrl(notif.link)} target="_blank" rel="noreferrer"
                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
               <ExternalLink className="w-3 h-3" />
               {isRTL ? 'المزيد' : 'More'}

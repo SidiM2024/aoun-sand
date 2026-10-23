@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { FileText, CheckCircle, XCircle, Clock, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeUrl } from '../../utils/safeUrl';
 
 export const RequestsManagementTab = () => {
   const { language } = useLanguage();
@@ -232,7 +233,7 @@ export const RequestsManagementTab = () => {
               {selectedItem.receipt_url && (
                 <div>
                   <span className="text-sm text-slate-500 block mb-2">{isRTL ? 'صورة الإيصال' : 'Receipt'}</span>
-                  <a href={selectedItem.receipt_url} target="_blank" rel="noopener noreferrer">
+                  <a href={safeUrl(selectedItem.receipt_url)} target="_blank" rel="noopener noreferrer">
                     <img src={selectedItem.receipt_url} alt="Receipt" className="w-full h-40 object-cover rounded-xl border border-slate-200" />
                   </a>
                 </div>

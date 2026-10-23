@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, Upload, ExternalLink, CreditCard, Calendar, Download
 } from 'lucide-react';
 import { generateFinancialPDF, formatPDFDate } from '../../../utils/pdfGenerator';
+import { safeUrl } from '../../../utils/safeUrl';
 
 interface DonationRevenue {
   id: string;
@@ -359,7 +360,7 @@ export const DonationRevenuesTab = () => {
                     </td>
                     <td className="px-5 py-4">
                       {rec.receipt_url ? (
-                        <a href={rec.receipt_url} target="_blank" rel="noreferrer"
+                        <a href={safeUrl(rec.receipt_url)} target="_blank" rel="noreferrer"
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-lg text-xs font-bold hover:bg-teal-100 transition-colors">
                           <ExternalLink className="w-3 h-3" />{isRTL ? 'عرض' : 'View'}
                         </a>
@@ -455,7 +456,7 @@ export const DonationRevenuesTab = () => {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{isRTL ? 'إيصال التبرع' : 'Donation Receipt'}</label>
                   {editRecord.receipt_url ? (
                     <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
-                      <a href={editRecord.receipt_url} target="_blank" rel="noreferrer"
+                      <a href={safeUrl(editRecord.receipt_url)} target="_blank" rel="noreferrer"
                         className="flex-1 text-teal-600 dark:text-teal-400 text-sm font-bold flex items-center gap-2">
                         <ExternalLink className="w-4 h-4" />{isRTL ? 'عرض الإيصال' : 'View Receipt'}
                       </a>

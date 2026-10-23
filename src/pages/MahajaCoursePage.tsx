@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowRight, ArrowLeft, Play, CheckCircle, Circle, FileText, Headphones } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeUrl } from '../utils/safeUrl';
 
 interface Course {
   id: string;
@@ -205,7 +206,7 @@ export const MahajaCoursePage = () => {
                 ) : currentLesson.content_type === 'pdf' ? (
                   <div className="aspect-[4/3] w-full bg-slate-800 flex flex-col items-center justify-center gap-4">
                     <FileText className="w-16 h-16 text-[#c9a4b8]" />
-                    <a href={currentLesson.content_url} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-[#c9a4b8] text-[#1c1a44] font-bold rounded-xl">
+                    <a href={safeUrl(currentLesson.content_url)} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-[#c9a4b8] text-[#1c1a44] font-bold rounded-xl">
                       {isRTL ? 'فتح ملف PDF' : 'Open PDF File'}
                     </a>
                   </div>

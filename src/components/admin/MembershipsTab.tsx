@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { CreditCard, CheckCircle, XCircle, Clock, ExternalLink, RefreshCw } from 'lucide-react';
+import { safeUrl } from '../../utils/safeUrl';
 
 export const MembershipsTab = () => {
   const { language } = useLanguage();
@@ -113,7 +114,7 @@ export const MembershipsTab = () => {
               <div className="flex items-center gap-3">
                 <p className="font-black text-lg text-indigo-600 dark:text-indigo-400">{m.amount} <span className="text-xs font-bold">MRU</span></p>
                 <StatusBadge status={m.status} />
-                {m.receipt_url && <a href={m.receipt_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded-xl"><ExternalLink className="w-4 h-4"/></a>}
+                {m.receipt_url && <a href={safeUrl(m.receipt_url)} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded-xl"><ExternalLink className="w-4 h-4"/></a>}
                 {m.status === 'pending' && (
                   <>
                     <button disabled={processingId === m.id} onClick={() => updateStatus(m.id, 'approved')} className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm disabled:opacity-50">

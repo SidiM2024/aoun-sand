@@ -7,6 +7,7 @@ import {
   Bell, Send, Clock, Link as LinkIcon, Image as ImageIcon,
   Trash2, Calendar, Upload, X, Film, FileImage, Loader2
 } from 'lucide-react';
+import { safeUrl } from '../../utils/safeUrl';
 
 /* ── Media Upload Component ── */
 const MediaUploader = ({
@@ -403,7 +404,7 @@ export const NotificationsTab = ({
                     <div className="flex flex-wrap items-center gap-2">
                       {notif.link && (
                         <a
-                          href={notif.link}
+                          href={safeUrl(notif.link)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg font-medium hover:bg-blue-100 transition-colors"
@@ -414,7 +415,7 @@ export const NotificationsTab = ({
                       )}
                       {notif.media_url && (
                         <a
-                          href={notif.media_url}
+                          href={safeUrl(notif.media_url)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg font-medium hover:bg-purple-100 transition-colors"

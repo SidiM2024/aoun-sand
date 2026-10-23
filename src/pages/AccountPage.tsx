@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MembershipCardModal } from '../components/MembershipCardModal';
-import { updatePassword } from '../lib/memberAuth';
+import { passwordProblem, updatePassword } from '../lib/memberAuth';
 
 const STATUS: Record<string, { label: string; cls: string; icon: typeof Clock }> = {
   Approved: { label: 'عضو معتمد', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', icon: BadgeCheck },
@@ -97,7 +97,7 @@ export const AccountPage = () => {
 
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.a.length < 8) { toast.error('كلمة المرور 8 أحرف على الأقل'); return; }
+    const weak = passwordProblem(pw.a, profile?.phone); if (weak) { toast.error(weak); return; }
     if (pw.a !== pw.b) { toast.error('كلمتا المرور غير متطابقتين'); return; }
     setPwSaving(true);
     try {

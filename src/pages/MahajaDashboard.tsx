@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { BookOpen, Video, Download, Search, LogOut, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { safeUrl } from '../utils/safeUrl';
 
 interface MahajaCourse {
   id: string;
@@ -394,7 +395,7 @@ export const MahajaDashboard = () => {
                             </p>
                           )}
                           <a
-                            href={book.download_link}
+                            href={safeUrl(book.download_link)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-300"
