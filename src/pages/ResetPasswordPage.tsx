@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { KeyRound, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { updatePassword } from '../lib/memberAuth';
+import { passwordProblem, updatePassword } from '../lib/memberAuth';
 
 // Target of the "forgot password" email: the link signs the member in with a
 // recovery session, then they choose a new password here.
@@ -31,7 +31,7 @@ export const ResetPasswordPage = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
-    if (password.length < 8) { toast.error('كلمة المرور يجب أن تكون 8 أحرف على الأقل'); return; }
+    const weak = passwordProblem(password); if (weak) { toast.error(weak); return; }
     if (password !== confirm) { toast.error('كلمتا المرور غير متطابقتين'); return; }
     setSaving(true);
     try {

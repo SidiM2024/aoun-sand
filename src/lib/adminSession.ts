@@ -94,6 +94,9 @@ export const adminLogin = async (username: string, password: string): Promise<Ad
       localStorage.setItem('admin_role', data.admin?.role ?? '');
       return { ok: true, session: data.admin as AdminSessionInfo };
     }
+    if (data?.locked || data?.message === 'Too many attempts') {
+      return { ok: false, message: 'محاولات دخول خاطئة كثيرة. تم إيقاف الدخول لهذا الحساب مؤقتًا، حاول بعد 15 دقيقة.' };
+    }
     return { ok: false, message: data?.message === 'Account is disabled' ? 'هذا الحساب معطّل. تواصل مع المشرف الرئيسي.' : 'اسم المستخدم أو كلمة المرور غير صحيحة.', notFound: true };
   }
   if (!isMissingFunction(error)) return { ok: false, message: 'تعذّر الاتصال بالخادم، حاول مرة أخرى.' };

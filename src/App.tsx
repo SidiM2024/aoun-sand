@@ -28,6 +28,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 import { AvatarPromptModal } from './components/AvatarPromptModal';
+import { SetPasswordPrompt } from './components/SetPasswordPrompt';
 const VerifyCardPage = lazy(() => import('./pages/VerifyCardPage').then(module => ({ default: module.VerifyCardPage })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then(module => ({ default: module.PrivacyPolicyPage })));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage').then(module => ({ default: module.TermsOfServicePage })));
@@ -192,6 +193,7 @@ const AppContent = () => {
       </main>
       {!isShellHidden && <Footer />}
       {!isShellHidden && <BottomNav />}
+      <SetPasswordPrompt />
     </div>
   );
 };

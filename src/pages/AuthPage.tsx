@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { PHONE_RULE_AR, isValidPhone, memberLogin, memberSignup, normalizePhone, requestPasswordReset, resendConfirmation } from '../lib/memberAuth';
-import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar, KeyRound, MailCheck } from 'lucide-react';
+import { PASSWORD_RULE_AR, PHONE_RULE_AR, isValidPhone, memberLogin, memberSignup, normalizePhone, passwordProblem, requestPasswordReset, resendConfirmation } from '../lib/memberAuth';
+import { Mail, Phone, User, Briefcase, MapPin, CreditCard, ChevronRight, ChevronLeft, ShieldCheck, Upload, Camera, Calendar, KeyRound, MailCheck, Lock } from 'lucide-react';
 
 // Modern input field component
 const PremiumInput = ({ icon: Icon, label, ...props }: any) => (
@@ -49,6 +49,12 @@ export const AuthPage = () => {
   // Common Login/Signup Fields
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [secret, setSecret] = useState(''); // login: password (or registered phone for older accounts)
+  const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
+  // Light client-side brake on repeated failures (the real limits are enforced by Supabase Auth).
+  const [failures, setFailures] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(0);
   const [fullName, setFullName] = useState('');
   const [location, setLocation] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -81,16 +87,26 @@ export const AuthPage = () => {
     setErrorMsg('');
     setLoginNotice(null);
 
-    if (!email.trim() || !phone.trim()) {
-      setErrorMsg(isRTL ? 'الرجاء إدخال البريد الإلكتروني ورقم الهاتف أو كلمة المرور' : 'Please enter your email and phone or password');
+    if (!email.trim() || !secret.trim()) {
+      setErrorMsg(isRTL ? 'الرجاء إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter your email and password');
+      return;
+    }
+    if (Date.now() < lockedUntil) {
+      setErrorMsg(isRTL ? `محاولات كثيرة. انتظر ${Math.ceil((lockedUntil - Date.now()) / 1000)} ثانية ثم أعد المحاولة.` : 'Too many attempts. Please wait.');
       return;
     }
 
     setIsLoading(true);
-    const result = await memberLogin(email, phone);
+    const result = await memberLogin(email, secret);
     setIsLoading(false);
+    if (result.status === 'wrong_secret') {
+      const n = failures + 1;
+      setFailures(n);
+      if (n >= 5) { setLockedUntil(Date.now() + 60_000); setFailures(0); }
+    }
 
     if (result.status === 'ok') {
+      setFailures(0);
       toast.success(isRTL ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
       navigate(returnTo);
     } else if (result.status === 'no_account') {
@@ -146,6 +162,13 @@ export const AuthPage = () => {
       return;
     }
 
+    const weak = passwordProblem(password, phone);
+    if (weak) { setErrorMsg(weak); return; }
+    if (password !== password2) {
+      setErrorMsg(isRTL ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
+      return;
+    }
+
     if (isMahaja && !dateOfBirth) {
       setErrorMsg(isRTL ? 'الرجاء إدخال تاريخ الميلاد' : 'Please enter date of birth');
       return;
@@ -156,7 +179,7 @@ export const AuthPage = () => {
 
     try {
       const result = await memberSignup({
-        email, phone, full_name: fullName, location, is_mahaja: isMahaja,
+        email, password, phone, full_name: fullName, location, is_mahaja: isMahaja,
         membership_type: isMahaja ? 'محجة' : membershipType,
         current_status: isMahaja ? 'طالب علم' : currentStatus,
         national_id: isMahaja ? 'N/A' : nationalId,
@@ -184,7 +207,7 @@ export const AuthPage = () => {
       }
       if (!result.hasSession) {
         // Account and profile were created; the member can sign in right away.
-        toast.success(isRTL ? 'تم إنشاء حسابك! سجّل الدخول بالبريد ورقم الهاتف.' : 'Account created! Please sign in.');
+        toast.success(isRTL ? 'تم إنشاء حسابك! سجّل الدخول بالبريد وكلمة المرور.' : 'Account created! Please sign in.');
         setStep('login');
         setIsManualSignupInProgress(false);
         setIsLoading(false);
@@ -362,17 +385,17 @@ export const AuthPage = () => {
                     />
                     
                     <PremiumInput 
-                      icon={Phone}
-                      type="tel" 
+                      icon={Lock}
+                      type="password" 
                       required
-                      value={phone}
-                      onChange={(e: any) => setPhone(e.target.value)}
-                      placeholder={isRTL ? 'رقم الهاتف المسجل أو كلمة المرور' : 'Registered phone or password'}
+                      value={secret}
+                      onChange={(e: any) => setSecret(e.target.value)}
+                      placeholder={isRTL ? 'كلمة المرور' : 'Password'}
                       dir="ltr"
                       autoComplete="current-password"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2 px-1">
-                      {isRTL ? 'أدخل رقم الهاتف الذي سجّلت به (8 أرقام)، أو كلمة المرور إن كنت قد عيّنتها.' : 'Use the phone number you registered with, or your password if you set one.'}
+                      {isRTL ? 'الحسابات القديمة التي لم تُعيّن كلمة مرور بعد: أدخل رقم الهاتف المسجل، وسيُطلب منك تعيين كلمة مرور خاصة.' : 'Older accounts without a password: enter your registered phone number, then set a password.'}
                     </p>
 
                     {loginNotice === 'unconfirmed' && (
@@ -384,7 +407,7 @@ export const AuthPage = () => {
                     )}
                     {loginNotice === 'wrong_secret' && (
                       <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 space-y-2">
-                        <p className="font-bold">{isRTL ? 'هذا البريد مسجل لدينا، لكن رقم الهاتف أو كلمة المرور غير مطابق.' : 'This email is registered, but the phone or password does not match.'}</p>
+                        <p className="font-bold">{isRTL ? 'البريد الإلكتروني أو كلمة المرور غير صحيح.' : 'Incorrect email or password.'}</p>
                         <p>{isRTL ? 'تأكد من رقم الهاتف الذي سجّلت به أول مرة، أو أعد تعيين كلمة المرور عبر بريدك.' : 'Check the phone you first registered with, or reset your password by email.'}</p>
                         <button type="button" onClick={() => { setLoginNotice(null); setStep('forgot'); }} className="font-bold underline">{isRTL ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</button>
                       </div>
@@ -580,6 +603,32 @@ export const AuthPage = () => {
                     {phone.trim() !== '' && !isValidPhone(phone) && (
                       <p className="text-xs font-bold text-red-600 -mt-2 px-1">{isRTL ? PHONE_RULE_AR : 'Phone must be exactly 8 digits starting with 2, 3 or 4.'}</p>
                     )}
+
+                    <PremiumInput
+                      icon={Lock}
+                      type="password"
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e: any) => setPassword(e.target.value)}
+                      placeholder={isRTL ? 'كلمة المرور' : 'Password'}
+                      dir="ltr"
+                      autoComplete="new-password"
+                    />
+                    <PremiumInput
+                      icon={Lock}
+                      type="password"
+                      required
+                      minLength={8}
+                      value={password2}
+                      onChange={(e: any) => setPassword2(e.target.value)}
+                      placeholder={isRTL ? 'تأكيد كلمة المرور' : 'Confirm password'}
+                      dir="ltr"
+                      autoComplete="new-password"
+                    />
+                    <p className={`text-xs -mt-2 px-1 ${password && passwordProblem(password, phone) ? 'font-bold text-red-600' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {password ? (passwordProblem(password, phone) ?? (password2 && password !== password2 ? 'كلمتا المرور غير متطابقتين.' : 'كلمة مرور مناسبة ✓')) : PASSWORD_RULE_AR}
+                    </p>
 
                     {step === 'signup_awn' && (
                       <div className="grid grid-cols-2 gap-4">

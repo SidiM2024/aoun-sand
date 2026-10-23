@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Upload, FileText, CheckCircle, Clock, XCircle, CreditCard, Heart, Plus, User, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { safeUrl } from '../utils/safeUrl';
 
 type TabType = 'requests' | 'payments' | 'memberships' | 'donations';
 
@@ -231,7 +232,7 @@ export const UserRequestsPage = () => {
                   )}
                   {item.notes && <p className="text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg mt-2">{item.notes}</p>}
                   {item.receipt_url && (
-                    <a href={item.receipt_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary font-bold">
+                    <a href={safeUrl(item.receipt_url)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary font-bold">
                       <FileText className="w-3 h-3" />{isRTL ? 'عرض الإيصال' : 'View Receipt'}
                     </a>
                   )}

@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Upload, Trash2, Image as ImageIcon, FileAudio, ExternalLink, Copy } from 'lucide-react';
+import { safeUrl } from '../../utils/safeUrl';
 
 export const MediaTab = ({ mediaFiles, fetchMedia }: { mediaFiles: any[], fetchMedia: () => void }) => {
   const { language } = useLanguage();
@@ -145,7 +146,7 @@ export const MediaTab = ({ mediaFiles, fetchMedia }: { mediaFiles: any[], fetchM
                         <Copy className="w-5 h-5" />
                       </button>
                       <a 
-                        href={fileUrl}
+                        href={safeUrl(fileUrl)}
                         target="_blank"
                         rel="noreferrer"
                         className="w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-md"
