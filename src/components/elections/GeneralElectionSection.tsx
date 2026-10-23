@@ -139,26 +139,22 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
   const { user, userProfile } = useAuth();
   const applied = new Set(election.my?.applications.map(a => a.position_id) ?? []);
   const positions = election.positions.filter(p => p.is_active);
-  const committees = [...new Set(positions.filter(p => p.group_key === 'committee').map(p => p.committee!))];
   const hasOther = positions.some(p => p.group_key === 'other');
 
   const [name, setName] = useState(userProfile?.full_name ?? '');
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [group, setGroup] = useState<'executive' | 'committee' | 'other'>('executive');
-  const [committee, setCommittee] = useState(committees[0] ?? '');
   const [positionId, setPositionId] = useState('');
   const [program, setProgram] = useState('');
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const choices = group === 'committee'
-    ? positions.filter(p => p.group_key === 'committee' && p.committee === committee)
-    : positions.filter(p => p.group_key === group);
-  useEffect(() => { setPositionId(''); }, [group, committee]);
+  // One position per committee (its head): the committees are listed directly.
+  const choices = positions.filter(p => p.group_key === group);
+  useEffect(() => { setPositionId(''); }, [group]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  const roleLabel = (p: GeneralPosition) => (p.role === 'head' ? 'مسؤول اللجنة' : p.role === 'deputy' ? 'نائب مسؤول اللجنة' : p.title);
 
   const submit = async () => {
     if (busy || !user) return;
@@ -214,18 +210,13 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
                   className={`py-2.5 rounded-2xl font-black text-sm border-2 ${group === k ? 'border-[#211d45] bg-[#211d45] text-white' : 'border-slate-200 dark:border-slate-700'}`}>{l}</button>
               ))}
             </div>
-            {group === 'committee' && (
-              <select value={committee} onChange={e => setCommittee(e.target.value)} className={`${field} mb-3`} aria-label="اللجنة">
-                {committees.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {choices.map(p => {
                 const done = applied.has(p.id);
                 return (
                   <button key={p.id} type="button" disabled={done} onClick={() => setPositionId(p.id)} aria-pressed={positionId === p.id}
                     className={`p-3 rounded-2xl border-2 text-start font-bold text-sm disabled:opacity-50 ${positionId === p.id ? 'border-[#ef8f88] bg-[#fde8e6] dark:bg-[#f7b2b0]/10' : 'border-slate-200 dark:border-slate-700'}`}>
-                    {group === 'committee' ? roleLabel(p) : p.title}
+                    {p.title}
                     {done && <span className="block text-xs font-medium text-slate-500 mt-0.5">قدّمت طلبًا لهذا المنصب</span>}
                   </button>
                 );
