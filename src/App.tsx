@@ -35,7 +35,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, allowPending = false }: { children: React.ReactNode; allowPending?: boolean }) => {
 
   const { user, userProfile, loading, isAdmin, logout } = useAuth();
   const { language } = useLanguage();
@@ -81,7 +81,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (user && !isAdmin) {
     const status = userProfile?.approval_status || 'Pending Approval';
 
-    if (status !== 'Approved') {
+    // Members awaiting approval may still open pages that allow it (elections: any registered
+    // member can apply; the database decides who may vote).
+    if (status !== 'Approved' && !(allowPending && status === 'Pending Approval')) {
       let title = '';
       let message = '';
       let Icon = Clock;
@@ -180,7 +182,7 @@ const AppContent = () => {
           <Route path="/lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="/mahaja" element={<ProtectedRoute><MahajaDashboard /></ProtectedRoute>} />
           <Route path="/mahaja/course/:id" element={<ProtectedRoute><MahajaCoursePage /></ProtectedRoute>} />
-          <Route path="/elections" element={<ProtectedRoute><ElectionsPage /></ProtectedRoute>} />
+          <Route path="/elections" element={<ProtectedRoute allowPending><ElectionsPage /></ProtectedRoute>} />
           <Route path="/donation-expenses" element={<ProtectedRoute><DonationExpensesPage /></ProtectedRoute>} />
           <Route path="/requests" element={<ProtectedRoute><UserRequestsPage /></ProtectedRoute>} />
           <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />

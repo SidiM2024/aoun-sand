@@ -20,7 +20,7 @@ import { RequestsManagementTab } from '../components/admin/RequestsManagementTab
 import { CompetitionsManagementTab } from '../components/admin/CompetitionsManagementTab';
 import { MembershipsTab } from '../components/admin/MembershipsTab';
 import { UserDonationsTab } from '../components/admin/UserDonationsTab';
-import { ElectionsAdminTab } from '../components/admin/ElectionsAdminTab';
+import { ElectionsSection } from '../components/admin/ElectionsSection';
 import { ProjectsAdminTab } from '../components/admin/ProjectsAdminTab';
 import { HomepageAdminTab } from '../components/admin/HomepageAdminTab';
 import { useAuth } from '../contexts/AuthContext';
@@ -424,7 +424,7 @@ export const AdminPage = () => {
               {activeTab === 'admins'        && <AdminsTab />}
               {activeTab === 'memberships'   && <MembershipsTab />}
               {activeTab === 'user_donations'&& <UserDonationsTab />}
-              {activeTab === 'elections'     && <ElectionsAdminTab />}
+              {activeTab === 'elections'     && <ElectionsSection />}
               {activeTab === 'projects'      && <ProjectsAdminTab />}
               {activeTab === 'homepage'      && <HomepageAdminTab />}
             </AnimatePresence>
