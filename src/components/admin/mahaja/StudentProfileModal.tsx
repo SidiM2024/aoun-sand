@@ -6,9 +6,9 @@ import {
   CreditCard as IdCard, CalendarCheck, History, Ban, PlayCircle, Send, AlertTriangle, FileDown,
 } from 'lucide-react';
 import {
-  ATTENDANCE_STATUSES, addStudentNote, computeAttendanceStats, formatAge, formatAhzab, formatStudentCode,
+  ATTENDANCE_STATUSES, CHECKOUT_STATUSES, STILL_INSIDE_LABEL, formatTime, isCheckedIn, periodLabel, addStudentNote, computeAttendanceStats, formatAge, formatAhzab, formatStudentCode,
   describeLog, formatDateTime, formatDay, getStudentDetails, isSuspended, setStudentStatus,
-  type MahajaStudent, type StudentDetails,
+  type MahajaStudent, type AttendanceRecord, type StudentDetails,
 } from '../../../lib/mahajaStudents';
 import { studentCardDataUrl } from '../../../utils/studentCard';
 import { CardDownloadButtons } from './CardDownloadButtons';
@@ -30,6 +30,24 @@ type Tab = 'info' | 'attendance' | 'notes' | 'history';
 const statusChip = (status: string) => {
   const a = ATTENDANCE_STATUSES.find(x => x.id === status);
   return <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${a?.active ?? 'bg-slate-200'}`}>{a?.label ?? status}</span>;
+};
+
+/** Entry chip + exit chip (with times) for one session. */
+const sessionChips = (r: AttendanceRecord) => {
+  const entry = r.status === 'left_early' ? 'present' : r.status;
+  const exit = r.status === 'left_early' ? 'left_early' : r.checkout_status;
+  const c = CHECKOUT_STATUSES.find(x => x.id === exit);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {statusChip(entry)}
+      {r.check_in_at && <span className="text-[11px] text-slate-500">{formatTime(r.check_in_at)}</span>}
+      {isCheckedIn(entry) && (
+        <span className={`inline-block px-2 py-0.5 rounded-lg text-[11px] font-bold whitespace-nowrap ${c ? c.active : 'bg-teal-50 text-teal-700'}`}>
+          {c ? c.label : STILL_INSIDE_LABEL}{r.check_out_at ? ` ${formatTime(r.check_out_at)}` : ''}
+        </span>
+      )}
+    </span>
+  );
 };
 
 export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpdated, onExportPdf, exportingPdf }: Props) => {
@@ -250,7 +268,7 @@ export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpda
               <section className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { label: 'الأيام المسجلة', value: stats.total },
+                    { label: 'الحصص المسجلة', value: stats.total },
                     { label: 'حاضر', value: stats.present },
                     { label: 'غائب', value: stats.absent },
                     { label: 'متأخر', value: stats.late },
@@ -264,7 +282,7 @@ export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpda
                   ))}
                 </div>
                 <p className="text-xs text-slate-500">
-                  نسبة الحضور = (حاضر + متأخر + خرج مبكرًا) ÷ (الأيام المسجلة باستثناء الغياب بعذر).
+                  نسبة الحضور = (حاضر + متأخر) ÷ (الحصص المسجلة باستثناء الغياب بعذر). الخروج المبكر يُحتسب مع حالة الدخول.
                 </p>
                 {details!.attendance.length === 0 ? (
                   <p className="text-center py-10 text-slate-500 font-bold">لم يُسجَّل أي حضور لهذا الطالب بعد. استخدم زر «الحضور» في قائمة الطلاب.</p>
@@ -283,11 +301,11 @@ export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpda
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {details!.attendance.map(r => (
                             <tr key={r.id}>
-                              <td className="p-3 font-bold whitespace-nowrap">{formatDay(r.attendance_date)}</td>
-                              <td className="p-3">{statusChip(r.status)}</td>
+                              <td className="p-3 font-bold whitespace-nowrap">{formatDay(r.attendance_date)}<div className="text-[11px] font-medium text-slate-400">{periodLabel(r.period)}</div></td>
+                              <td className="p-3">{sessionChips(r)}</td>
                               <td className="p-3 text-slate-600 dark:text-slate-300">{r.note || '—'}</td>
                               <td className="p-3 text-slate-500 whitespace-nowrap">
-                                {r.recorded_by}
+                                {r.recorded_by}{r.checkout_by && r.checkout_by !== r.recorded_by ? ` / ${r.checkout_by}` : ''}
                                 <div className="text-[11px]">{new Date(r.recorded_at).toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' })}</div>
                               </td>
                             </tr>
@@ -299,11 +317,11 @@ export const StudentProfileModal = ({ student, onClose, onEdit, onDelete, onUpda
                       {details!.attendance.map(r => (
                         <li key={r.id} className="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-sm">{formatDay(r.attendance_date)}</span>
-                            {statusChip(r.status)}
+                            <span className="font-bold text-sm">{formatDay(r.attendance_date)} <span className="text-[11px] font-medium text-slate-400">{periodLabel(r.period)}</span></span>
+                            {sessionChips(r)}
                           </div>
                           {r.note && <p className="text-sm text-slate-600 dark:text-slate-300">{r.note}</p>}
-                          <p className="text-[11px] text-slate-400">بواسطة {r.recorded_by}</p>
+                          <p className="text-[11px] text-slate-400">بواسطة {r.recorded_by}{r.checkout_by && r.checkout_by !== r.recorded_by ? ` / الخروج: ${r.checkout_by}` : ''}</p>
                         </li>
                       ))}
                     </ul>

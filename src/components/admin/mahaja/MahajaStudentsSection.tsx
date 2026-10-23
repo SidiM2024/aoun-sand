@@ -305,7 +305,7 @@ export const MahajaStudentsSection = () => {
           </button>
           <button onClick={() => setAttendanceOpen(true)} disabled={students.length === 0}
             className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
-            <CalendarCheck className="w-5 h-5" /> الحضور
+            <CalendarCheck className="w-5 h-5" /> الحضور والخروج
           </button>
           <button onClick={pdfExport.exportAll} disabled={students.length === 0 || pdfExport.busy !== null}
             className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
