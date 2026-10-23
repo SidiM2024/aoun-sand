@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LegacyPolls } from '../components/LegacyPolls';
+import { GeneralElectionSection } from '../components/elections/GeneralElectionSection';
 import { castVote, fetchPublicElections, PHASE_LABELS, SiteError, type Candidate, type Election } from '../lib/siteApi';
 
 const fmt = (iso: string | null) => iso ? new Date(iso).toLocaleString('ar-MA', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
@@ -220,6 +221,7 @@ export const ElectionsPage = () => {
   const { user } = useAuth();
   const [elections, setElections] = useState<Election[] | null>(null);
   const [error, setError] = useState('');
+  const [generalCount, setGeneralCount] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -256,13 +258,16 @@ export const ElectionsPage = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-3 sm:px-4 -mt-8 space-y-5">
+        <GeneralElectionSection onLoaded={setGeneralCount} />
         {elections === null ? (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#ef8f88]" /></div>
         ) : elections.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 text-center">
-            <Vote className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <p className="font-bold text-slate-500">{error || 'لا توجد انتخابات معلنة حالياً.'}</p>
-          </div>
+          generalCount > 0 && !error ? null : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 text-center">
+              <Vote className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+              <p className="font-bold text-slate-500">{error || 'لا توجد انتخابات معلنة حالياً.'}</p>
+            </div>
+          )
         ) : (
           elections.map(e => <ElectionCard key={e.id} e={e} loggedIn={!!user} onVoted={() => void load()} />)
         )}
