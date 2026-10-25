@@ -20,7 +20,6 @@ const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({ d
 const UserRequestsPage = lazy(() => import('./pages/UserRequestsPage').then(module => ({ default: module.UserRequestsPage })));
 const MahajaDashboard = lazy(() => import('./pages/MahajaDashboard').then(module => ({ default: module.MahajaDashboard })));
 const MahajaCoursePage = lazy(() => import('./pages/MahajaCoursePage').then(module => ({ default: module.MahajaCoursePage })));
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })));
 const ElectionsPage = lazy(() => import('./pages/ElectionsPage').then(module => ({ default: module.ElectionsPage })));
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -28,7 +27,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { Clock, XCircle, Ban, LogOut } from 'lucide-react';
 import { AvatarPromptModal } from './components/AvatarPromptModal';
-import { SetPasswordPrompt } from './components/SetPasswordPrompt';
 const VerifyCardPage = lazy(() => import('./pages/VerifyCardPage').then(module => ({ default: module.VerifyCardPage })));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then(module => ({ default: module.PrivacyPolicyPage })));
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage').then(module => ({ default: module.TermsOfServicePage })));
@@ -170,7 +168,8 @@ const AppContent = () => {
           <Route path="/volunteer" element={<Navigate to="/contact" replace />} />
           <Route path="/membership" element={<Navigate to="/account" replace />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Password reset was removed: old links lead to the sign-in page. */}
+          <Route path="/reset-password" element={<Navigate to="/auth" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -193,7 +192,6 @@ const AppContent = () => {
       </main>
       {!isShellHidden && <Footer />}
       {!isShellHidden && <BottomNav />}
-      <SetPasswordPrompt />
     </div>
   );
 };
