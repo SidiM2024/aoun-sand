@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LogOut, User, Phone, Mail, MapPin, CreditCard, Activity, FileText, Hash, Camera, Calendar, Edit2, Save, X, Loader2,
-  KeyRound, Vote, ShieldCheck, Clock, XCircle, Ban, ChevronLeft, BadgeCheck,
+  Vote, ShieldCheck, Clock, XCircle, Ban, ChevronLeft, BadgeCheck,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MembershipCardModal } from '../components/MembershipCardModal';
-import { passwordProblem, updatePassword } from '../lib/memberAuth';
 
 const STATUS: Record<string, { label: string; cls: string; icon: typeof Clock }> = {
   Approved: { label: 'عضو معتمد', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', icon: BadgeCheck },
@@ -32,9 +31,6 @@ export const AccountPage = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
-  const [pwOpen, setPwOpen] = useState(false);
-  const [pw, setPw] = useState({ a: '', b: '' });
-  const [pwSaving, setPwSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -92,23 +88,6 @@ export const AccountPage = () => {
       toast.error(err instanceof Error ? err.message : 'تعذّر الحفظ');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const submitPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const weak = passwordProblem(pw.a, profile?.phone); if (weak) { toast.error(weak); return; }
-    if (pw.a !== pw.b) { toast.error('كلمتا المرور غير متطابقتين'); return; }
-    setPwSaving(true);
-    try {
-      await updatePassword(pw.a);
-      toast.success('تم تعيين كلمة المرور. ادخل بها من الآن بدل رقم الهاتف.');
-      setPwOpen(false);
-      setPw({ a: '', b: '' });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'تعذّر تعيين كلمة المرور');
-    } finally {
-      setPwSaving(false);
     }
   };
 
@@ -227,26 +206,6 @@ export const AccountPage = () => {
               </div>
             ))}
           </dl>
-        </section>
-
-        {/* Security */}
-        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-4">
-          <button onClick={() => setPwOpen(o => !o)} className="w-full flex items-center justify-between font-black text-[#211d45] dark:text-white" aria-expanded={pwOpen}>
-            <span className="flex items-center gap-2"><KeyRound className="w-5 h-5 text-[#ef8f88]" /> كلمة المرور</span>
-            <ChevronLeft className={`w-5 h-5 transition-transform ${pwOpen ? '-rotate-90' : ''}`} />
-          </button>
-          <AnimatePresence initial={false}>
-            {pwOpen && (
-              <motion.form initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} onSubmit={submitPassword} className="overflow-hidden">
-                <p className="text-sm text-slate-500 mt-3">عيّن كلمة مرور خاصة بك (8 أحرف على الأقل). بعدها تدخل بالبريد الإلكتروني وكلمة المرور بدلاً من رقم الهاتف.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                  <input type="password" value={pw.a} onChange={e => setPw(p => ({ ...p, a: e.target.value }))} autoComplete="new-password" placeholder="كلمة المرور الجديدة" dir="ltr" className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800" />
-                  <input type="password" value={pw.b} onChange={e => setPw(p => ({ ...p, b: e.target.value }))} autoComplete="new-password" placeholder="تأكيد كلمة المرور" dir="ltr" className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800" />
-                </div>
-                <button type="submit" disabled={pwSaving} className="mt-3 px-5 py-2.5 rounded-xl bg-[#211d45] text-white font-bold flex items-center gap-1.5 disabled:opacity-60">{pwSaving && <Loader2 className="w-4 h-4 animate-spin" />} حفظ كلمة المرور</button>
-              </motion.form>
-            )}
-          </AnimatePresence>
         </section>
 
         <button onClick={logout} className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors">
