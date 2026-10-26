@@ -218,9 +218,9 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
             {dt('نهاية الترشح', 'ne', started)}
           </div>
           <div className="sm:col-span-2 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 grid sm:grid-cols-2 gap-3">
-            <p className="sm:col-span-2 font-black text-emerald-800 dark:text-emerald-300 text-sm">2. مرحلة التصويت (بعد نهاية الترشح)</p>
+            <p className="sm:col-span-2 font-black text-emerald-800 dark:text-emerald-300 text-sm">2. مرحلة التصويت (بعد نهاية الترشح) — أو استعمل زر «فتح التصويت الآن»</p>
             {dt('بداية التصويت', 'vs', started)}
-            {dt('نهاية التصويت', 've', started && e.phase !== 'voting')}
+            {dt('نهاية التصويت (اختياري: بدونها يبقى مفتوحًا حتى تغلقه)', 've', started && e.phase !== 'voting')}
           </div>
           <label className="block sm:col-span-2"><span className="block text-sm font-bold mb-1.5">من يحق له التصويت؟</span>
             <select value={f.eligibility} disabled={started} onChange={ev => setF({ ...f, eligibility: ev.target.value as 'approved' | 'registered' })} className={`${input} disabled:opacity-60`}>
@@ -244,6 +244,11 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
         {e.phase === 'nominations' && (
           <button disabled={!!busy} onClick={() => action('close_nominations', 'تم إغلاق باب الترشح', 'إغلاق باب الترشح الآن؟ لن تُقبل طلبات جديدة.')}
             className="w-full py-2.5 rounded-xl font-bold bg-slate-800 text-white flex items-center justify-center gap-2"><Square className="w-4 h-4" /> إغلاق باب الترشح الآن</button>
+        )}
+        {!started && (
+          <button disabled={!!busy} onClick={() => action('open_voting', 'تم فتح التصويت: أُخفيت بطاقات المترشحين وظهرت ورقة التصويت للأعضاء',
+            'فتح التصويت الآن؟ سيُغلق باب الترشح، وتُخفى بطاقات المترشحين وبرامجهم، وتظهر ورقة التصويت للأعضاء. يبقى التصويت مفتوحًا حتى تغلقه.')}
+            className="w-full py-2.5 rounded-xl font-black bg-emerald-600 text-white flex items-center justify-center gap-2"><Play className="w-4 h-4" /> فتح التصويت الآن</button>
         )}
         {e.phase === 'voting' && (
           <button disabled={!!busy} onClick={() => action('close_voting', 'تم إغلاق التصويت', 'إغلاق التصويت الآن؟ لا يمكن التراجع.')}
@@ -356,7 +361,7 @@ const PositionsTab = ({ e, busy, act }: { e: AdminGeneralElection; busy: string 
                   <div className="flex flex-wrap gap-2 mt-2">
                     {p.candidates.map(c => (
                       <span key={c.id} className="flex items-center gap-1.5 pe-2.5 rounded-full bg-slate-50 dark:bg-slate-800 text-xs font-bold">
-                        <img src={c.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" /> {c.full_name}
+                        <img src={c.photo_url ?? undefined} alt="" className="w-7 h-7 rounded-full object-cover" /> {c.full_name}
                       </span>
                     ))}
                   </div>
@@ -427,7 +432,7 @@ const ResultsTab = ({ e, busy, act, action }: { e: AdminGeneralElection; busy: s
                           <li key={c.id}>
                             <div className="flex items-center gap-2 text-sm">
                               <span className="w-5 text-slate-400 font-black">{i + 1}</span>
-                              <img src={c.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                              <img src={c.photo_url ?? undefined} alt="" className="w-8 h-8 rounded-full object-cover" />
                               <span className="font-bold flex-1 truncate">{c.full_name}</span>
                               {winner && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-black flex items-center gap-1"><Trophy className="w-3 h-3" /> {p.tie_resolved ? 'فائز (بعد الحسم)' : 'الأعلى أصواتًا'}</span>}
                               {p.tie && (c.votes ?? 0) === p.top_votes && <span className="px-2 py-0.5 rounded-full bg-slate-700 text-white text-[11px] font-black flex items-center gap-1"><Scale className="w-3 h-3" /> تعادل</span>}

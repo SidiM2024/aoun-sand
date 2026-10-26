@@ -15,8 +15,9 @@ export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 export interface GeneralCandidate {
   id: string;
   full_name: string;
-  photo_url: string;
-  program: string;
+  /** Null while voting is open: members then only see the names. */
+  photo_url: string | null;
+  program: string | null;
   votes: number | null;
 }
 
@@ -59,6 +60,8 @@ export interface GeneralElection {
   is_published: boolean;
   phase: GeneralPhase;
   server_now: string;
+  /** True while voting is open: cards (photos, programmes) are hidden, only the voting form shows. */
+  cards_hidden?: boolean;
   nominations_start_at: string | null;
   nominations_end_at: string | null;
   voting_start_at: string | null;
@@ -190,6 +193,7 @@ const MESSAGES: Record<string, string> = {
   POSITION_DUPLICATE: 'يوجد منصب بنفس الاسم.',
   POSITION_HAS_APPLICATIONS: 'لا يمكن حذف منصب عليه طلبات ترشح، يمكنك تعطيله.',
   REVIEW_LOCKED: 'لا يمكن تغيير حالة الطلبات بعد بدء التصويت.',
+  VOTING_NO_CANDIDATES: 'لا يمكن فتح التصويت: لا يوجد أي مترشح مقبول بعد.',
   TIE_NOT_FOUND: 'لا يوجد تعادل في صدارة هذا المنصب.',
   ELECTION_IS_OPEN: 'لا يمكن حذف الانتخابات أثناء التصويت.',
   NOT_FOUND: 'العنصر غير موجود، ربما حُذف.',
@@ -273,7 +277,7 @@ export const adminGetGeneral = (id: string) => adminRpc<AdminGeneralElection>('g
 export const adminCreateGeneral = (data: { title: string; description?: string; eligibility: 'approved' | 'registered' }) =>
   adminRpc<{ id: string }>('general_election_create', { p_data: data });
 export const adminSaveGeneral = (id: string, data: Record<string, unknown>) => adminRpc<AdminGeneralElection>('general_election_save', { p_id: id, p_data: data });
-export type GeneralAction = 'close_nominations' | 'close_voting' | 'announce' | 'unannounce' | 'publish' | 'unpublish';
+export type GeneralAction = 'open_voting' | 'close_nominations' | 'close_voting' | 'announce' | 'unannounce' | 'publish' | 'unpublish';
 export const adminGeneralAction = (id: string, action: GeneralAction) => adminRpc<AdminGeneralElection>('general_election_action', { p_id: id, p_action: action });
 export const adminSavePosition = (electionId: string, id: string | null, data: Record<string, unknown>) =>
   adminRpc<unknown>('general_position_save', { p_election_id: electionId, p_id: id, p_data: data });
@@ -289,10 +293,47 @@ export const adminDeleteGeneral = async (id: string) => {
 };
 
 export const LOG_LABELS: Record<string, string> = {
-  created: 'إنشاء الانتخابات', schedule_saved: 'حفظ المواعيد', close_nominations: 'إغلاق باب الترشح',
+  created: 'إنشاء الانتخابات', schedule_saved: 'حفظ المواعيد', close_nominations: 'إغلاق باب الترشح', open_voting: 'فتح التصويت',
   close_voting: 'إغلاق التصويت', announce: 'إعلان النتائج', unannounce: 'سحب إعلان النتائج',
   publish: 'إظهار الانتخابات للأعضاء', unpublish: 'إخفاء الانتخابات عن الأعضاء',
   position_added: 'إضافة منصب', position_updated: 'تعديل منصب', position_deleted: 'حذف منصب',
   application_approved: 'قبول طلب ترشح', application_rejected: 'رفض طلب ترشح', application_pending: 'إرجاع طلب إلى المراجعة',
   tie_resolved: 'حسم تعادل', tie_cleared: 'إلغاء حسم تعادل', deleted: 'حذف الانتخابات',
+};
+
+// ─── Candidate cards (shareable) ──────────────────────────────────────────────
+
+/** «يترشح لمسؤولية اللجنة المالية» / «يترشح لمنصب الرئيس». */
+export const candidacyLabel = (positionTitle: string) =>
+  positionTitle.startsWith('مسؤول ') ? { lead: 'يترشح لمسؤولية', target: positionTitle.slice('مسؤول '.length) } : { lead: 'يترشح لمنصب', target: positionTitle };
+
+export interface CandidateCardData {
+  id: string;
+  full_name: string;
+  photo_url: string | null;
+  program: string | null;
+  position_title: string;
+  committee: string | null;
+  group_key: string;
+  election_id: string;
+  election_title: string;
+  phase: GeneralPhase;
+  cards_hidden: boolean;
+}
+
+/** One approved candidate's card; readable without an account (for shared links). */
+export const fetchCandidateCard = (id: string) => rpc<CandidateCardData | null>('election_candidate_card', { p_id: id });
+
+export const candidateShareUrl = (id: string) => `${window.location.origin}/candidate/${id}`;
+
+export const candidateShareLinks = (name: string, positionTitle: string, id: string) => {
+  const url = candidateShareUrl(id);
+  const { lead, target } = candidacyLabel(positionTitle);
+  const text = `${name} — ${lead} ${target} في انتخابات جمعية عون وسند الخيرية. اطّلع على البرنامج الانتخابي:`;
+  return {
+    url, text,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    snapchat: `https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(url)}`,
+  };
 };
