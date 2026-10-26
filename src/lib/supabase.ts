@@ -9,9 +9,13 @@ if (!supabaseUrl || !supabaseKey) {
 
 // Dashboard admins have no Supabase login: their server session token (see adminSession.ts)
 // is sent with every request so the database policies can check their sections.
-// The token is only ever sent to this project's own Supabase API.
+// The token is only ever sent to this project's own database API (/rest/v1): Storage and Auth
+// do not use it, and an extra header there can make the browser reject the request (CORS),
+// which broke candidate photo uploads for members on a device where an admin had signed in.
 const ADMIN_TOKEN_KEY = 'admin_session_token';
+const requestUrl = (input: RequestInfo | URL) => (typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
 const withAdminToken: typeof fetch = (input, init) => {
+  if (!requestUrl(input).includes('/rest/v1/')) return fetch(input, init);
   let token: string | null = null;
   try { token = localStorage.getItem(ADMIN_TOKEN_KEY) || localStorage.getItem('mahaja_students_token'); } catch { token = null; }
   if (!token) return fetch(input, init);

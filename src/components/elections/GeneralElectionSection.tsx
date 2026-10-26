@@ -3,17 +3,18 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  Award, CalendarClock, Camera, CheckCircle2, ClipboardList, FileText, Hourglass, Landmark, Loader2, LogIn,
-  Megaphone, Scale, ShieldCheck, Trophy, UserRound, Users, Vote, X, AlertCircle, Trash2, Send, CreditCard as IdCardIcon, LayoutGrid,
+  Award, CalendarClock, Camera, ClipboardList, Hourglass, Landmark, Loader2, LogIn,
+  Megaphone, ShieldCheck, UserRound, Vote, X, AlertCircle, Trash2, Send, CreditCard as IdCardIcon, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  PHASE_INFO, STATUS_INFO, STEPS, applyForPosition, candidatesLabel, fetchGeneralElections, formatMrDate,
-  formatMrDateTime, formatMrTime, groupPositions, removeCandidatePhoto, uploadCandidatePhoto, votePosition, withdrawApplication,
-  type GeneralCandidate, type GeneralElection, type GeneralPosition, type MyApplication,
+  PHASE_INFO, STATUS_INFO, STEPS, applyForPosition, fetchGeneralElections, formatMrDate,
+  formatMrDateTime, formatMrTime, groupPositions, prepareCandidatePhoto, removeCandidatePhoto, uploadCandidatePhoto, votingStarted, withdrawApplication,
+  type GeneralElection, type MyApplication,
 } from '../../lib/generalElections';
 import { CandidateElectionCard } from './CandidateElectionCard';
 import { CandidateGallery } from './CandidateGallery';
+import { LiveStats, VotingBoard } from './VotingBoard';
 
 const NAVY = 'bg-[#211d45]';
 
@@ -68,141 +69,125 @@ const Stepper = ({ step }: { step: number }) => (
   </ol>
 );
 
-// ─── Program dialog ──────────────────────────────────────────────────────────
-
-const ProgramDialog = ({ c, position, onClose }: { c: GeneralCandidate; position: string; onClose: () => void }) => (
-  <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-950/70 p-0 sm:p-4" onClick={onClose} dir="rtl">
-    <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true"
-      className="w-full sm:max-w-lg max-h-[88vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl">
-      <div className={`${NAVY} text-white p-5 flex items-center gap-4 sticky top-0`}>
-        {c.photo_url && <img src={c.photo_url} alt={c.full_name} className="w-16 h-16 rounded-2xl object-cover border-2 border-[#f7b2b0]" />}
-        <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-black truncate">{c.full_name}</h3>
-          <p className="text-sm text-[#f7b2b0] font-bold">مترشح لمنصب: {position}</p>
-        </div>
-        <button onClick={onClose} aria-label="إغلاق" className="p-2 rounded-xl hover:bg-white/10"><X className="w-5 h-5" /></button>
-      </div>
-      <div className="p-5">
-        <h4 className="font-black text-[#211d45] dark:text-white mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-[#ef8f88]" /> البرنامج الانتخابي</h4>
-        <p className="text-slate-700 dark:text-slate-200 leading-loose whitespace-pre-wrap">{c.program}</p>
-      </div>
-    </motion.div>
-  </div>
-);
-
-// ─── Candidate card ──────────────────────────────────────────────────────────
-
-const CandidateCard = ({ c, position, selectable, selected, onSelect, result }: {
-  c: GeneralCandidate; position: string; selectable: boolean; selected: boolean; onSelect: () => void;
-  result?: { pct: number; winner: boolean; tied: boolean };
-}) => {
-  const [showProgram, setShowProgram] = useState(false);
-  return (
-    <div className={`relative rounded-3xl bg-white dark:bg-slate-900 border-2 p-3 transition-all ${selected ? 'border-[#ef8f88] shadow-lg shadow-[#ef8f88]/25' : result?.winner ? 'border-amber-300' : 'border-slate-100 dark:border-slate-800'}`}>
-      {result?.winner && <span className="absolute -top-3 start-3 px-3 py-1 rounded-full bg-amber-400 text-[#211d45] text-xs font-black flex items-center gap-1 z-10"><Trophy className="w-3.5 h-3.5" /> الفائز</span>}
-      {result?.tied && <span className="absolute -top-3 start-3 px-3 py-1 rounded-full bg-slate-700 text-white text-xs font-black flex items-center gap-1 z-10"><Scale className="w-3.5 h-3.5" /> تعادل</span>}
-      <div className="flex gap-3">
-        <div className="w-24 h-28 rounded-2xl overflow-hidden bg-[#fde3e1] shrink-0">
-          {c.photo_url ? <img src={c.photo_url} alt={c.full_name} loading="lazy" className="w-full h-full object-cover" /> : <UserRound className="w-full h-full p-6 text-[#e2706a]" />}
-        </div>
-        <div className="min-w-0 flex-1 flex flex-col">
-          <h4 className="font-black text-[#211d45] dark:text-white leading-snug">{c.full_name}</h4>
-          <p className="text-xs font-bold text-[#e2706a] mt-0.5">{position}</p>
-          <button onClick={() => setShowProgram(true)} className="mt-auto self-start px-3 py-1.5 rounded-xl text-xs font-black bg-[#fde8e6] text-[#211d45] dark:bg-[#f7b2b0]/15 dark:text-[#f7b2b0] flex items-center gap-1">
-            <FileText className="w-3.5 h-3.5" /> عرض البرنامج الانتخابي
-          </button>
-        </div>
-      </div>
-      {result && (
-        <div className="mt-3">
-          <div className="flex justify-between text-sm font-black mb-1">
-            <span className="text-[#211d45] dark:text-white">{c.votes ?? 0} صوت</span>
-            <span className="text-slate-500">{result.pct}%</span>
-          </div>
-          <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <motion.div initial={{ width: 0 }} animate={{ width: `${result.pct}%` }} transition={{ duration: 0.8 }} className={`h-full rounded-full ${result.winner ? 'bg-amber-400' : 'bg-[#ef8f88]'}`} />
-          </div>
-        </div>
-      )}
-      {selectable && (
-        <button onClick={onSelect} aria-pressed={selected}
-          className={`mt-3 w-full py-2.5 rounded-2xl font-black flex items-center justify-center gap-2 transition-colors ${selected ? 'bg-[#ef8f88] text-white' : 'bg-[#fde3e1] text-[#211d45] hover:bg-[#fbd0cc]'}`}>
-          {selected ? <><CheckCircle2 className="w-5 h-5" /> تم الاختيار</> : 'اختيار هذا المترشح'}
-        </button>
-      )}
-      <AnimatePresence>{showProgram && <ProgramDialog c={c} position={position} onClose={() => setShowProgram(false)} />}</AnimatePresence>
-    </div>
-  );
-};
-
 // ─── Candidacy form ──────────────────────────────────────────────────────────
+
+type ApplyStep = 'idle' | 'upload' | 'save';
+const draftKey = (electionId: string, userId: string) => `candidacy_draft_${electionId}_${userId}`;
 
 const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; onClose: () => void; onDone: () => void }) => {
   const { user, userProfile } = useAuth();
   const applied = new Set(election.my?.applications.map(a => a.position_id) ?? []);
   const positions = election.positions.filter(p => p.is_active);
   const hasOther = positions.some(p => p.group_key === 'other');
+  const key = user ? draftKey(election.id, user.id) : '';
+  const draft = (() => {
+    try { return key ? JSON.parse(sessionStorage.getItem(key) || 'null') as { name?: string; program?: string; positionId?: string; group?: string } | null : null; }
+    catch { return null; }
+  })();
 
-  const [name, setName] = useState(userProfile?.full_name ?? '');
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [name, setName] = useState(draft?.name ?? userProfile?.full_name ?? '');
+  const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [group, setGroup] = useState<'executive' | 'committee' | 'other'>('executive');
-  const [positionId, setPositionId] = useState('');
-  const [program, setProgram] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [photoState, setPhotoState] = useState<'empty' | 'processing' | 'ready' | 'error'>('empty');
+  const [photoError, setPhotoError] = useState('');
+  const [group, setGroup] = useState<'executive' | 'committee' | 'other'>((draft?.group as 'executive' | 'committee' | 'other') ?? 'executive');
+  const [positionId, setPositionId] = useState(draft?.positionId ?? '');
+  const [program, setProgram] = useState(draft?.program ?? '');
+  const [step, setStep] = useState<ApplyStep>('idle');
+  const [tried, setTried] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const busy = step !== 'idle';
 
   // One position per committee (its head): the committees are listed directly.
   const choices = positions.filter(p => p.group_key === group);
-  useEffect(() => { setPositionId(''); }, [group]);
+  const firstGroup = useRef(true);
+  useEffect(() => { if (firstGroup.current) { firstGroup.current = false; return; } setPositionId(''); }, [group]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  // The text typed is kept for the session: a failed submission or a closed window loses nothing.
+  useEffect(() => {
+    if (!key) return;
+    try { sessionStorage.setItem(key, JSON.stringify({ name, program, positionId, group })); } catch { /* storage blocked */ }
+  }, [key, name, program, positionId, group]);
 
+  const pickPhoto = async (f: File) => {
+    setPhotoState('processing'); setPhotoError('');
+    try {
+      const blob = await prepareCandidatePhoto(f);
+      setPhoto(blob);
+      setPreview(URL.createObjectURL(blob));
+      setPhotoState('ready');
+    } catch (err) {
+      setPhoto(null); setPreview(null);
+      setPhotoState('error');
+      setPhotoError(err instanceof Error ? err.message : 'تعذّرت قراءة الصورة');
+    }
+  };
+
+  const errors = {
+    name: name.trim().length < 3 ? 'اكتب اسمك الكامل (3 أحرف على الأقل)' : '',
+    photo: !photo ? (photoError || 'أضف صورتك الشخصية') : '',
+    position: !positionId ? 'اختر المنصب المطلوب' : '',
+    program: program.trim().length < 20 ? 'اكتب برنامجك الانتخابي (20 حرفًا على الأقل)' : '',
+  };
+  const firstError = Object.values(errors).find(Boolean);
 
   const submit = async () => {
     if (busy || !user) return;
-    if (name.trim().length < 3) { toast.error('اكتب اسمك الكامل'); return; }
-    if (!photo) { toast.error('أضف صورتك الشخصية'); return; }
-    if (!positionId) { toast.error('اختر المنصب المطلوب'); return; }
-    if (program.trim().length < 20) { toast.error('اكتب برنامجك الانتخابي (20 حرفًا على الأقل)'); return; }
-    setBusy(true);
+    setTried(true);
+    if (firstError) { toast.error(firstError); return; }
     let uploaded: { url: string; path: string } | null = null;
     try {
-      uploaded = await uploadCandidatePhoto(photo, user.id);
+      setStep('upload');
+      uploaded = await uploadCandidatePhoto(photo!, user.id);
+      setStep('save');
       await applyForPosition(election.id, positionId, { full_name: name.trim(), photo_url: uploaded.url, photo_path: uploaded.path, program: program.trim() });
+      try { sessionStorage.removeItem(key); } catch { /* storage blocked */ }
       toast.success('تم إرسال طلب ترشحك بنجاح، وهو قيد مراجعة الإدارة', { duration: 6000 });
       onDone();
       onClose();
     } catch (err) {
       if (uploaded) void removeCandidatePhoto(uploaded.path);
-      toast.error(err instanceof Error ? err.message : 'تعذّر إرسال الطلب');
+      toast.error(err instanceof Error ? err.message : 'تعذّر إرسال الطلب', { duration: 7000 });
     } finally {
-      setBusy(false);
+      setStep('idle');
     }
   };
 
-  const field = 'w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-[#ef8f88]/50';
+  const field = 'w-full px-4 py-3 rounded-2xl border bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-[#ef8f88]/50';
+  const border = (bad: string) => (tried && bad ? 'border-red-400' : 'border-slate-200 dark:border-slate-700');
+  const hint = (bad: string) => (tried && bad ? <span className="block text-xs font-bold text-red-600 mt-1">{bad}</span> : null);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-950/70 p-0 sm:p-4" dir="rtl" onClick={() => !busy && onClose()}>
-      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true"
-        className="w-full sm:max-w-xl max-h-[94vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl overflow-hidden">
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="استمارة الترشح"
+        className="w-full sm:max-w-xl max-h-[94dvh] flex flex-col bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl overflow-hidden">
         <div className={`${NAVY} text-white px-5 py-4 flex items-center justify-between`}>
           <h3 className="text-lg font-black flex items-center gap-2"><Send className="w-5 h-5 text-[#f7b2b0]" /> استمارة الترشح</h3>
           <button onClick={onClose} disabled={busy} aria-label="إغلاق" className="p-2 rounded-xl hover:bg-white/10"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={() => fileRef.current?.click()} className="relative w-28 h-32 rounded-3xl overflow-hidden bg-[#fde3e1] border-2 border-dashed border-[#ef8f88] shrink-0 flex items-center justify-center">
-              {preview ? <img src={preview} alt="" className="w-full h-full object-cover" /> : <UserRound className="w-12 h-12 text-[#e2706a]" />}
-              <span className="absolute bottom-0 inset-x-0 bg-[#211d45]/80 text-white text-xs font-bold py-1.5 flex items-center justify-center gap-1"><Camera className="w-3.5 h-3.5" /> {preview ? 'تغيير' : 'إضافة صورة'}</span>
-            </button>
+          <div className="flex items-start gap-4">
+            <div className="shrink-0">
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || photoState === 'processing'} aria-label="اختيار الصورة الشخصية"
+                className={`relative w-28 h-32 rounded-3xl overflow-hidden bg-[#fde3e1] border-2 border-dashed flex items-center justify-center ${tried && errors.photo ? 'border-red-400' : 'border-[#ef8f88]'}`}>
+                {photoState === 'processing'
+                  ? <Loader2 className="w-8 h-8 animate-spin text-[#e2706a]" />
+                  : preview ? <img src={preview} alt="الصورة الشخصية" className="w-full h-full object-cover" /> : <UserRound className="w-12 h-12 text-[#e2706a]" />}
+                <span className="absolute bottom-0 inset-x-0 bg-[#211d45]/80 text-white text-xs font-bold py-1.5 flex items-center justify-center gap-1"><Camera className="w-3.5 h-3.5" /> {preview ? 'تغيير' : 'إضافة صورة'}</span>
+              </button>
+              {photoState === 'ready' && <span className="mt-1 block text-[11px] font-bold text-emerald-600 text-center">الصورة جاهزة ✓</span>}
+            </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => {
               const f = e.target.files?.[0]; e.target.value = '';
-              if (f) { setPhoto(f); setPreview(URL.createObjectURL(f)); }
+              if (f) void pickPhoto(f);
             }} />
             <label className="flex-1 block"><span className="block text-sm font-black mb-1.5">الاسم الكامل *</span>
-              <input value={name} onChange={e => setName(e.target.value)} maxLength={120} className={field} placeholder="الاسم كما سيظهر للمصوتين" /></label>
+              <input value={name} onChange={e => setName(e.target.value)} maxLength={120} className={`${field} ${border(errors.name)}`} placeholder="الاسم كما سيظهر للمصوتين" />
+              {hint(errors.name)}
+            </label>
           </div>
+          {photoState === 'error' && <p className="-mt-2 text-sm font-bold text-red-600 flex items-start gap-1.5"><AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {photoError}</p>}
+          {photoState !== 'error' && hint(errors.photo)}
 
           <div>
             <span className="block text-sm font-black mb-2">المنصب المطلوب *</span>
@@ -224,19 +209,30 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
                 );
               })}
             </div>
+            {hint(errors.position)}
           </div>
 
           <label className="block"><span className="block text-sm font-black mb-1.5">البرنامج الانتخابي *</span>
-            <textarea value={program} onChange={e => setProgram(e.target.value)} rows={8} maxLength={5000} className={`${field} leading-relaxed`}
+            <textarea value={program} onChange={e => setProgram(e.target.value)} rows={8} maxLength={5000} className={`${field} ${border(errors.program)} leading-relaxed`}
               placeholder={'مثال:\n1. الرؤية: …\n2. الأهداف: …\n3. أبرز المشاريع التي سأعمل عليها: …\n4. لماذا أترشح لهذا المنصب: …'} />
-            <span className="block text-xs text-slate-400 mt-1 text-start">{program.trim().length} / 5000</span>
+            <span className="flex justify-between text-xs mt-1">
+              <span>{hint(errors.program)}</span>
+              <span className={program.trim().length < 20 ? 'text-slate-400' : 'text-emerald-600 font-bold'}>{program.trim().length} / 5000</span>
+            </span>
           </label>
         </div>
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
-          <button onClick={onClose} disabled={busy} className="px-5 py-3 rounded-2xl font-bold bg-slate-100 dark:bg-slate-800">إلغاء</button>
-          <button onClick={() => void submit()} disabled={busy} className="flex-1 py-3 rounded-2xl font-black text-white bg-[#ef8f88] hover:bg-[#e2706a] disabled:opacity-60 flex items-center justify-center gap-2">
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} إرسال طلب الترشح
-          </button>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          {busy && (
+            <p className="text-sm font-bold text-[#211d45] dark:text-white flex items-center gap-2 justify-center" role="status">
+              <Loader2 className="w-4 h-4 animate-spin text-[#ef8f88]" /> {step === 'upload' ? 'جارٍ رفع الصورة… (1 من 2)' : 'جارٍ حفظ طلب الترشح… (2 من 2)'}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button onClick={onClose} disabled={busy} className="px-5 py-3 rounded-2xl font-bold bg-slate-100 dark:bg-slate-800">إلغاء</button>
+            <button onClick={() => void submit()} disabled={busy || photoState === 'processing'} className="flex-1 py-3 rounded-2xl font-black text-white bg-[#ef8f88] hover:bg-[#e2706a] disabled:opacity-60 flex items-center justify-center gap-2">
+              {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} إرسال طلب الترشح
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -245,49 +241,18 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
 
 // ─── One general election ────────────────────────────────────────────────────
 
-const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: number; reload: () => void }) => {
+const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
+  e: GeneralElection; offset: number; reload: () => Promise<void>; lastUpdated: Date | null; refreshing: boolean;
+}) => {
   const { user } = useAuth();
   const info = PHASE_INFO[e.phase];
-  const isResults = e.phase === 'results';
   const isVoting = e.phase === 'voting';
   const positions = e.positions;
   const groups = groupPositions(positions);
-  const voted = new Set(e.my?.voted_position_ids ?? []);
   const [applyOpen, setApplyOpen] = useState(false);
-  const [selectedPos, setSelectedPos] = useState<string>(positions[0]?.id ?? '');
-  const [choice, setChoice] = useState<Record<string, string>>({});
-  const [confirming, setConfirming] = useState<GeneralPosition | null>(null);
-  const [sending, setSending] = useState(false);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [myCard, setMyCard] = useState<MyApplication | null>(null);
   const [cardFilter, setCardFilter] = useState<string>('all');
-  const posRef = useRef<HTMLDivElement>(null);
-
-  const current = positions.find(p => p.id === selectedPos) ?? positions[0];
-  const canVote = isVoting && !!user && !!e.my?.can_vote;
-
-  const pick = (id: string) => { setSelectedPos(id); setTimeout(() => posRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
-
-  const sendVote = async () => {
-    if (!confirming || sending) return;
-    const appId = choice[confirming.id];
-    setSending(true);
-    try {
-      await votePosition(e.id, confirming.id, appId);
-      toast.success('تم تسجيل صوتك بنجاح');
-      setConfirming(null);
-      reload();
-      // Move on to the next position not voted yet.
-      const next = positions.find(p => p.id !== confirming.id && !voted.has(p.id) && p.candidates.length > 0);
-      if (next) setSelectedPos(next.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'تعذّر تسجيل الصوت');
-      setConfirming(null);
-      reload();
-    } finally {
-      setSending(false);
-    }
-  };
 
   const withdraw = async (id: string) => {
     if (!window.confirm('سحب طلب الترشح نهائيًا؟')) return;
@@ -316,12 +281,6 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
     : e.phase === 'nominations' ? { to: e.nominations_end_at!, label: 'يُغلق باب الترشح بعد' }
     : e.phase === 'voting_scheduled' ? { to: e.voting_start_at!, label: 'يبدأ التصويت بعد' }
     : e.phase === 'voting' && e.voting_end_at ? { to: e.voting_end_at, label: 'ينتهي التصويت بعد' } : null;
-
-  const resultFor = (p: GeneralPosition, c: GeneralCandidate) => {
-    const total = p.voters_count ?? 0;
-    const tied = !!p.tie && (c.votes ?? 0) === p.top_votes;
-    return { pct: total > 0 ? Math.round(((c.votes ?? 0) / total) * 100) : 0, winner: p.winner_application_id === c.id, tied };
-  };
 
   return (
     <section className="rounded-[32px] overflow-hidden bg-white dark:bg-slate-900 shadow-xl shadow-[#211d45]/10 border border-slate-100 dark:border-slate-800">
@@ -358,9 +317,7 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
           {isVoting && !user && (
             <div className="mt-4 flex justify-center"><Link to="/auth" state={{ from: { pathname: '/elections' } }} className="px-5 py-3 rounded-2xl bg-[#ef8f88] font-black flex items-center gap-2"><LogIn className="w-5 h-5" /> سجّل الدخول للتصويت</Link></div>
           )}
-          {(isVoting || isResults || e.phase === 'voting_closed') && e.voters_total !== null && (
-            <p className="mt-4 text-center text-sm text-white/75 flex items-center justify-center gap-1.5"><Users className="w-4 h-4" /> عدد المشاركين في التصويت: <b className="text-white">{e.voters_total}</b></p>
-          )}
+          {votingStarted(e.phase) && <LiveStats e={e} lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={reload} />}
         </div>
       </div>
 
@@ -410,128 +367,11 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
           </div>
         )}
 
-        {isResults && (
-          <>
-            <div>
-              <h3 className="font-black text-lg text-[#211d45] dark:text-white mb-3 flex items-center gap-2">
-                {isResults ? <><Trophy className="w-5 h-5 text-amber-500" /> النتائج حسب المنصب</> : <><Users className="w-5 h-5 text-[#ef8f88]" /> المناصب والمترشحون</>}
-              </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                {groups.map(g => (
-                  <div key={g.key} className="rounded-3xl bg-slate-50 dark:bg-slate-800/50 p-4">
-                    <p className="font-black text-[#211d45] dark:text-white mb-2">{g.title}</p>
-                    <ul className="space-y-1.5">
-                      {g.items.map(p => {
-                        const winner = isResults ? p.candidates.find(c => c.id === p.winner_application_id) : null;
-                        return (
-                          <li key={p.id}>
-                            <button onClick={() => pick(p.id)} className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-sm text-start transition-colors ${current?.id === p.id ? 'bg-[#211d45] text-white' : 'bg-white dark:bg-slate-900 hover:bg-[#fde8e6]'}`}>
-                              <span className="font-bold">{p.title}</span>
-                              <span className={`text-xs font-black whitespace-nowrap flex items-center gap-1 ${current?.id === p.id ? 'text-[#f7b2b0]' : 'text-slate-500'}`}>
-                                {voted.has(p.id) && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
-                                {isResults ? (p.tie ? 'تعادل' : winner ? winner.full_name : '—') : candidatesLabel(p.candidates_count ?? 0)}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Voting, closed voting and results: the electronic ballot / live results board. */}
+        {votingStarted(e.phase) && <VotingBoard e={e} userId={user?.id ?? null} reload={reload} />}
 
-            {current && (
-              <div ref={posRef} className="scroll-mt-24">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <h3 className="text-xl font-black text-[#211d45] dark:text-white">{current.title}</h3>
-                  <span className="px-3 py-1 rounded-full bg-[#fde8e6] text-[#211d45] text-xs font-black">{candidatesLabel(current.candidates_count ?? 0)}</span>
-                </div>
-                {isResults && current.tie && (
-                  <p className="mb-3 p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm flex items-center gap-2"><Scale className="w-5 h-5" /> تعادل في صدارة هذا المنصب، ويُحسم وفق قواعد الجمعية.</p>
-                )}
-                {isResults && <p className="mb-3 text-sm text-slate-500">عدد المصوتين لهذا المنصب: {current.voters_count ?? 0}</p>}
-                {isVoting && voted.has(current.id) && (
-                  <p className="mb-3 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold text-sm flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> صوّتّ لهذا المنصب. صوتك سري ولا يمكن تغييره.</p>
-                )}
-                {current.candidates.length === 0 ? (
-                  <p className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 text-center font-bold text-slate-500">لا يوجد مترشحون لهذا المنصب</p>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {current.candidates.map(c => (
-                      <CandidateCard key={c.id} c={c} position={current.title}
-                        selectable={canVote && !voted.has(current.id)} selected={choice[current.id] === c.id}
-                        onSelect={() => setChoice(ch => ({ ...ch, [current.id]: c.id }))}
-                        result={isResults ? resultFor(current, c) : undefined} />
-                    ))}
-                  </div>
-                )}
-                {canVote && !voted.has(current.id) && current.candidates.length > 0 && (
-                  <div className="sticky bottom-[calc(80px+env(safe-area-inset-bottom))] mt-4 z-10">
-                    <button onClick={() => setConfirming(current)} disabled={!choice[current.id]}
-                      className={`w-full py-4 rounded-2xl ${NAVY} text-white font-black text-lg shadow-xl disabled:opacity-50 flex items-center justify-center gap-2`}>
-                      <Vote className="w-5 h-5" /> تأكيد صوتي لمنصب {current.title}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Voting open: only the voting form (names), no cards / photos / programmes. */}
-        {isVoting && (
-          <div className="space-y-4">
-            <h3 className="font-black text-lg text-[#211d45] dark:text-white flex items-center gap-2"><Vote className="w-5 h-5 text-[#ef8f88]" /> ورقة التصويت</h3>
-            <p className="text-sm text-slate-500">اختر مترشحًا واحدًا في كل منصب ثم أكّد صوتك. يمكنك التصويت في جميع المناصب، ولكل منصب صوت واحد فقط.</p>
-            {groups.map(g => (
-              <div key={g.key} className="space-y-3">
-                <p className="font-black text-[#e2706a]">{g.title}</p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {g.items.map(p => {
-                    const done = voted.has(p.id);
-                    return (
-                      <div key={p.id} className={`rounded-3xl border-2 p-4 ${done ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-900/10' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'}`}>
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <h4 className="font-black text-[#211d45] dark:text-white">{p.title}</h4>
-                          {done
-                            ? <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> تم التصويت</span>
-                            : <span className="text-xs font-bold text-slate-500">{candidatesLabel(p.candidates.length)}</span>}
-                        </div>
-                        {p.candidates.length === 0 ? (
-                          <p className="text-sm text-slate-500">لا يوجد مترشحون لهذا المنصب</p>
-                        ) : done ? (
-                          <p className="text-sm text-emerald-700 dark:text-emerald-300">صوتك سري ولا يمكن تغييره.</p>
-                        ) : (
-                          <>
-                            <div className="space-y-2" role="radiogroup" aria-label={p.title}>
-                              {p.candidates.map(c => (
-                                <label key={c.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl border-2 cursor-pointer transition-colors ${choice[p.id] === c.id ? 'border-[#ef8f88] bg-[#fde8e6] dark:bg-[#f7b2b0]/10' : 'border-slate-100 dark:border-slate-800'} ${canVote ? '' : 'opacity-60 cursor-not-allowed'}`}>
-                                  <input type="radio" name={`vote-${p.id}`} disabled={!canVote} checked={choice[p.id] === c.id}
-                                    onChange={() => setChoice(ch => ({ ...ch, [p.id]: c.id }))} className="w-5 h-5 accent-[#ef8f88]" />
-                                  <span className="font-bold text-[#211d45] dark:text-white">{c.full_name}</span>
-                                </label>
-                              ))}
-                            </div>
-                            {canVote && (
-                              <button onClick={() => setConfirming(p)} disabled={!choice[p.id]}
-                                className={`mt-3 w-full py-3 rounded-2xl ${NAVY} text-white font-black disabled:opacity-40 flex items-center justify-center gap-2`}>
-                                <Vote className="w-5 h-5" /> تأكيد صوتي
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Before voting / after it closes: every approved candidate's card, for everyone. */}
-        {!isVoting && !isResults && (() => {
+        {/* Before voting: every approved candidate's card, for everyone. */}
+        {!votingStarted(e.phase) && (() => {
           const all = positions.flatMap(p => p.candidates.map(c => ({ c, p })));
           const shown = cardFilter === 'all' ? all : all.filter(x => x.p.id === cardFilter);
           return (
@@ -577,29 +417,6 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
             </motion.div>
           </div>
         )}
-        {confirming && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4" onClick={() => !sending && setConfirming(null)} dir="rtl">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={ev => ev.stopPropagation()} role="alertdialog" aria-modal="true"
-              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 space-y-4">
-              <h3 className="text-xl font-black text-[#211d45] dark:text-white">تأكيد التصويت</h3>
-              {(() => {
-                const c = confirming.candidates.find(x => x.id === choice[confirming.id]);
-                return c ? (
-                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fde8e6] dark:bg-[#f7b2b0]/10">
-                    <div><p className="font-black text-[#211d45] dark:text-white">{c.full_name}</p><p className="text-sm text-slate-600 dark:text-slate-300">لمنصب: {confirming.title}</p></div>
-                  </div>
-                ) : null;
-              })()}
-              <p className="text-sm text-slate-500 flex items-start gap-2"><ShieldCheck className="w-5 h-5 shrink-0 text-emerald-600" /> صوتك سري، ولا يمكن تعديله أو إلغاؤه بعد التأكيد.</p>
-              <div className="flex gap-2">
-                <button onClick={() => setConfirming(null)} disabled={sending} className="px-5 py-3 rounded-2xl font-bold bg-slate-100 dark:bg-slate-800">رجوع</button>
-                <button onClick={() => void sendVote()} disabled={sending} className="flex-1 py-3 rounded-2xl bg-[#ef8f88] text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
-                  {sending && <Loader2 className="w-5 h-5 animate-spin" />} تأكيد وإرسال الصوت
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </AnimatePresence>
     </section>
   );
@@ -612,31 +429,41 @@ export const GeneralElectionSection = ({ onLoaded }: { onLoaded?: (count: number
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState('');
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
   const load = useCallback(async () => {
+    setRefreshing(true);
     try {
       const t0 = Date.now();
       const data = await fetchGeneralElections();
       if (data[0]) setOffset(new Date(data[0].server_now).getTime() - (t0 + Date.now()) / 2);
       setList(data);
       setError('');
+      setLastUpdated(new Date());
       onLoaded?.(data.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر تحميل الانتخابات');
       setList(cur => cur ?? []);
       onLoaded?.(0);
+    } finally {
+      setRefreshing(false);
     }
   }, [onLoaded]);
 
+  // Live results: every 8 s while a vote is open, otherwise every 20 s (phases follow the clock).
+  const liveVoting = !!list?.some(x => x.phase === 'voting');
   useEffect(() => {
     void load();
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void load(); }, 20000);
+    const t = setInterval(() => { if (document.visibilityState === 'visible') void load(); }, liveVoting ? 8000 : 20000);
     const onFocus = () => void load();
     window.addEventListener('focus', onFocus);
-    return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
-  }, [load, user?.id]);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => { clearInterval(t); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
+  }, [load, user?.id, liveVoting]);
 
   const items = useMemo(() => list ?? [], [list]);
   if (list === null) return <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#ef8f88]" /></div>;
   if (error && items.length === 0) return error.includes('20261024') ? null : <p className="p-4 rounded-2xl bg-amber-50 text-amber-800 font-bold text-sm">{error}</p>;
-  return <>{items.map(e => <ElectionView key={e.id} e={e} offset={offset} reload={() => void load()} />)}</>;
+  return <>{items.map(e => <ElectionView key={e.id} e={e} offset={offset} reload={load} lastUpdated={lastUpdated} refreshing={refreshing} />)}</>;
 };

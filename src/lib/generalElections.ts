@@ -60,8 +60,14 @@ export interface GeneralElection {
   is_published: boolean;
   phase: GeneralPhase;
   server_now: string;
-  /** True while voting is open: cards (photos, programmes) are hidden, only the voting form shows. */
+  /** True while voting is open: programmes are hidden, the ballot shows photos and names. */
   cards_hidden?: boolean;
+  /** Vote counts shown live once voting starts (dashboard setting). */
+  live_results?: boolean;
+  /** Whether vote counts are included (live voting, or results announced). */
+  results_visible?: boolean;
+  /** Number of votes cast in the election (once voting has started). */
+  total_votes?: number | null;
   nominations_start_at: string | null;
   nominations_end_at: string | null;
   voting_start_at: string | null;
@@ -208,11 +214,18 @@ const toError = (error: { code?: string; message?: string }) => {
   if (key) return new SiteError(MESSAGES[key], key);
   if (isMissingFunction(error)) return new SiteError('نظام الانتخابات العامة يحتاج تشغيل ملف قاعدة البيانات 20261024000000 في Supabase.', 'not_installed');
   if (m.toLowerCase().includes('failed to fetch')) return new SiteError('تعذّر الاتصال بالخادم، تحقق من الإنترنت.', 'network');
+  if (/jwt expired|invalid jwt|jwt/i.test(m) || error.code === 'PGRST301' || error.code === 'PGRST303')
+    return new SiteError('انتهت جلسة الدخول. أعد تسجيل الدخول ثم حاول مرة أخرى.', 'session');
   return new SiteError(m ? `حدث خطأ: ${m}` : 'حدث خطأ غير متوقع.', error.code);
 };
 
 const rpc = async <T>(fn: string, args: Record<string, unknown> = {}): Promise<T> => {
-  const { data, error } = await supabase.rpc(fn, args);
+  let { data, error } = await supabase.rpc(fn, args);
+  // Expired access token (phone left idle): refresh the session once and retry.
+  if (error && (/jwt/i.test(error.message ?? '') || error.code === 'PGRST301' || error.code === 'PGRST303')) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) ({ data, error } = await supabase.rpc(fn, args));
+  }
   if (error) throw toError(error);
   return data as T;
 };
@@ -238,33 +251,76 @@ export const votePosition = (electionId: string, positionId: string, application
 const PHOTO_BUCKET = 'election-photos';
 const MAX_PHOTO = 5 * 1024 * 1024;
 
-/** Phone photos are resized to a reasonable JPEG before upload. */
-const compress = async (file: File): Promise<Blob> => {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', 0.86));
-    if (blob) return blob;
-  } catch { /* not decodable here: upload as is if allowed */ }
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new SiteError('نوع الصورة غير مدعوم. اختر صورة JPG أو PNG.');
-  return file;
+const MAX_SIDE = 1200;
+
+const decodeWithImg = (file: File) => new Promise<HTMLImageElement>((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('DECODE')); };
+  img.src = url;
+});
+
+/**
+ * Every photo is turned into a JPEG of at most 1200 px before upload: phone photos (HEIC on
+ * iPhone, very large camera files) then always match the bucket's size and type limits.
+ * createImageBitmap first; the <img> element as a fallback (older Safari, HEIC).
+ */
+export const prepareCandidatePhoto = async (file: File): Promise<Blob> => {
+  let source: ImageBitmap | HTMLImageElement | null = null;
+  try { source = await createImageBitmap(file); } catch { /* fallback below */ }
+  if (!source) {
+    try { source = await decodeWithImg(file); } catch { source = null; }
+  }
+  if (source) {
+    const w = 'naturalWidth' in source ? source.naturalWidth : source.width;
+    const h = 'naturalHeight' in source ? source.naturalHeight : source.height;
+    if (w > 0 && h > 0) {
+      const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w * scale));
+      canvas.height = Math.max(1, Math.round(h * scale));
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff'; // transparent PNGs: white background in the JPEG
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+        if ('close' in source) source.close();
+        for (const q of [0.86, 0.75, 0.6]) {
+          const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/jpeg', q));
+          if (blob && blob.size <= MAX_PHOTO) return blob;
+        }
+      }
+    }
+  }
+  if (['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= MAX_PHOTO) return file;
+  throw new SiteError('تعذّرت قراءة هذه الصورة. اختر صورة أخرى بصيغة JPG أو PNG (يمكنك أخذ لقطة شاشة لها ثم اختيارها).');
 };
 
-export const uploadCandidatePhoto = async (file: File, userId: string) => {
-  if (!file.type.startsWith('image/')) throw new SiteError('الملف المختار ليس صورة.');
-  const blob = await compress(file);
-  if (blob.size > MAX_PHOTO) throw new SiteError('حجم الصورة كبير جدًا (الحد 5 ميغابايت).');
-  const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
-  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: blob.type || 'image/jpeg', cacheControl: '31536000' });
-  if (error) throw new SiteError(error.message.includes('Bucket not found')
-    ? 'مساحة صور المترشحين غير مهيأة. شغّل ملف قاعدة البيانات 20261024000000.'
-    : `تعذّر رفع الصورة: ${error.message}`);
+const uploadMessage = (message: string) => {
+  const m = message.toLowerCase();
+  if (m.includes('bucket not found')) return 'مساحة صور المترشحين غير مهيأة بعد. أبلغ إدارة الجمعية (ملف قاعدة البيانات 20261029000000).';
+  if (m.includes('row-level security') || m.includes('unauthorized') || m.includes('jwt') || m.includes('403'))
+    return 'انتهت جلسة الدخول. أعد تسجيل الدخول ثم حاول مرة أخرى.';
+  if (m.includes('mime') || m.includes('invalid_mime_type')) return 'نوع الصورة غير مدعوم. اختر صورة JPG أو PNG.';
+  if (m.includes('size') || m.includes('too large') || m.includes('413')) return 'حجم الصورة كبير جدًا. اختر صورة أصغر.';
+  if (m.includes('fetch') || m.includes('network') || m.includes('timeout')) return 'تعذّر الاتصال بالخادم أثناء رفع الصورة. تحقق من الإنترنت ثم أعد المحاولة.';
+  return `تعذّر رفع الصورة: ${message}`;
+};
+
+export const uploadCandidatePhoto = async (file: File | Blob, userId: string) => {
+  const blob = file instanceof File ? await prepareCandidatePhoto(file) : file;
+  const path = `${userId}/${crypto.randomUUID()}.jpg`;
+  const send = () => supabase.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+  let { error } = await send();
+  // An expired access token is the usual cause of an RLS refusal: refresh the session once.
+  if (error && /row-level security|jwt|unauthorized|exp/i.test(error.message)) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) ({ error } = await send());
+  } else if (error && /fetch|network|timeout/i.test(error.message)) {
+    ({ error } = await send());
+  }
+  if (error) throw new SiteError(uploadMessage(error.message));
   return { url: supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl, path };
 };
 
