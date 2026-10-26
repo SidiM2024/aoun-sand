@@ -21,6 +21,7 @@ const UserRequestsPage = lazy(() => import('./pages/UserRequestsPage').then(modu
 const MahajaDashboard = lazy(() => import('./pages/MahajaDashboard').then(module => ({ default: module.MahajaDashboard })));
 const MahajaCoursePage = lazy(() => import('./pages/MahajaCoursePage').then(module => ({ default: module.MahajaCoursePage })));
 const ElectionsPage = lazy(() => import('./pages/ElectionsPage').then(module => ({ default: module.ElectionsPage })));
+const CandidateCardPage = lazy(() => import('./pages/CandidateCardPage').then(module => ({ default: module.CandidateCardPage })));
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 // import { usePushNotifications } from './hooks/usePushNotifications';
@@ -152,7 +153,9 @@ const AppContent = () => {
   const isAdminPage = location.pathname === '/admin';
   const { userProfile } = useAuth();
   const isMahajaUser = userProfile?.is_mahaja === true;
-  const isShellHidden = isAuthPage || isAdminPage || isMahajaUser;
+  // Shared candidate cards open as a standalone page (also for visitors without an account).
+  const isCandidateCard = location.pathname.startsWith('/candidate/');
+  const isShellHidden = isAuthPage || isAdminPage || isMahajaUser || isCandidateCard;
 
   // Register service worker + listen for push notifications via Supabase Realtime
   // Push notifications removed to revert back to standard website behavior
@@ -172,6 +175,7 @@ const AppContent = () => {
           <Route path="/reset-password" element={<Navigate to="/auth" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/verify-card/:id" element={<VerifyCardPage />} />
+          <Route path="/candidate/:id" element={<CandidateCardPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />

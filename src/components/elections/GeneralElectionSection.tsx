@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Award, CalendarClock, Camera, CheckCircle2, ClipboardList, FileText, Hourglass, Landmark, Loader2, LogIn,
-  Megaphone, Scale, ShieldCheck, Trophy, UserRound, Users, Vote, X, AlertCircle, Trash2, Send,
+  Megaphone, Scale, ShieldCheck, Trophy, UserRound, Users, Vote, X, AlertCircle, Trash2, Send, CreditCard as IdCardIcon, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  PHASE_INFO, STATUS_INFO, STEPS, applyForPosition, candidatesLabel, candidatesVisible, fetchGeneralElections, formatMrDate,
+  PHASE_INFO, STATUS_INFO, STEPS, applyForPosition, candidatesLabel, fetchGeneralElections, formatMrDate,
   formatMrDateTime, formatMrTime, groupPositions, removeCandidatePhoto, uploadCandidatePhoto, votePosition, withdrawApplication,
-  type GeneralCandidate, type GeneralElection, type GeneralPosition,
+  type GeneralCandidate, type GeneralElection, type GeneralPosition, type MyApplication,
 } from '../../lib/generalElections';
+import { CandidateElectionCard } from './CandidateElectionCard';
 
 const NAVY = 'bg-[#211d45]';
 
@@ -73,7 +74,7 @@ const ProgramDialog = ({ c, position, onClose }: { c: GeneralCandidate; position
     <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true"
       className="w-full sm:max-w-lg max-h-[88vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl">
       <div className={`${NAVY} text-white p-5 flex items-center gap-4 sticky top-0`}>
-        <img src={c.photo_url} alt={c.full_name} className="w-16 h-16 rounded-2xl object-cover border-2 border-[#f7b2b0]" />
+        {c.photo_url && <img src={c.photo_url} alt={c.full_name} className="w-16 h-16 rounded-2xl object-cover border-2 border-[#f7b2b0]" />}
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-black truncate">{c.full_name}</h3>
           <p className="text-sm text-[#f7b2b0] font-bold">مترشح لمنصب: {position}</p>
@@ -101,7 +102,7 @@ const CandidateCard = ({ c, position, selectable, selected, onSelect, result }: 
       {result?.tied && <span className="absolute -top-3 start-3 px-3 py-1 rounded-full bg-slate-700 text-white text-xs font-black flex items-center gap-1 z-10"><Scale className="w-3.5 h-3.5" /> تعادل</span>}
       <div className="flex gap-3">
         <div className="w-24 h-28 rounded-2xl overflow-hidden bg-[#fde3e1] shrink-0">
-          <img src={c.photo_url} alt={c.full_name} loading="lazy" className="w-full h-full object-cover" />
+          {c.photo_url ? <img src={c.photo_url} alt={c.full_name} loading="lazy" className="w-full h-full object-cover" /> : <UserRound className="w-full h-full p-6 text-[#e2706a]" />}
         </div>
         <div className="min-w-0 flex-1 flex flex-col">
           <h4 className="font-black text-[#211d45] dark:text-white leading-snug">{c.full_name}</h4>
@@ -246,7 +247,6 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
 const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: number; reload: () => void }) => {
   const { user } = useAuth();
   const info = PHASE_INFO[e.phase];
-  const showCandidates = candidatesVisible(e.phase);
   const isResults = e.phase === 'results';
   const isVoting = e.phase === 'voting';
   const positions = e.positions;
@@ -258,6 +258,8 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
   const [confirming, setConfirming] = useState<GeneralPosition | null>(null);
   const [sending, setSending] = useState(false);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [myCard, setMyCard] = useState<MyApplication | null>(null);
+  const [cardFilter, setCardFilter] = useState<string>('all');
   const posRef = useRef<HTMLDivElement>(null);
 
   const current = positions.find(p => p.id === selectedPos) ?? positions[0];
@@ -301,7 +303,9 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
       case 'nominations': return { icon: Megaphone, text: `باب الترشح مفتوح حتى ${formatMrDateTime(e.nominations_end_at!)}. يمكن لكل عضو مسجل تقديم طلب ترشح من حسابه.` };
       case 'nominations_closed': return { icon: ClipboardList, text: 'انتهت مرحلة الترشح، وسيتم الإعلان عن موعد التصويت قريبًا.' };
       case 'voting_scheduled': return { icon: CalendarClock, text: `سيبدأ التصويت في انتخابات جمعية عون وسند الخيرية بتاريخ ${formatMrDate(e.voting_start_at!)} على الساعة ${formatMrTime(e.voting_start_at!)}.` };
-      case 'voting': return { icon: Vote, text: `التصويت مفتوح حتى ${formatMrDateTime(e.voting_end_at!)}. لكل عضو مؤهل صوت واحد في كل منصب.` };
+      case 'voting': return { icon: Vote, text: e.voting_end_at
+        ? `التصويت مفتوح حتى ${formatMrDateTime(e.voting_end_at)}. لكل عضو مؤهل صوت واحد في كل منصب.`
+        : 'التصويت مفتوح الآن حتى تعلن إدارة الجمعية إغلاقه. لكل عضو مؤهل صوت واحد في كل منصب.' };
       case 'voting_closed': return { icon: Hourglass, text: 'انتهت عملية التصويت، وسيتم إعلان النتائج الرسمية قريبًا.' };
       case 'results': return { icon: Award, text: 'النتائج الرسمية لانتخابات جمعية عون وسند الخيرية.' };
     }
@@ -310,7 +314,7 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
   const countdown = e.phase === 'nominations_upcoming' ? { to: e.nominations_start_at!, label: 'يُفتح باب الترشح بعد' }
     : e.phase === 'nominations' ? { to: e.nominations_end_at!, label: 'يُغلق باب الترشح بعد' }
     : e.phase === 'voting_scheduled' ? { to: e.voting_start_at!, label: 'يبدأ التصويت بعد' }
-    : e.phase === 'voting' ? { to: e.voting_end_at!, label: 'ينتهي التصويت بعد' } : null;
+    : e.phase === 'voting' && e.voting_end_at ? { to: e.voting_end_at, label: 'ينتهي التصويت بعد' } : null;
 
   const resultFor = (p: GeneralPosition, c: GeneralCandidate) => {
     const total = p.voters_count ?? 0;
@@ -367,12 +371,17 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
             <ul className="space-y-2">
               {e.my.applications.map(a => (
                 <li key={a.id} className="flex items-center gap-3 p-2.5 rounded-2xl bg-white dark:bg-slate-900">
-                  <img src={a.photo_url} alt="" className="w-11 h-11 rounded-xl object-cover" />
+                  {!isVoting && <img src={a.photo_url} alt="" className="w-11 h-11 rounded-xl object-cover" />}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-sm text-[#211d45] dark:text-white truncate">{a.position_title}</p>
                     {a.review_note && <p className="text-xs text-slate-500">ملاحظة الإدارة: {a.review_note}</p>}
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap ${STATUS_INFO[a.status].cls}`}>{STATUS_INFO[a.status].label}</span>
+                  {!isVoting && a.status !== 'rejected' && (
+                    <button onClick={() => setMyCard(a)} className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-[#262150] text-white flex items-center gap-1 whitespace-nowrap">
+                      <IdCardIcon className="w-3.5 h-3.5" /> بطاقتي
+                    </button>
+                  )}
                   {a.status === 'pending' && e.phase === 'nominations' && (
                     <button onClick={() => void withdraw(a.id)} disabled={withdrawing === a.id} aria-label="سحب الطلب" title="سحب الطلب" className="p-2 rounded-xl text-red-500 hover:bg-red-50">
                       {withdrawing === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -396,11 +405,11 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
                 </div>
               </div>
             ))}
-            <p className="text-xs text-slate-500 mt-2">لا يظهر المترشحون للعموم إلا بعد موافقة الإدارة وانتهاء مرحلة الترشح.</p>
+            <p className="text-xs text-slate-500 mt-2">تظهر بطاقة المترشح للجميع فور موافقة الإدارة على طلبه.</p>
           </div>
         )}
 
-        {showCandidates && (
+        {isResults && (
           <>
             <div>
               <h3 className="font-black text-lg text-[#211d45] dark:text-white mb-3 flex items-center gap-2">
@@ -469,11 +478,106 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
           </>
         )}
 
+        {/* Voting open: only the voting form (names), no cards / photos / programmes. */}
+        {isVoting && (
+          <div className="space-y-4">
+            <h3 className="font-black text-lg text-[#211d45] dark:text-white flex items-center gap-2"><Vote className="w-5 h-5 text-[#ef8f88]" /> ورقة التصويت</h3>
+            <p className="text-sm text-slate-500">اختر مترشحًا واحدًا في كل منصب ثم أكّد صوتك. يمكنك التصويت في جميع المناصب، ولكل منصب صوت واحد فقط.</p>
+            {groups.map(g => (
+              <div key={g.key} className="space-y-3">
+                <p className="font-black text-[#e2706a]">{g.title}</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {g.items.map(p => {
+                    const done = voted.has(p.id);
+                    return (
+                      <div key={p.id} className={`rounded-3xl border-2 p-4 ${done ? 'border-emerald-200 bg-emerald-50/50 dark:bg-emerald-900/10' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'}`}>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <h4 className="font-black text-[#211d45] dark:text-white">{p.title}</h4>
+                          {done
+                            ? <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> تم التصويت</span>
+                            : <span className="text-xs font-bold text-slate-500">{candidatesLabel(p.candidates.length)}</span>}
+                        </div>
+                        {p.candidates.length === 0 ? (
+                          <p className="text-sm text-slate-500">لا يوجد مترشحون لهذا المنصب</p>
+                        ) : done ? (
+                          <p className="text-sm text-emerald-700 dark:text-emerald-300">صوتك سري ولا يمكن تغييره.</p>
+                        ) : (
+                          <>
+                            <div className="space-y-2" role="radiogroup" aria-label={p.title}>
+                              {p.candidates.map(c => (
+                                <label key={c.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl border-2 cursor-pointer transition-colors ${choice[p.id] === c.id ? 'border-[#ef8f88] bg-[#fde8e6] dark:bg-[#f7b2b0]/10' : 'border-slate-100 dark:border-slate-800'} ${canVote ? '' : 'opacity-60 cursor-not-allowed'}`}>
+                                  <input type="radio" name={`vote-${p.id}`} disabled={!canVote} checked={choice[p.id] === c.id}
+                                    onChange={() => setChoice(ch => ({ ...ch, [p.id]: c.id }))} className="w-5 h-5 accent-[#ef8f88]" />
+                                  <span className="font-bold text-[#211d45] dark:text-white">{c.full_name}</span>
+                                </label>
+                              ))}
+                            </div>
+                            {canVote && (
+                              <button onClick={() => setConfirming(p)} disabled={!choice[p.id]}
+                                className={`mt-3 w-full py-3 rounded-2xl ${NAVY} text-white font-black disabled:opacity-40 flex items-center justify-center gap-2`}>
+                                <Vote className="w-5 h-5" /> تأكيد صوتي
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Before voting / after it closes: every approved candidate's card, for everyone. */}
+        {!isVoting && !isResults && (() => {
+          const all = positions.flatMap(p => p.candidates.map(c => ({ c, p })));
+          const shown = cardFilter === 'all' ? all : all.filter(x => x.p.id === cardFilter);
+          return (
+            <div>
+              <h3 className="font-black text-lg text-[#211d45] dark:text-white mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[#ef8f88]" /> بطاقات المترشحين</h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
+                <button onClick={() => setCardFilter('all')} aria-pressed={cardFilter === 'all'}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap ${cardFilter === 'all' ? 'bg-[#211d45] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>الكل ({all.length})</button>
+                {positions.map(p => (
+                  <button key={p.id} onClick={() => setCardFilter(p.id)} aria-pressed={cardFilter === p.id}
+                    className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap ${cardFilter === p.id ? 'bg-[#211d45] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                    {p.title} <span className="opacity-70">({p.candidates.length})</span>
+                  </button>
+                ))}
+              </div>
+              {shown.length === 0 ? (
+                <p className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 text-center font-bold text-slate-500">
+                  {cardFilter === 'all' ? 'لم تُعتمد أي بطاقة مترشح بعد.' : 'لا يوجد مترشحون لهذا المنصب'}
+                </p>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 items-start">
+                  {shown.map(({ c, p }) => (
+                    <CandidateElectionCard key={c.id} id={c.id} fullName={c.full_name} photoUrl={c.photo_url} program={c.program}
+                      positionTitle={p.title} electionTitle={e.title} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <p className="text-xs text-slate-500 flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-600" /> تصويت سري: تُحفظ الأصوات دون ربطها بهوية المصوّت، ولا يمكن تعديلها. جميع المواعيد بتوقيت موريتانيا.</p>
       </div>
 
       <AnimatePresence>
         {applyOpen && <ApplyModal election={e} onClose={() => setApplyOpen(false)} onDone={reload} />}
+        {myCard && (
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-slate-950/75 p-3 overflow-y-auto" onClick={() => setMyCard(null)} dir="rtl">
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={ev => ev.stopPropagation()} className="w-full max-w-md my-6 relative" role="dialog" aria-modal="true" aria-label="بطاقتي">
+              <button onClick={() => setMyCard(null)} aria-label="إغلاق" className="absolute -top-3 -left-3 z-10 w-10 h-10 rounded-full bg-white text-[#262150] shadow-lg flex items-center justify-center"><X className="w-5 h-5" /></button>
+              <CandidateElectionCard id={myCard.id} fullName={myCard.full_name} photoUrl={myCard.photo_url} program={myCard.program}
+                positionTitle={myCard.position_title} electionTitle={e.title} expanded
+                shareable={myCard.status === 'approved'}
+                statusNote={myCard.status === 'approved' ? undefined : 'بطاقتك قيد مراجعة الإدارة، وستظهر للجميع ويمكن مشاركتها بعد الموافقة.'} />
+            </motion.div>
+          </div>
+        )}
         {confirming && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4" onClick={() => !sending && setConfirming(null)} dir="rtl">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={ev => ev.stopPropagation()} role="alertdialog" aria-modal="true"
@@ -483,7 +587,6 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
                 const c = confirming.candidates.find(x => x.id === choice[confirming.id]);
                 return c ? (
                   <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fde8e6] dark:bg-[#f7b2b0]/10">
-                    <img src={c.photo_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
                     <div><p className="font-black text-[#211d45] dark:text-white">{c.full_name}</p><p className="text-sm text-slate-600 dark:text-slate-300">لمنصب: {confirming.title}</p></div>
                   </div>
                 ) : null;
