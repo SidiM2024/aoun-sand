@@ -22,7 +22,7 @@ const phaseCls = (p: GeneralPhase) => p === 'voting' ? 'bg-emerald-100 text-emer
 const CreateDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eligibility, setEligibility] = useState<'approved' | 'registered'>('approved');
+  const [eligibility, setEligibility] = useState<'approved' | 'registered'>('registered');
   const [busy, setBusy] = useState(false);
   const save = async () => {
     if (title.trim().length < 3) { toast.error('عنوان الانتخابات مطلوب'); return; }
@@ -41,10 +41,10 @@ const CreateDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className={input} /></label>
         <label className="block"><span className="block text-sm font-bold mb-1.5">من يحق له التصويت؟</span>
           <select value={eligibility} onChange={e => setEligibility(e.target.value as 'approved' | 'registered')} className={input}>
-            <option value="approved">الأعضاء المعتمدون فقط</option>
             <option value="registered">كل الأعضاء المسجلين</option>
+            <option value="approved">الأعضاء المعتمدون فقط</option>
           </select></label>
-        <p className="text-xs text-slate-500">تُنشأ تلقائيًا مناصب المكتب التنفيذي (3) واللجان الثماني (مسؤول ونائب مسؤول لكل لجنة)، ويمكن تعديلها.</p>
+        <p className="text-xs text-slate-500">تُنشأ تلقائيًا مناصب المكتب التنفيذي (3) واللجان الثماني (مسؤول لكل لجنة)، ويمكن تعديلها.</p>
         <button onClick={() => void save()} disabled={busy} className="w-full py-3 rounded-xl font-black text-white bg-[#211d45] flex items-center justify-center gap-2 disabled:opacity-60">
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} إنشاء
         </button>
@@ -178,11 +178,11 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
   e: AdminGeneralElection; busy: string | null; act: ActFn; action: (a: GeneralAction, ok: string, confirm?: string) => void; onDeleted: () => void;
 }) => {
   const [f, setF] = useState(() => ({
-    title: e.title, description: e.description ?? '', eligibility: e.eligibility,
+    title: e.title, description: e.description ?? '', eligibility: e.eligibility, live: e.live_results !== false,
     ns: toMrInput(e.nominations_start_at), ne: toMrInput(e.nominations_end_at), vs: toMrInput(e.voting_start_at), ve: toMrInput(e.voting_end_at),
   }));
   useEffect(() => {
-    setF({ title: e.title, description: e.description ?? '', eligibility: e.eligibility,
+    setF({ title: e.title, description: e.description ?? '', eligibility: e.eligibility, live: e.live_results !== false,
       ns: toMrInput(e.nominations_start_at), ne: toMrInput(e.nominations_end_at), vs: toMrInput(e.voting_start_at), ve: toMrInput(e.voting_end_at) });
   }, [e.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps -- reset only when the saved election changes
 
@@ -191,7 +191,7 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
   const save = (over: Partial<typeof f> = {}) => {
     const v = { ...f, ...over };
     return act('save', () => adminSaveGeneral(e.id, {
-      title: v.title.trim(), description: v.description, eligibility: v.eligibility,
+      title: v.title.trim(), description: v.description, eligibility: v.eligibility, live_results: v.live,
       nominations_start_at: fromMrInput(v.ns), nominations_end_at: fromMrInput(v.ne),
       voting_start_at: fromMrInput(v.vs), voting_end_at: fromMrInput(v.ve),
     }), 'تم حفظ المواعيد');
@@ -224,9 +224,14 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
           </div>
           <label className="block sm:col-span-2"><span className="block text-sm font-bold mb-1.5">من يحق له التصويت؟</span>
             <select value={f.eligibility} disabled={started} onChange={ev => setF({ ...f, eligibility: ev.target.value as 'approved' | 'registered' })} className={`${input} disabled:opacity-60`}>
-              <option value="approved">الأعضاء المعتمدون فقط</option>
               <option value="registered">كل الأعضاء المسجلين</option>
+              <option value="approved">الأعضاء المعتمدون فقط</option>
             </select></label>
+          <label className="sm:col-span-2 flex items-start gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 cursor-pointer">
+            <input type="checkbox" checked={f.live} onChange={ev => setF({ ...f, live: ev.target.checked })} className="mt-1 w-5 h-5 accent-[#211d45]" />
+            <span><span className="block text-sm font-black">عرض النتائج مباشرة أثناء التصويت</span>
+              <span className="block text-xs text-slate-500">يظهر عدد أصوات كل مترشح للجميع ويتحدث تلقائيًا. عند إلغائه لا تظهر الأعداد إلا بعد إعلان النتائج. يمكن تغييره في أي وقت (اضغط حفظ).</span></span>
+          </label>
         </div>
         <p className="text-xs text-slate-500">تتغير المراحل تلقائيًا حسب هذه المواعيد: يُغلق الترشح ويُفتح التصويت ويُغلق دون تدخل. تحقق الخادم يمنع أي عملية خارج موعدها.</p>
         <button onClick={() => void save()} disabled={!!busy || (started && e.phase !== 'voting')} className="px-6 py-3 rounded-xl font-black text-white bg-[#211d45] flex items-center gap-2 disabled:opacity-50">
