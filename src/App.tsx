@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
+import { UpdateBanner } from './components/UpdateBanner';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -165,6 +166,7 @@ const AppContent = () => {
       {!isShellHidden && <Header />}
       {!isShellHidden && <NotificationsModal />}
       <Toaster position="top-center" />
+      <UpdateBanner />
       <main className={`flex-1 ${!isShellHidden ? 'website-main' : ''}`}>
         <Suspense fallback={<div role="status" className="container-custom py-48 text-center">جارٍ التحميل… / Loading…</div>}>
         <Routes>
