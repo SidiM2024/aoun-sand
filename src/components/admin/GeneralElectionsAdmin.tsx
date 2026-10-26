@@ -3,14 +3,15 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, CalendarClock, CheckCircle2, ClipboardList, Eye, EyeOff, FileText, History, Landmark, Loader2, Plus, RefreshCw,
-  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X,
+  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X, Crop,
 } from 'lucide-react';
 import {
-  LOG_LABELS, PHASE_INFO, STATUS_INFO, STEPS, adminCreateGeneral, adminDeleteGeneral, adminDeletePosition, adminGeneralAction,
+  LOG_LABELS, PHASE_INFO, STATUS_INFO, STEPS, adminCreateGeneral, adminSaveCandidatePhoto, adminDeleteGeneral, adminDeletePosition, adminGeneralAction,
   adminGetGeneral, adminListGeneral, adminResolveTie, adminReviewApplication, adminSaveGeneral, adminSavePosition, candidatesLabel,
   formatMrDateTime, fromMrInput, groupPositions, toMrInput, votingStarted,
   type AdminApplication, type AdminGeneralElection, type ApplicationStatus, type GeneralAction, type GeneralElectionSummary, type GeneralPhase,
 } from '../../lib/generalElections';
+import { PhotoCropEditor } from '../elections/PhotoCropEditor';
 
 const card = 'bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800';
 const input = 'w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800';
@@ -291,6 +292,7 @@ const ApplicationsTab = ({ e, busy, act }: { e: AdminGeneralElection; busy: stri
   const [status, setStatus] = useState<ApplicationStatus | 'all'>('pending');
   const [position, setPosition] = useState('all');
   const [open, setOpen] = useState<string | null>(null);
+  const [photoFor, setPhotoFor] = useState<AdminApplication | null>(null);
   const locked = votingStarted(e.phase);
   const list = e.applications.filter(a => (status === 'all' || a.status === status) && (position === 'all' || a.position_id === position));
   const review = (a: AdminApplication, s: ApplicationStatus) => {
@@ -316,7 +318,12 @@ const ApplicationsTab = ({ e, busy, act }: { e: AdminGeneralElection; busy: stri
       {list.length === 0 ? <div className={`${card} p-10 text-center text-slate-500 font-bold`}>لا توجد طلبات</div> : list.map(a => (
         <div key={a.id} className={`${card} p-4`}>
           <div className="flex flex-wrap gap-4">
-            <img src={a.photo_url} alt={a.full_name} className="w-24 h-28 rounded-2xl object-cover bg-slate-100" />
+            <div className="shrink-0 flex flex-col items-center gap-1.5">
+              <img key={a.photo_url} src={a.photo_url} alt={a.full_name} className="w-24 h-24 rounded-full object-cover bg-slate-100 ring-[3px] ring-[#F6B4A6]" />
+              <button disabled={!!busy} onClick={() => setPhotoFor(a)} className="px-2.5 py-1 rounded-xl text-xs font-black bg-[#29244C] text-white flex items-center gap-1 disabled:opacity-50">
+                <Crop className="w-3.5 h-3.5 text-[#F6B4A6]" /> تعديل الصورة
+              </button>
+            </div>
             <div className="flex-1 min-w-[200px]">
               <div className="flex flex-wrap items-center gap-2">
                 <h4 className="text-lg font-black text-slate-800 dark:text-white">{a.full_name}</h4>
@@ -339,6 +346,14 @@ const ApplicationsTab = ({ e, busy, act }: { e: AdminGeneralElection; busy: stri
           </div>
         </div>
       ))}
+      {photoFor && (
+        <PhotoCropEditor key={photoFor.id} source={photoFor.photo_original_url || photoFor.photo_url} initialCrop={photoFor.photo_crop}
+          title={`صورة ${photoFor.full_name}`} onCancel={() => setPhotoFor(null)}
+          onSave={async p => {
+            const target = photoFor;
+            if (await act('photo' + target.id, () => adminSaveCandidatePhoto(target.id, p), 'تم حفظ صورة المترشح')) setPhotoFor(null);
+          }} />
+      )}
     </div>
   );
 };
