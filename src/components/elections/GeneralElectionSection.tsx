@@ -13,6 +13,7 @@ import {
   type GeneralCandidate, type GeneralElection, type GeneralPosition, type MyApplication,
 } from '../../lib/generalElections';
 import { CandidateElectionCard } from './CandidateElectionCard';
+import { CandidateGallery } from './CandidateGallery';
 
 const NAVY = 'bg-[#211d45]';
 
@@ -535,11 +536,14 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
           const shown = cardFilter === 'all' ? all : all.filter(x => x.p.id === cardFilter);
           return (
             <div>
-              <h3 className="font-black text-lg text-[#211d45] dark:text-white mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[#ef8f88]" /> بطاقات المترشحين</h3>
+              <div className="mb-3">
+                <h3 className="font-black text-lg text-[#211d45] dark:text-white flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[#ef8f88]" /> بطاقات المترشحين</h3>
+                {all.length > 0 && <p className="text-sm text-slate-500 mt-1">اطّلع على برامج المترشحين قبل التصويت، وشارك صورة أي بطاقة مباشرة من هاتفك.</p>}
+              </div>
               <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
                 <button onClick={() => setCardFilter('all')} aria-pressed={cardFilter === 'all'}
                   className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap ${cardFilter === 'all' ? 'bg-[#211d45] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>الكل ({all.length})</button>
-                {positions.map(p => (
+                {positions.filter(p => p.candidates.length > 0 || cardFilter === p.id).map(p => (
                   <button key={p.id} onClick={() => setCardFilter(p.id)} aria-pressed={cardFilter === p.id}
                     className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap ${cardFilter === p.id ? 'bg-[#211d45] text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
                     {p.title} <span className="opacity-70">({p.candidates.length})</span>
@@ -551,12 +555,7 @@ const ElectionView = ({ e, offset, reload }: { e: GeneralElection; offset: numbe
                   {cardFilter === 'all' ? 'لم تُعتمد أي بطاقة مترشح بعد.' : 'لا يوجد مترشحون لهذا المنصب'}
                 </p>
               ) : (
-                <div className="grid gap-5 sm:grid-cols-2 items-start">
-                  {shown.map(({ c, p }) => (
-                    <CandidateElectionCard key={c.id} id={c.id} fullName={c.full_name} photoUrl={c.photo_url} program={c.program}
-                      positionTitle={p.title} electionTitle={e.title} />
-                  ))}
-                </div>
+                <CandidateGallery items={shown.map(({ c, p }) => ({ candidate: c, positionTitle: p.title }))} electionTitle={e.title} />
               )}
             </div>
           );
