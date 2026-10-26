@@ -48,9 +48,17 @@ export interface MyApplication {
   full_name: string;
   photo_url: string;
   photo_path: string | null;
+  /** Uncropped original (falls back to the photo itself for older applications). */
+  photo_original_url?: string | null;
+  photo_original_path?: string | null;
+  photo_crop?: PhotoCrop | null;
+  photo_updated_at?: string | null;
   program: string;
   created_at: string;
 }
+
+/** Position of the circular crop: centre (fraction of the original) and zoom (1 = fit). */
+export interface PhotoCrop { x: number; y: number; zoom: number }
 
 export interface GeneralElection {
   id: string;
@@ -96,6 +104,9 @@ export interface AdminApplication {
   account_phone: string | null;
   full_name: string;
   photo_url: string;
+  photo_original_url?: string | null;
+  photo_crop?: PhotoCrop | null;
+  photo_updated_at?: string | null;
   program: string;
   status: ApplicationStatus;
   review_note: string | null;
@@ -203,6 +214,10 @@ const MESSAGES: Record<string, string> = {
   TIE_NOT_FOUND: 'لا يوجد تعادل في صدارة هذا المنصب.',
   ELECTION_IS_OPEN: 'لا يمكن حذف الانتخابات أثناء التصويت.',
   NOT_FOUND: 'العنصر غير موجود، ربما حُذف.',
+  PHOTO_INVALID: 'تعذّر حفظ الصورة: الملف غير صالح أو لم يكتمل رفعه. أعد المحاولة.',
+  PHOTO_FORBIDDEN: 'لا يمكنك تعديل صورة مترشح آخر.',
+  PHOTO_LOCKED: 'لا يمكن تعديل الصورة بعد بدء التصويت أو بعد رفض الطلب.',
+  PHOTO_TICKET_INVALID: 'انتهت صلاحية عملية رفع الصورة. أعد المحاولة.',
 };
 
 const isMissingFunction = (e: { code?: string; message?: string }) =>
@@ -235,12 +250,13 @@ const adminRpc = <T>(fn: string, args: Record<string, unknown> = {}) => rpc<T>(f
 
 export const fetchGeneralElections = async () => (await rpc<GeneralElection[] | null>('general_elections_public')) ?? [];
 
-export const applyForPosition = (electionId: string, positionId: string, data: { full_name: string; photo_url: string; photo_path: string; program: string }) =>
+export const applyForPosition = (electionId: string, positionId: string, data: { full_name: string; program: string } & UploadedPhoto) =>
   rpc<{ id: string; status: ApplicationStatus }>('election_apply', { p_election_id: electionId, p_position_id: positionId, p_data: data });
 
-export const withdrawApplication = async (applicationId: string) => {
+export const withdrawApplication = async (applicationId: string, originalPath?: string | null) => {
   const path = await rpc<string | null>('election_application_withdraw', { p_application_id: applicationId });
-  if (path) await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+  const paths = [...new Set([path, originalPath].filter((x): x is string => !!x))];
+  if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
 };
 
 export const votePosition = (electionId: string, positionId: string, applicationId: string) =>
@@ -251,7 +267,11 @@ export const votePosition = (electionId: string, positionId: string, application
 const PHOTO_BUCKET = 'election-photos';
 const MAX_PHOTO = 5 * 1024 * 1024;
 
-const MAX_SIDE = 1200;
+/** Originals kept for later re-cropping: at most 2000 px. */
+const MAX_SIDE = 2000;
+/** Largest file accepted from the device before conversion. */
+const MAX_INPUT = 25 * 1024 * 1024;
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/i;
 
 const decodeWithImg = (file: File) => new Promise<HTMLImageElement>((resolve, reject) => {
   const url = URL.createObjectURL(file);
@@ -262,11 +282,13 @@ const decodeWithImg = (file: File) => new Promise<HTMLImageElement>((resolve, re
 });
 
 /**
- * Every photo is turned into a JPEG of at most 1200 px before upload: phone photos (HEIC on
- * iPhone, very large camera files) then always match the bucket's size and type limits.
- * createImageBitmap first; the <img> element as a fallback (older Safari, HEIC).
+ * Every photo is turned into a JPEG of at most 2000 px (the original kept for the editor):
+ * phone photos (HEIC on iPhone, very large camera files) then always match the bucket's size
+ * and type limits. createImageBitmap first; the <img> element as a fallback (older Safari, HEIC).
  */
 export const prepareCandidatePhoto = async (file: File): Promise<Blob> => {
+  if (!file.type.startsWith('image/') && !IMAGE_EXT.test(file.name)) throw new SiteError('الملف المختار ليس صورة. اختر صورة JPG أو PNG.');
+  if (file.size > MAX_INPUT) throw new SiteError('حجم الصورة كبير جدًا (الحد 25 ميغابايت).');
   let source: ImageBitmap | HTMLImageElement | null = null;
   try { source = await createImageBitmap(file); } catch { /* fallback below */ }
   if (!source) {
@@ -308,9 +330,7 @@ const uploadMessage = (message: string) => {
   return `تعذّر رفع الصورة: ${message}`;
 };
 
-export const uploadCandidatePhoto = async (file: File | Blob, userId: string) => {
-  const blob = file instanceof File ? await prepareCandidatePhoto(file) : file;
-  const path = `${userId}/${crypto.randomUUID()}.jpg`;
+const uploadPhotoBlob = async (path: string, blob: Blob) => {
   const send = () => supabase.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
   let { error } = await send();
   // An expired access token is the usual cause of an RLS refusal: refresh the session once.
@@ -322,6 +342,57 @@ export const uploadCandidatePhoto = async (file: File | Blob, userId: string) =>
   }
   if (error) throw new SiteError(uploadMessage(error.message));
   return { url: supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl, path };
+};
+
+/** Result of the photo editor: cropped 800×800 JPEG, optional new original, crop position. */
+export interface EditedPhoto { crop: Blob; original: Blob | null; params: PhotoCrop }
+
+export interface UploadedPhoto {
+  photo_url: string; photo_path: string;
+  original_url?: string; original_path?: string;
+  crop: PhotoCrop;
+}
+
+/** Uploads the edited photo (new file names every time: no stale cache) into `folder`. */
+const uploadEditedPhoto = async (folder: string, photo: EditedPhoto): Promise<UploadedPhoto> => {
+  const id = crypto.randomUUID();
+  const crop = await uploadPhotoBlob(`${folder}/${id}-crop.jpg`, photo.crop);
+  try {
+    const original = photo.original ? await uploadPhotoBlob(`${folder}/${id}-orig.jpg`, photo.original) : null;
+    return { photo_url: crop.url, photo_path: crop.path, ...(original ? { original_url: original.url, original_path: original.path } : {}), crop: photo.params };
+  } catch (err) {
+    void supabase.storage.from(PHOTO_BUCKET).remove([crop.path]);
+    throw err;
+  }
+};
+
+/** New candidacy: uploads the photo into the member's folder. */
+export const uploadCandidatePhoto = (photo: EditedPhoto, userId: string) => uploadEditedPhoto(userId, photo);
+
+/** Removes files the member uploaded (own folder only; other paths are refused by Storage). */
+export const removeUploadedPhoto = (u: UploadedPhoto) =>
+  supabase.storage.from(PHOTO_BUCKET).remove([u.photo_path, ...(u.original_path ? [u.original_path] : [])]);
+
+/** Member: new photo / new position for one of their applications (before voting starts). */
+export const saveMyCandidatePhoto = async (applicationId: string, userId: string, photo: EditedPhoto) => {
+  const up = await uploadEditedPhoto(userId, photo);
+  try {
+    const r = await rpc<{ previous_path: string | null }>('election_application_set_photo', { p_application_id: applicationId, p_data: up });
+    // The previous cropped copy is no longer used.
+    if (r?.previous_path && r.previous_path.startsWith(`${userId}/`) && r.previous_path.endsWith('-crop.jpg')) {
+      void supabase.storage.from(PHOTO_BUCKET).remove([r.previous_path]);
+    }
+  } catch (err) {
+    void removeUploadedPhoto(up);
+    throw err;
+  }
+};
+
+/** Dashboard: any candidate's photo, through a one-time upload ticket checked by the server. */
+export const adminSaveCandidatePhoto = async (applicationId: string, photo: EditedPhoto) => {
+  const ticket = await adminRpc<string>('general_photo_ticket', { p_application_id: applicationId });
+  const up = await uploadEditedPhoto(`tickets/${ticket}`, photo);
+  await adminRpc<unknown>('general_application_set_photo', { p_ticket: ticket, p_data: up });
 };
 
 export const removeCandidatePhoto = async (path: string) => { await supabase.storage.from(PHOTO_BUCKET).remove([path]); };

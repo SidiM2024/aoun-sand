@@ -4,16 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Award, CalendarClock, Camera, ClipboardList, Hourglass, Landmark, Loader2, LogIn,
-  Megaphone, ShieldCheck, UserRound, Vote, X, AlertCircle, Trash2, Send, CreditCard as IdCardIcon, LayoutGrid,
+  Megaphone, ShieldCheck, UserRound, Crop, Vote, X, AlertCircle, Trash2, Send, CreditCard as IdCardIcon, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   PHASE_INFO, STATUS_INFO, STEPS, applyForPosition, fetchGeneralElections, formatMrDate,
-  formatMrDateTime, formatMrTime, groupPositions, prepareCandidatePhoto, removeCandidatePhoto, uploadCandidatePhoto, votingStarted, withdrawApplication,
-  type GeneralElection, type MyApplication,
+  formatMrDateTime, formatMrTime, groupPositions, removeCandidatePhoto, removeUploadedPhoto, saveMyCandidatePhoto, uploadCandidatePhoto, votingStarted, withdrawApplication,
+  type EditedPhoto, type GeneralElection, type MyApplication, type PhotoCrop, type UploadedPhoto,
 } from '../../lib/generalElections';
 import { CandidateElectionCard } from './CandidateElectionCard';
 import { CandidateGallery } from './CandidateGallery';
+import { PhotoCropEditor } from './PhotoCropEditor';
 import { LiveStats, VotingBoard } from './VotingBoard';
 
 const NAVY = 'bg-[#211d45]';
@@ -86,10 +87,12 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
   })();
 
   const [name, setName] = useState(draft?.name ?? userProfile?.full_name ?? '');
-  const [photo, setPhoto] = useState<Blob | null>(null);
+  const [photo, setPhoto] = useState<EditedPhoto | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [photoState, setPhotoState] = useState<'empty' | 'processing' | 'ready' | 'error'>('empty');
   const [photoError, setPhotoError] = useState('');
+  // Photo editor: opened on the picture just chosen, or on the original to adjust the crop.
+  const [editing, setEditing] = useState<{ file: File; crop: PhotoCrop | null } | null>(null);
   const [group, setGroup] = useState<'executive' | 'committee' | 'other'>((draft?.group as 'executive' | 'committee' | 'other') ?? 'executive');
   const [positionId, setPositionId] = useState(draft?.positionId ?? '');
   const [program, setProgram] = useState(draft?.program ?? '');
@@ -109,18 +112,15 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
     try { sessionStorage.setItem(key, JSON.stringify({ name, program, positionId, group })); } catch { /* storage blocked */ }
   }, [key, name, program, positionId, group]);
 
-  const pickPhoto = async (f: File) => {
-    setPhotoState('processing'); setPhotoError('');
-    try {
-      const blob = await prepareCandidatePhoto(f);
-      setPhoto(blob);
-      setPreview(URL.createObjectURL(blob));
-      setPhotoState('ready');
-    } catch (err) {
-      setPhoto(null); setPreview(null);
-      setPhotoState('error');
-      setPhotoError(err instanceof Error ? err.message : 'تعذّرت قراءة الصورة');
-    }
+  const pickPhoto = (f: File) => { setPhotoError(''); setEditing({ file: f, crop: null }); };
+  const editAgain = () => {
+    if (photo?.original) setEditing({ file: new File([photo.original], 'original.jpg', { type: 'image/jpeg' }), crop: photo.params });
+  };
+  const onEdited = (p: EditedPhoto) => {
+    setPhoto(p);
+    setPreview(URL.createObjectURL(p.crop));
+    setPhotoState('ready');
+    setEditing(null);
   };
 
   const errors = {
@@ -135,18 +135,18 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
     if (busy || !user) return;
     setTried(true);
     if (firstError) { toast.error(firstError); return; }
-    let uploaded: { url: string; path: string } | null = null;
+    let uploaded: UploadedPhoto | null = null;
     try {
       setStep('upload');
       uploaded = await uploadCandidatePhoto(photo!, user.id);
       setStep('save');
-      await applyForPosition(election.id, positionId, { full_name: name.trim(), photo_url: uploaded.url, photo_path: uploaded.path, program: program.trim() });
+      await applyForPosition(election.id, positionId, { full_name: name.trim(), program: program.trim(), ...uploaded });
       try { sessionStorage.removeItem(key); } catch { /* storage blocked */ }
       toast.success('تم إرسال طلب ترشحك بنجاح، وهو قيد مراجعة الإدارة', { duration: 6000 });
       onDone();
       onClose();
     } catch (err) {
-      if (uploaded) void removeCandidatePhoto(uploaded.path);
+      if (uploaded) void removeUploadedPhoto(uploaded);
       toast.error(err instanceof Error ? err.message : 'تعذّر إرسال الطلب', { duration: 7000 });
     } finally {
       setStep('idle');
@@ -169,17 +169,21 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || photoState === 'processing'} aria-label="اختيار الصورة الشخصية"
-                className={`relative w-28 h-32 rounded-3xl overflow-hidden bg-[#fde3e1] border-2 border-dashed flex items-center justify-center ${tried && errors.photo ? 'border-red-400' : 'border-[#ef8f88]'}`}>
+                className={`relative w-28 h-28 rounded-full overflow-hidden bg-[#fde3e1] border-2 border-dashed flex items-center justify-center ${tried && errors.photo ? 'border-red-400' : 'border-[#ef8f88]'}`}>
                 {photoState === 'processing'
                   ? <Loader2 className="w-8 h-8 animate-spin text-[#e2706a]" />
                   : preview ? <img src={preview} alt="الصورة الشخصية" className="w-full h-full object-cover" /> : <UserRound className="w-12 h-12 text-[#e2706a]" />}
                 <span className="absolute bottom-0 inset-x-0 bg-[#211d45]/80 text-white text-xs font-bold py-1.5 flex items-center justify-center gap-1"><Camera className="w-3.5 h-3.5" /> {preview ? 'تغيير' : 'إضافة صورة'}</span>
               </button>
-              {photoState === 'ready' && <span className="mt-1 block text-[11px] font-bold text-emerald-600 text-center">الصورة جاهزة ✓</span>}
+              {photoState === 'ready' && (
+                <button type="button" onClick={editAgain} disabled={busy} className="mt-1.5 w-full py-1 rounded-xl text-[11px] font-black bg-[#29244C] text-white flex items-center justify-center gap-1">
+                  <Crop className="w-3 h-3 text-[#F6B4A6]" /> تعديل الصورة
+                </button>
+              )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => {
               const f = e.target.files?.[0]; e.target.value = '';
-              if (f) void pickPhoto(f);
+              if (f) pickPhoto(f);
             }} />
             <label className="flex-1 block"><span className="block text-sm font-black mb-1.5">الاسم الكامل *</span>
               <input value={name} onChange={e => setName(e.target.value)} maxLength={120} className={`${field} ${border(errors.name)}`} placeholder="الاسم كما سيظهر للمصوتين" />
@@ -235,6 +239,10 @@ const ApplyModal = ({ election, onClose, onDone }: { election: GeneralElection; 
           </div>
         </div>
       </motion.div>
+      {editing && (
+        <PhotoCropEditor source={editing.file} initialCrop={editing.crop} title="صورة المترشح"
+          onCancel={() => setEditing(null)} onSave={onEdited} />
+      )}
     </div>
   );
 };
@@ -252,12 +260,22 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
   const [applyOpen, setApplyOpen] = useState(false);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [myCard, setMyCard] = useState<MyApplication | null>(null);
+  const [photoFor, setPhotoFor] = useState<MyApplication | null>(null);
+
+  const savePhoto = async (a: MyApplication, p: EditedPhoto) => {
+    if (!user) return;
+    await saveMyCandidatePhoto(a.id, user.id, p);
+    toast.success('تم حفظ صورتك الجديدة');
+    setPhotoFor(null);
+    await reload();
+  };
   const [cardFilter, setCardFilter] = useState<string>('all');
 
   const withdraw = async (id: string) => {
     if (!window.confirm('سحب طلب الترشح نهائيًا؟')) return;
     setWithdrawing(id);
-    try { await withdrawApplication(id); toast.success('تم سحب الطلب'); reload(); }
+    const app = e.my?.applications.find(x => x.id === id);
+    try { await withdrawApplication(id, app?.photo_original_path ?? null); toast.success('تم سحب الطلب'); reload(); }
     catch (err) { toast.error(err instanceof Error ? err.message : 'تعذّر سحب الطلب'); }
     finally { setWithdrawing(null); }
   };
@@ -327,26 +345,45 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
           <div className="rounded-3xl border border-[#f7b2b0]/50 bg-[#fdf3f2] dark:bg-[#f7b2b0]/5 p-4">
             <h3 className="font-black text-[#211d45] dark:text-white mb-3 flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#ef8f88]" /> طلبات ترشحي</h3>
             <ul className="space-y-2">
-              {e.my.applications.map(a => (
-                <li key={a.id} className="flex items-center gap-3 p-2.5 rounded-2xl bg-white dark:bg-slate-900">
-                  {!isVoting && <img src={a.photo_url} alt="" className="w-11 h-11 rounded-xl object-cover" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-[#211d45] dark:text-white truncate">{a.position_title}</p>
-                    {a.review_note && <p className="text-xs text-slate-500">ملاحظة الإدارة: {a.review_note}</p>}
+              {e.my.applications.map(a => {
+                const canEditPhoto = !votingStarted(e.phase) && a.status !== 'rejected';
+                return (
+                <li key={a.id} className="p-2.5 rounded-2xl bg-white dark:bg-slate-900">
+                  <div className="flex items-center gap-3">
+                    {!isVoting && (
+                      <button type="button" onClick={() => canEditPhoto && setPhotoFor(a)} disabled={!canEditPhoto} aria-label="تعديل الصورة"
+                        className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden ring-2 ring-[#F6B4A6] disabled:cursor-default">
+                        <img key={a.photo_url} src={a.photo_url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-sm text-[#211d45] dark:text-white truncate">{a.position_title}</p>
+                      {a.review_note && <p className="text-xs text-slate-500">ملاحظة الإدارة: {a.review_note}</p>}
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap ${STATUS_INFO[a.status].cls}`}>{STATUS_INFO[a.status].label}</span>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap ${STATUS_INFO[a.status].cls}`}>{STATUS_INFO[a.status].label}</span>
-                  {!isVoting && a.status !== 'rejected' && (
-                    <button onClick={() => setMyCard(a)} className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-[#262150] text-white flex items-center gap-1 whitespace-nowrap">
-                      <IdCardIcon className="w-3.5 h-3.5" /> بطاقتي
-                    </button>
-                  )}
-                  {a.status === 'pending' && e.phase === 'nominations' && (
-                    <button onClick={() => void withdraw(a.id)} disabled={withdrawing === a.id} aria-label="سحب الطلب" title="سحب الطلب" className="p-2 rounded-xl text-red-500 hover:bg-red-50">
-                      {withdrawing === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    </button>
+                  {(canEditPhoto || (!isVoting && a.status !== 'rejected') || (a.status === 'pending' && e.phase === 'nominations')) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 ps-[3.75rem]">
+                      {canEditPhoto && (
+                        <button onClick={() => setPhotoFor(a)} className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-[#F6B4A6] text-[#29244C] flex items-center gap-1 whitespace-nowrap">
+                          <Crop className="w-3.5 h-3.5" /> تعديل الصورة
+                        </button>
+                      )}
+                      {!isVoting && a.status !== 'rejected' && (
+                        <button onClick={() => setMyCard(a)} className="px-2.5 py-1.5 rounded-xl text-xs font-black bg-[#262150] text-white flex items-center gap-1 whitespace-nowrap">
+                          <IdCardIcon className="w-3.5 h-3.5" /> بطاقتي
+                        </button>
+                      )}
+                      {a.status === 'pending' && e.phase === 'nominations' && (
+                        <button onClick={() => void withdraw(a.id)} disabled={withdrawing === a.id} aria-label="سحب الطلب" title="سحب الطلب" className="ms-auto p-2 rounded-xl text-red-500 hover:bg-red-50">
+                          {withdrawing === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
         )}
@@ -405,6 +442,10 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
       </div>
 
       <AnimatePresence>
+        {photoFor && (
+          <PhotoCropEditor key={photoFor.id} source={photoFor.photo_original_url || photoFor.photo_url} initialCrop={photoFor.photo_crop}
+            title={`صورتي — ${photoFor.position_title}`} onCancel={() => setPhotoFor(null)} onSave={p => savePhoto(photoFor, p)} />
+        )}
         {applyOpen && <ApplyModal election={e} onClose={() => setApplyOpen(false)} onDone={reload} />}
         {myCard && (
           <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-slate-950/75 p-3 overflow-y-auto" onClick={() => setMyCard(null)} dir="rtl">
