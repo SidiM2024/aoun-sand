@@ -23,7 +23,7 @@ const phaseCls = (p: GeneralPhase) => p === 'voting' ? 'bg-emerald-100 text-emer
 const CreateDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eligibility, setEligibility] = useState<'approved' | 'registered'>('registered');
+  const [eligibility, setEligibility] = useState<'approved' | 'registered'>('approved');
   const [busy, setBusy] = useState(false);
   const save = async () => {
     if (title.trim().length < 3) { toast.error('عنوان الانتخابات مطلوب'); return; }
@@ -42,8 +42,8 @@ const CreateDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className={input} /></label>
         <label className="block"><span className="block text-sm font-bold mb-1.5">من يحق له التصويت؟</span>
           <select value={eligibility} onChange={e => setEligibility(e.target.value as 'approved' | 'registered')} className={input}>
-            <option value="registered">كل الأعضاء المسجلين</option>
             <option value="approved">الأعضاء المعتمدون فقط</option>
+            <option value="registered">كل الأعضاء المسجلين</option>
           </select></label>
         <p className="text-xs text-slate-500">تُنشأ تلقائيًا مناصب المكتب التنفيذي (3) واللجان الثماني (مسؤول لكل لجنة)، ويمكن تعديلها.</p>
         <button onClick={() => void save()} disabled={busy} className="w-full py-3 rounded-xl font-black text-white bg-[#211d45] flex items-center justify-center gap-2 disabled:opacity-60">
@@ -248,8 +248,8 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
           </div>
           <label className="block sm:col-span-2"><span className="block text-sm font-bold mb-1.5">من يحق له التصويت؟</span>
             <select value={f.eligibility} disabled={started} onChange={ev => setF({ ...f, eligibility: ev.target.value as 'approved' | 'registered' })} className={`${input} disabled:opacity-60`}>
-              <option value="registered">كل الأعضاء المسجلين</option>
               <option value="approved">الأعضاء المعتمدون فقط</option>
+              <option value="registered">كل الأعضاء المسجلين</option>
             </select></label>
           <label className="sm:col-span-2 flex items-start gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 cursor-pointer">
             <input type="checkbox" checked={f.live} onChange={ev => setF({ ...f, live: ev.target.checked })} className="mt-1 w-5 h-5 accent-[#211d45]" />

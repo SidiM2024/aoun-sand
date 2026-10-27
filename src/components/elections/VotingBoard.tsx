@@ -232,7 +232,7 @@ export const VotingBoard = ({ e, userId, reload }: { e: GeneralElection; userId:
     if (!userId) {
       return <Link to="/auth" state={{ from: { pathname: '/elections' } }} className="w-full py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-[#211d45] dark:text-white font-black text-sm flex items-center justify-center gap-2"><LogIn className="w-4 h-4" /> سجّل الدخول للتصويت</Link>;
     }
-    if (!e.my?.can_vote) return <p className="text-xs font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2 text-center">حسابك غير مؤهل للتصويت</p>;
+    if (!e.my?.can_vote) return <p className="text-xs font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2 text-center">{e.eligibility === 'approved' ? 'التصويت للأعضاء المعتمدين فقط' : 'حسابك غير مؤهل للتصويت'}</p>;
     if (voted.has(p.id)) {
       return myChoices[p.id] === c.id
         ? <p className="w-full py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-black text-sm flex items-center justify-center gap-2"><CheckCircle2 className="w-4 h-4" /> صوّتَّ لهذا المترشح</p>
@@ -266,7 +266,9 @@ export const VotingBoard = ({ e, userId, reload }: { e: GeneralElection; userId:
           )}
           <p className="text-sm text-slate-500 dark:text-slate-400">اضغط «صوّت» على بطاقة المترشح الذي تختاره، ثم أكّد. لكل منصب صوت واحد لا يمكن تغييره، ويمكنك التصويت في جميع المناصب.</p>
           {!e.my?.can_vote && userId && (
-            <p className="text-sm font-bold text-amber-700 flex items-center gap-2"><AlertCircle className="w-4 h-4" /> حسابك غير مؤهل للتصويت في هذه الانتخابات.</p>
+            <p className="text-sm font-bold text-amber-700 flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /> {e.eligibility === 'approved'
+              ? 'التصويت متاح للأعضاء المعتمدين فقط. ستتمكن من التصويت فور اعتماد حسابك من إدارة الجمعية.'
+              : 'حسابك غير مؤهل للتصويت في هذه الانتخابات.'}</p>
           )}
         </div>
       )}

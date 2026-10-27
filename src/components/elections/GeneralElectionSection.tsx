@@ -330,7 +330,7 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
             </div>
           )}
           {isVoting && user && !e.my?.can_vote && (
-            <p className="mt-4 text-sm font-bold text-amber-200 flex items-center gap-2 justify-center"><AlertCircle className="w-4 h-4" /> حسابك غير مؤهل للتصويت في هذه الانتخابات{e.eligibility === 'approved' ? ' (يشترط عضو معتمد)' : ''}.</p>
+            <p className="mt-4 text-sm font-bold text-amber-200 flex items-center gap-2 justify-center"><AlertCircle className="w-4 h-4" /> {e.eligibility === 'approved' ? 'التصويت للأعضاء المعتمدين فقط: ستتمكن من التصويت فور اعتماد حسابك من الإدارة.' : 'حسابك غير مؤهل للتصويت في هذه الانتخابات.'}</p>
           )}
           {isVoting && !user && (
             <div className="mt-4 flex justify-center"><Link to="/auth" state={{ from: { pathname: '/elections' } }} className="px-5 py-3 rounded-2xl bg-[#ef8f88] font-black flex items-center gap-2"><LogIn className="w-5 h-5" /> سجّل الدخول للتصويت</Link></div>
