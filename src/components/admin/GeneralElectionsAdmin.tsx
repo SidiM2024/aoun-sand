@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, CalendarClock, CheckCircle2, ClipboardList, Eye, EyeOff, FileText, History, Landmark, Loader2, Plus, RefreshCw,
-  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X, Crop,
+  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X, Crop, FileDown,
 } from 'lucide-react';
 import {
   LOG_LABELS, PHASE_INFO, STATUS_INFO, STEPS, adminCreateGeneral, adminSaveCandidatePhoto, adminDeleteGeneral, adminDeletePosition, adminGeneralAction,
@@ -63,6 +63,22 @@ const Detail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('schedule');
   const [busy, setBusy] = useState<string | null>(null);
+  const [pdfProgress, setPdfProgress] = useState<string | null>(null);
+
+  // Candidates report (PDF, fresh data from the database; the PDF module is loaded on demand).
+  const downloadPdf = async () => {
+    if (pdfProgress) return;
+    setPdfProgress('جاري التحضير…');
+    try {
+      const { exportCandidatesPdf } = await import('../../utils/candidatesPdf');
+      const r = await exportCandidatesPdf(id, setPdfProgress);
+      toast.success(`تم تنزيل التقرير — ${r.candidates ? candidatesLabel(r.candidates) : 'لا يوجد مترشحون'}، عدد الأقسام: ${r.sections}، عدد الصفحات: ${r.pages}`);
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? `تعذّر إنشاء ملف PDF: ${err.message}` : 'تعذّر إنشاء ملف PDF. أعد المحاولة.');
+    } finally {
+      setPdfProgress(null);
+    }
+  };
 
   const load = useCallback(async () => {
     try { setE(await adminGetGeneral(id)); setError(''); }
@@ -115,8 +131,15 @@ const Detail = ({ id, onBack }: { id: string; onBack: () => void }) => {
               <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800">{e.eligibility === 'approved' ? 'التصويت: الأعضاء المعتمدون' : 'التصويت: كل المسجلين'}</span>
             </div>
           </div>
-          <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-sm flex items-center gap-1.5"><RefreshCw className="w-4 h-4" /> تحديث</button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => void downloadPdf()} disabled={!!pdfProgress} title="ملف PDF بجميع المترشحين، مرتب حسب اللجان"
+              className="px-4 py-2 rounded-xl bg-[#29244C] text-white font-black text-sm flex items-center gap-1.5 disabled:opacity-70">
+              {pdfProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4 text-[#F6B4A6]" />} تنزيل PDF المترشحين
+            </button>
+            <button onClick={() => void load()} className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-sm flex items-center gap-1.5"><RefreshCw className="w-4 h-4" /> تحديث</button>
+          </div>
         </div>
+        {pdfProgress && <p className="mt-3 text-sm font-bold text-[#29244C] dark:text-white flex items-center gap-2" role="status"><Loader2 className="w-4 h-4 animate-spin text-[#e2706a]" /> {pdfProgress}</p>}
         <ol className="grid grid-cols-5 gap-1.5 mt-4">
           {STEPS.map((s, i) => (
             <li key={s} className="text-center">
