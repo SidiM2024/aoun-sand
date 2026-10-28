@@ -411,6 +411,29 @@ export const adminSavePosition = (electionId: string, id: string | null, data: R
 export const adminDeletePosition = (id: string) => adminRpc<void>('general_position_delete', { p_id: id });
 export const adminReviewApplication = (id: string, status: ApplicationStatus, note?: string) =>
   adminRpc<unknown>('general_application_review', { p_id: id, p_status: status, p_note: note ?? null });
+// ─── Participation record (dashboard only) ─────────────────────────────────────
+// Who voted in each position (not for whom: the ballot is secret and that link is never stored).
+
+export interface ParticipationMember {
+  user_id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  approval_status: string | null;
+  unique_short_id: string | null;
+  voted_on?: string;
+}
+
+export interface ElectionParticipation {
+  positions: { id: string; title: string; group_key: string; is_active: boolean; voters: ParticipationMember[] }[];
+  voters_total: number;
+  eligibility: 'approved' | 'registered';
+  non_voters: ParticipationMember[];
+}
+
+export const adminGetParticipation = (electionId: string) =>
+  adminRpc<ElectionParticipation>('general_election_participation', { p_id: electionId });
+
 export const adminResolveTie = (positionId: string, applicationId: string | null) =>
   adminRpc<void>('general_position_resolve_tie', { p_position_id: positionId, p_application_id: applicationId });
 export const adminDeleteGeneral = async (id: string) => {
@@ -420,7 +443,7 @@ export const adminDeleteGeneral = async (id: string) => {
 };
 
 export const LOG_LABELS: Record<string, string> = {
-  created: 'إنشاء الانتخابات', schedule_saved: 'حفظ المواعيد', close_nominations: 'إغلاق باب الترشح', open_voting: 'فتح التصويت',
+  created: 'إنشاء الانتخابات', participation_viewed: 'الاطلاع على سجل المشاركة', schedule_saved: 'حفظ المواعيد', close_nominations: 'إغلاق باب الترشح', open_voting: 'فتح التصويت',
   close_voting: 'إغلاق التصويت', announce: 'إعلان النتائج', unannounce: 'سحب إعلان النتائج',
   publish: 'إظهار الانتخابات للأعضاء', unpublish: 'إخفاء الانتخابات عن الأعضاء',
   position_added: 'إضافة منصب', position_updated: 'تعديل منصب', position_deleted: 'حذف منصب',

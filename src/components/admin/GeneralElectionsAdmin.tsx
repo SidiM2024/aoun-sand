@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, CalendarClock, CheckCircle2, ClipboardList, Eye, EyeOff, FileText, History, Landmark, Loader2, Plus, RefreshCw,
-  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X, Crop, FileDown,
+  RotateCcw, Save, Scale, Square, Trash2, Trophy, Users, XCircle, Megaphone, Play, Power, X, Crop, FileDown, UserCheck, Search, ChevronDown,
 } from 'lucide-react';
 import {
-  LOG_LABELS, PHASE_INFO, STATUS_INFO, STEPS, adminCreateGeneral, adminSaveCandidatePhoto, adminDeleteGeneral, adminDeletePosition, adminGeneralAction,
+  LOG_LABELS, PHASE_INFO, STATUS_INFO, STEPS, adminCreateGeneral, adminGetParticipation, adminSaveCandidatePhoto, adminDeleteGeneral, adminDeletePosition, adminGeneralAction,
   adminGetGeneral, adminListGeneral, adminResolveTie, adminReviewApplication, adminSaveGeneral, adminSavePosition, candidatesLabel,
   formatMrDateTime, fromMrInput, groupPositions, toMrInput, votingStarted,
-  type AdminApplication, type AdminGeneralElection, type ApplicationStatus, type GeneralAction, type GeneralElectionSummary, type GeneralPhase,
+  type AdminApplication, type AdminGeneralElection, type ElectionParticipation, type ParticipationMember, type ApplicationStatus, type GeneralAction, type GeneralElectionSummary, type GeneralPhase,
 } from '../../lib/generalElections';
 import { PhotoCropEditor } from '../elections/PhotoCropEditor';
 
@@ -56,7 +56,7 @@ const CreateDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: 
 
 // ─── Detail view ─────────────────────────────────────────────────────────────
 
-type Tab = 'schedule' | 'applications' | 'positions' | 'results' | 'log';
+type Tab = 'schedule' | 'applications' | 'positions' | 'results' | 'participation' | 'log';
 
 const Detail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const [e, setE] = useState<AdminGeneralElection | null>(null);
@@ -110,6 +110,7 @@ const Detail = ({ id, onBack }: { id: string; onBack: () => void }) => {
     { id: 'applications', label: 'طلبات الترشح', icon: ClipboardList, badge: pending },
     { id: 'positions', label: 'المناصب والمترشحون', icon: Users },
     { id: 'results', label: 'النتائج', icon: Trophy },
+    { id: 'participation', label: 'سجل المشاركة', icon: UserCheck },
     { id: 'log', label: 'السجل', icon: History },
   ];
 
@@ -172,6 +173,7 @@ const Detail = ({ id, onBack }: { id: string; onBack: () => void }) => {
       {tab === 'applications' && <ApplicationsTab e={e} busy={busy} act={act} />}
       {tab === 'positions' && <PositionsTab e={e} busy={busy} act={act} />}
       {tab === 'results' && <ResultsTab e={e} busy={busy} act={act} action={action} />}
+      {tab === 'participation' && <ParticipationTab e={e} />}
       {tab === 'log' && (
         <div className={`${card} p-4`}>
           {e.log.length === 0 ? <p className="text-center text-slate-500 py-8">لا توجد عمليات بعد</p> : (
@@ -310,6 +312,134 @@ const ScheduleTab = ({ e, busy, act, action, onDeleted }: {
 };
 
 // ─── Applications ────────────────────────────────────────────────────────────
+
+// ─── Participation record ────────────────────────────────────────────────────
+// Who voted in each position, from the record that prevents double voting. It does not say for
+// whom anyone voted: the ballot is secret and that link is never stored.
+
+const APPROVAL_LABEL: Record<string, string> = { Approved: 'معتمد', 'Pending Approval': 'قيد المراجعة', Rejected: 'مرفوض', Suspended: 'موقوف' };
+
+const MemberTable = ({ rows, withDate }: { rows: ParticipationMember[]; withDate: boolean }) => (
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800">
+          <th className="py-2 px-2 text-start font-bold">#</th>
+          <th className="py-2 px-2 text-start font-bold">الاسم</th>
+          <th className="py-2 px-2 text-start font-bold">رقم العضوية</th>
+          <th className="py-2 px-2 text-start font-bold">الهاتف</th>
+          <th className="py-2 px-2 text-start font-bold">البريد الإلكتروني</th>
+          <th className="py-2 px-2 text-start font-bold">الحساب</th>
+          {withDate && <th className="py-2 px-2 text-start font-bold">تاريخ التصويت</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((m, i) => (
+          <tr key={m.user_id} className="border-b border-slate-50 dark:border-slate-800/60 last:border-0">
+            <td className="py-2 px-2 text-slate-400 tabular-nums">{i + 1}</td>
+            <td className="py-2 px-2 font-bold text-slate-800 dark:text-white whitespace-nowrap">{m.full_name ?? <span className="text-slate-400">حساب محذوف</span>}</td>
+            <td className="py-2 px-2 text-slate-600" dir="ltr">{m.unique_short_id ?? '—'}</td>
+            <td className="py-2 px-2 text-slate-600 tabular-nums" dir="ltr">{m.phone ?? '—'}</td>
+            <td className="py-2 px-2 text-slate-600" dir="ltr">{m.email ?? '—'}</td>
+            <td className="py-2 px-2 text-xs font-bold text-slate-500 whitespace-nowrap">{m.approval_status ? APPROVAL_LABEL[m.approval_status] ?? m.approval_status : '—'}</td>
+            {withDate && <td className="py-2 px-2 text-slate-600 whitespace-nowrap tabular-nums">{m.voted_on ?? '—'}</td>}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const ParticipationTab = ({ e }: { e: AdminGeneralElection }) => {
+  const [data, setData] = useState<ElectionParticipation | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setData(await adminGetParticipation(e.id)); setError(''); }
+    catch (err) { setError(err instanceof Error ? err.message : 'تعذّر تحميل سجل المشاركة'); }
+    finally { setLoading(false); }
+  }, [e.id]);
+  useEffect(() => { void load(); }, [load]);
+
+  const q = query.trim().toLowerCase();
+  const match = (m: ParticipationMember) => !q || [m.full_name, m.phone, m.email, m.unique_short_id].some(v => (v ?? '').toLowerCase().includes(q));
+  const eligible = (data?.voters_total ?? 0) + (data?.non_voters.length ?? 0);
+
+  if (!data) {
+    return (
+      <div className={`${card} p-10 text-center`}>
+        {error ? <p className="text-red-600 font-bold">{error}</p> : <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500" />}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className={`${card} p-4 space-y-3`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-black text-lg flex items-center gap-2 me-auto"><UserCheck className="w-5 h-5 text-indigo-500" /> سجل المشاركة</h3>
+          <button onClick={() => void load()} disabled={loading} className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-sm flex items-center gap-1.5">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} تحديث
+          </button>
+        </div>
+        <p className="text-xs text-slate-500 leading-relaxed">يبيّن من شارك في التصويت في كل منصب. لا يبيّن لمن صوّت أحد: التصويت سري ولا يُحفظ هذا الربط. هذا السجل خاص بالمشرفين، ويُسجَّل كل اطلاع عليه في سجل الانتخابات.</p>
+        <div className="grid grid-cols-3 gap-2">
+          {[['صوّتوا', data.voters_total], ['لم يصوّتوا بعد', data.non_voters.length], ['المؤهلون حاليًا', eligible]].map(([l, v]) => (
+            <div key={l as string} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 text-center">
+              <div className="text-2xl font-black text-slate-800 dark:text-white tabular-nums">{v}</div>
+              <div className="text-[11px] font-bold text-slate-500">{l}</div>
+            </div>
+          ))}
+        </div>
+        <label className="relative block">
+          <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 start-3 text-slate-400" />
+          <input value={query} onChange={ev => setQuery(ev.target.value)} placeholder="بحث بالاسم أو الهاتف أو البريد أو رقم العضوية" className={`${input} ps-9`} />
+        </label>
+      </div>
+
+      {data.positions.map(p => {
+        const rows = p.voters.filter(match);
+        const isOpen = open === p.id || (!!q && rows.length > 0);
+        return (
+          <div key={p.id} className={card}>
+            <button onClick={() => setOpen(open === p.id ? null : p.id)} aria-expanded={isOpen}
+              className="w-full p-4 flex items-center gap-3 text-start">
+              <span className="font-black text-slate-800 dark:text-white flex-1">{p.title}{!p.is_active && <span className="ms-2 text-xs font-bold text-slate-400">(موقوف)</span>}</span>
+              <span className="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-black tabular-nums">{p.voters.length} مصوّت</span>
+              <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+              <div className="px-4 pb-4">
+                {rows.length === 0
+                  ? <p className="text-sm text-slate-500 text-center py-4">{p.voters.length === 0 ? 'لم يصوّت أحد في هذا المنصب بعد' : 'لا توجد نتائج للبحث'}</p>
+                  : <MemberTable rows={rows} withDate />}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <div className={card}>
+        <button onClick={() => setOpen(open === 'non' ? null : 'non')} aria-expanded={open === 'non'} className="w-full p-4 flex items-center gap-3 text-start">
+          <span className="font-black text-slate-800 dark:text-white flex-1">لم يصوّتوا بعد <span className="text-xs font-bold text-slate-400">({data.eligibility === 'approved' ? 'الأعضاء المعتمدون' : 'كل المسجلين'})</span></span>
+          <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-black tabular-nums">{data.non_voters.length}</span>
+          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open === 'non' ? 'rotate-180' : ''}`} />
+        </button>
+        {(open === 'non' || (!!q && data.non_voters.some(match))) && (
+          <div className="px-4 pb-4">
+            {data.non_voters.filter(match).length === 0
+              ? <p className="text-sm text-slate-500 text-center py-4">لا أحد</p>
+              : <MemberTable rows={data.non_voters.filter(match)} withDate={false} />}
+          </div>
+        )}
+      </div>
+      {votingStarted(e.phase) ? null : <p className="text-xs text-slate-500 text-center">لم يبدأ التصويت بعد.</p>}
+    </div>
+  );
+};
 
 const ApplicationsTab = ({ e, busy, act }: { e: AdminGeneralElection; busy: string | null; act: ActFn }) => {
   const [status, setStatus] = useState<ApplicationStatus | 'all'>('pending');
