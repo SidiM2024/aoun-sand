@@ -22,6 +22,7 @@ const UserRequestsPage = lazy(() => import('./pages/UserRequestsPage').then(modu
 const MahajaDashboard = lazy(() => import('./pages/MahajaDashboard').then(module => ({ default: module.MahajaDashboard })));
 const MahajaCoursePage = lazy(() => import('./pages/MahajaCoursePage').then(module => ({ default: module.MahajaCoursePage })));
 const ElectionsPage = lazy(() => import('./pages/ElectionsPage').then(module => ({ default: module.ElectionsPage })));
+const WinnerCelebration = lazy(() => import('./components/elections/WinnerCelebration').then(module => ({ default: module.WinnerCelebration })));
 const CandidateCardPage = lazy(() => import('./pages/CandidateCardPage').then(module => ({ default: module.CandidateCardPage })));
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -152,7 +153,7 @@ const AppContent = () => {
   // Admin page also hides all user-facing chrome (Header, Nav, Notifications)
   // to prevent context leakage and unnecessary queries during admin sessions
   const isAdminPage = location.pathname === '/admin';
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const isMahajaUser = userProfile?.is_mahaja === true;
   // Shared candidate cards open as a standalone page (also for visitors without an account).
   const isCandidateCard = location.pathname.startsWith('/candidate/');
@@ -167,6 +168,7 @@ const AppContent = () => {
       {!isShellHidden && <NotificationsModal />}
       <Toaster position="top-center" />
       <UpdateBanner />
+      {user && !isAdminPage && !isMahajaUser && <Suspense fallback={null}><WinnerCelebration /></Suspense>}
       <main className={`flex-1 ${!isShellHidden ? 'website-main' : ''}`}>
         <Suspense fallback={<div role="status" className="container-custom py-48 text-center">جارٍ التحميل… / Loading…</div>}>
         <Routes>

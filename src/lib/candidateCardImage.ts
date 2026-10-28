@@ -32,13 +32,13 @@ const loadImage = (src: string, cors: boolean) => new Promise<HTMLImageElement>(
 
 // The candidate's photo comes from storage (another origin): it is read with CORS so the canvas
 // stays exportable. A separate URL avoids reusing a cached copy fetched without CORS.
-const loadPhoto = async (url: string | null) => {
+export const loadPhoto = async (url: string | null) => {
   if (!url) return null;
   try { return await loadImage(`${url}${url.includes('?') ? '&' : '?'}card=1`, true); }
   catch { return null; }
 };
 
-const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+export const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -49,7 +49,7 @@ const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 };
 
 // Splits text into lines no wider than maxWidth (words never cut); at most maxLines, with "…".
-const wrap = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number) => {
+export const wrap = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number) => {
   const lines: string[] = [];
   const paragraphs = text.replace(/\r/g, '').split('\n').map(p => p.trim()).filter(Boolean);
   let truncated = false;
@@ -74,7 +74,7 @@ const wrap = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, max
   return out;
 };
 
-const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: number, cy: number, r: number) => {
+export const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: number, cy: number, r: number) => {
   const s = Math.max((2 * r) / img.naturalWidth, (2 * r) / img.naturalHeight);
   const w = img.naturalWidth * s;
   const h = img.naturalHeight * s;
@@ -86,7 +86,7 @@ const drawCover = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: num
   ctx.restore();
 };
 
-const drawPlaceholder = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => {
+export const drawPlaceholder = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
