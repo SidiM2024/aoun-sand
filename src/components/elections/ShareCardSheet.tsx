@@ -36,7 +36,15 @@ export interface ShareCardTarget {
 
 type Status = 'loading' | 'ready' | 'error';
 
-export const ShareCardSheet = ({ card, onClose }: { card: ShareCardTarget; onClose: () => void }) => {
+export const ShareCardSheet = ({ card, onClose, render, fileName, heading, shareText }: {
+  card: ShareCardTarget;
+  onClose: () => void;
+  /** Other picture (e.g. results card); default: the candidate's card. */
+  render?: (url: string) => Promise<Blob>;
+  fileName?: string;
+  heading?: string;
+  shareText?: string;
+}) => {
   const links = candidateShareLinks(card.fullName, card.positionTitle, card.id);
   const [status, setStatus] = useState<Status>('loading');
   const [file, setFile] = useState<File | null>(null);
@@ -52,10 +60,10 @@ export const ShareCardSheet = ({ card, onClose }: { card: ShareCardTarget; onClo
   useEffect(() => {
     let alive = true;
     setStatus('loading');
-    renderCandidateCardImage({ ...card, url: links.url })
+    (render ? render(links.url) : renderCandidateCardImage({ ...card, url: links.url }))
       .then(blob => {
         if (!alive) return;
-        const f = new File([blob], cardImageFileName(card.id), { type: 'image/jpeg' });
+        const f = new File([blob], fileName ?? cardImageFileName(card.id), { type: blob.type || 'image/jpeg' });
         const u = URL.createObjectURL(blob);
         if (previewRef.current) URL.revokeObjectURL(previewRef.current);
         previewRef.current = u;
@@ -90,7 +98,7 @@ export const ShareCardSheet = ({ card, onClose }: { card: ShareCardTarget; onClo
     if (!canShareFiles) { download(); return; }
     setSharing(true);
     try {
-      await navigator.share({ files: [file], title: card.fullName, text: `${links.text}\n${links.url}` });
+      await navigator.share({ files: [file], title: card.fullName, text: `${shareText ?? links.text}\n${links.url}` });
     } catch (err) {
       const name = (err as DOMException)?.name;
       if (name !== 'AbortError') {
@@ -115,7 +123,7 @@ export const ShareCardSheet = ({ card, onClose }: { card: ShareCardTarget; onClo
       <div onClick={ev => ev.stopPropagation()} role="dialog" aria-modal="true" aria-label="مشاركة بطاقة المترشح"
         className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto bg-white dark:bg-slate-900 rounded-t-[28px] sm:rounded-[28px] p-4 sm:p-5 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-black text-lg text-[#262150] dark:text-white flex items-center gap-2"><ImageIcon className="w-5 h-5 text-[#e2706a]" /> مشاركة بطاقة المترشح</h3>
+          <h3 className="font-black text-lg text-[#262150] dark:text-white flex items-center gap-2"><ImageIcon className="w-5 h-5 text-[#e2706a]" /> {heading ?? 'مشاركة بطاقة المترشح'}</h3>
           <button onClick={onClose} aria-label="إغلاق" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><X className="w-5 h-5" /></button>
         </div>
 

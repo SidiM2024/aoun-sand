@@ -16,6 +16,7 @@ import { CandidateElectionCard } from './CandidateElectionCard';
 import { CandidateGallery } from './CandidateGallery';
 import { PhotoCropEditor } from './PhotoCropEditor';
 import { LiveStats, VotingBoard } from './VotingBoard';
+import { ElectionResultsView, ResultsWaiting } from './ElectionResults';
 
 const NAVY = 'bg-[#211d45]';
 
@@ -335,7 +336,7 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
           {isVoting && !user && (
             <div className="mt-4 flex justify-center"><Link to="/auth" state={{ from: { pathname: '/elections' } }} className="px-5 py-3 rounded-2xl bg-[#ef8f88] font-black flex items-center gap-2"><LogIn className="w-5 h-5" /> سجّل الدخول للتصويت</Link></div>
           )}
-          {votingStarted(e.phase) && <LiveStats e={e} lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={reload} />}
+          {(isVoting || e.phase === 'results') && <LiveStats e={e} lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={reload} />}
         </div>
       </div>
 
@@ -405,7 +406,10 @@ const ElectionView = ({ e, offset, reload, lastUpdated, refreshing }: {
         )}
 
         {/* Voting, closed voting and results: the electronic ballot / live results board. */}
-        {votingStarted(e.phase) && <VotingBoard e={e} userId={user?.id ?? null} reload={reload} />}
+        {isVoting && <VotingBoard e={e} userId={user?.id ?? null} reload={reload} />}
+        {/* Voting closed: nothing until the administration announces the results. */}
+        {e.phase === 'voting_closed' && <ResultsWaiting e={e} lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={() => void reload()} />}
+        {e.phase === 'results' && <ElectionResultsView e={e} />}
 
         {/* Before voting: every approved candidate's card, for everyone. */}
         {!votingStarted(e.phase) && (() => {

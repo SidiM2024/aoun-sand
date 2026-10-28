@@ -457,6 +457,12 @@ export const LOG_LABELS: Record<string, string> = {
 export const candidacyLabel = (positionTitle: string) =>
   positionTitle.startsWith('مسؤول ') ? { lead: 'يترشح لمسؤولية', target: positionTitle.slice('مسؤول '.length) } : { lead: 'يترشح لمنصب', target: positionTitle };
 
+/** After the results: «فاز بمنصب الرئيس» / «فاز بمسؤولية اللجنة المالية», or «ترشّح لمنصب …». */
+export const resultLabel = (positionTitle: string, winner: boolean) => {
+  const { lead, target } = candidacyLabel(positionTitle);
+  return { lead: winner ? lead.replace('يترشح ل', 'فاز ب') : lead.replace('يترشح', 'ترشّح'), target };
+};
+
 export interface CandidateCardData {
   id: string;
   full_name: string;
