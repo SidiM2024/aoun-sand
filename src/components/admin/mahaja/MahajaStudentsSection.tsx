@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Plus, Search, MapPin, ArrowDownUp, Eye, Edit2, Trash2, Download, Users, Phone, Calendar, BookOpen, Home,
-  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap, CalendarCheck, Filter, FileDown,
+  RefreshCw, ShieldCheck, Loader2, AlertTriangle, ImageOff, X, FileText, GraduationCap, CalendarCheck, Filter, FileDown, UsersRound,
 } from 'lucide-react';
 import {
   checkStudentsAccess, deleteStudent, formatAge, formatAhzab, formatStudentCode, isSuspended, issueStudentsToken, listStudents, StudentsError,
@@ -13,6 +13,7 @@ import { downloadStudentCardPdf, downloadStudentCardPng } from '../../../utils/s
 import { StudentFormModal } from './StudentFormModal';
 import { StudentProfileModal } from './StudentProfileModal';
 import { AttendanceModal } from './AttendanceModal';
+import { TeamsModal } from './TeamsModal';
 import { useStudentsPdfExport } from './useStudentsPdfExport';
 
 type AccessState = 'checking' | 'granted' | 'needs_verification' | 'forbidden' | 'not_installed' | 'error';
@@ -155,6 +156,7 @@ export const MahajaStudentsSection = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [teamsOpen, setTeamsOpen] = useState(false);
   const pdfExport = useStudentsPdfExport();
 
   const [formStudent, setFormStudent] = useState<MahajaStudent | null | undefined>(undefined); // undefined = closed, null = new
@@ -307,6 +309,10 @@ export const MahajaStudentsSection = () => {
             className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
             <CalendarCheck className="w-5 h-5" /> الحضور والخروج
           </button>
+          <button onClick={() => setTeamsOpen(true)}
+            className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2">
+            <UsersRound className="w-5 h-5" /> الفرق والمتابعة
+          </button>
           <button onClick={pdfExport.exportAll} disabled={students.length === 0 || pdfExport.busy !== null}
             className="px-5 py-3 rounded-2xl font-black bg-white/15 text-white border border-white/30 hover:bg-white/25 flex items-center gap-2 disabled:opacity-50">
             {pdfExport.busy === 'all' ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileDown className="w-5 h-5" />} تحميل بيانات الطلاب PDF
@@ -409,6 +415,7 @@ export const MahajaStudentsSection = () => {
         <StudentProfileModal student={viewing} onClose={() => setViewing(null)} onEdit={() => setFormStudent(viewing)} onDelete={() => setDeleting(viewing)} onUpdated={onStudentUpdated} onExportPdf={() => pdfExport.exportOne(viewing.id)} exportingPdf={pdfExport.busy === viewing.id} />
       )}
       {attendanceOpen && <AttendanceModal students={students} onClose={() => setAttendanceOpen(false)} />}
+      {teamsOpen && <TeamsModal students={students} onClose={() => setTeamsOpen(false)} />}
       {deleting && <ConfirmDelete student={deleting} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
     </div>
   );
