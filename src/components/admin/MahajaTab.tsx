@@ -3,14 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon, FileText, LayoutList, List, PlayCircle, Headphones, GraduationCap } from 'lucide-react';
+import { BookOpen, Video, Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Link as LinkIcon, FileText, LayoutList, List, PlayCircle, Headphones, GraduationCap, Wallet } from 'lucide-react';
 import { MahajaStudentsSection } from './mahaja/MahajaStudentsSection';
+import { MahajaFinanceSection } from './mahaja/finance/MahajaFinanceSection';
 
 export const MahajaTab = () => {
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   
-  const [activeTab, setActiveTab] = useState<'courses' | 'lessons' | 'students'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'lessons' | 'students' | 'finance'>('courses');
   const [courses, setCourses] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,10 +155,13 @@ export const MahajaTab = () => {
           <button onClick={() => { setActiveTab('students'); setIsEditing(null); }} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${activeTab === 'students' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}>
             <GraduationCap className="w-4 h-4" /> {isRTL ? 'طلاب المحجة البيضاء' : 'Students'}
           </button>
+          <button onClick={() => { setActiveTab('finance'); setIsEditing(null); }} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 ${activeTab === 'finance' ? 'bg-white text-[#262150] shadow-sm' : 'text-slate-500'}`}>
+            <Wallet className="w-4 h-4" /> {isRTL ? 'مالية المعهد' : 'Finance'}
+          </button>
         </div>
       </div>
 
-      {activeTab === 'students' ? <MahajaStudentsSection /> : (<>
+      {activeTab === 'finance' ? <MahajaFinanceSection /> : activeTab === 'students' ? <MahajaStudentsSection /> : (<>
 
       <div className="flex gap-4 mb-6">
         <input 
